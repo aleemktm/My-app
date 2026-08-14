@@ -396,7 +396,7 @@
     className: inputCls
   })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
-  }, "Purchase Price (AED)"), /* @__PURE__ */React.createElement("input", {
+  }, "Purchase Price"), /* @__PURE__ */React.createElement("input", {
     type: "number",
     inputMode: "decimal",
     step: "0.01",
@@ -411,7 +411,7 @@
     className: inputCls
   })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
-  }, "Current Price (AED)"), /* @__PURE__ */React.createElement("input", {
+  }, "Current Price"), /* @__PURE__ */React.createElement("input", {
     type: "number",
     inputMode: "decimal",
     step: "0.01",
@@ -528,7 +528,7 @@
       amount: e.target.value
     }),
     className: inputCls
-  })), ["income", "expense", "account"].includes(modalType) && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+  })), ["income", "expense", "account", "asset"].includes(modalType) && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, "Currency"), /* @__PURE__ */React.createElement("select", {
     value: formInput.currency,
