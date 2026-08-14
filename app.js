@@ -647,8 +647,8 @@ const openEditModal = (type, item) => {
       title: item.name,
       assetCategory: item.category,
       weightGrams: item.weightGrams ? String(item.weightGrams) : "",
-      purchasePriceAED: String(item.purchasePriceAED),
-      currentPriceAED: String(item.currentPriceAED)
+      purchasePriceAED: String(Math.round(convertFromAED(item.purchasePriceAED, currency) * 100) / 100),
+      currentPriceAED: String(Math.round(convertFromAED(item.currentPriceAED, currency) * 100) / 100)
     });
   } else if (type === "loan") {
     setFormInput({
@@ -977,8 +977,8 @@ const handleFormSubmit = e => {
     }
     setAccounts(updatedAccs);
   } else if (modalType === "asset") {
-    const curVal = Number(formInput.currentPriceAED) || 0;
-    const purVal = Number(formInput.purchasePriceAED) || 0;
+    const curVal = convertToAED(Number(formInput.currentPriceAED) || 0, currency);
+    const purVal = convertToAED(Number(formInput.purchasePriceAED) || 0, currency);
     if (editingId) {
       updatedAsts = assets.map(a => a.id === editingId ? {
         ...a,

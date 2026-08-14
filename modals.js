@@ -263,7 +263,7 @@
   }
 
   function MainFormModal(props) {
-    const { accent, accounts, closeModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, numFmt, setFormInput } = props;
+    const { accent, accounts, closeModal, currency, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, numFmt, setFormInput } = props;
     return /* @__PURE__ */React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm"
   }, /* @__PURE__ */React.createElement("div", {
@@ -396,7 +396,7 @@
     className: inputCls
   })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
-  }, "Purchase Price (AED)"), /* @__PURE__ */React.createElement("input", {
+  }, `Purchase Price (${currency})`), /* @__PURE__ */React.createElement("input", {
     type: "number",
     inputMode: "decimal",
     step: "0.01",
@@ -411,7 +411,7 @@
     className: inputCls
   })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
-  }, "Current Price (AED)"), /* @__PURE__ */React.createElement("input", {
+  }, `Current Price (${currency})`), /* @__PURE__ */React.createElement("input", {
     type: "number",
     inputMode: "decimal",
     step: "0.01",
