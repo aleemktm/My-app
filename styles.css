@@ -315,3 +315,34 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 @media (prefers-reduced-motion: reduce) {
   .mobile-nav-swipe { scroll-behavior:auto; scroll-snap-type:none; }
 }
+
+/* Apple-native typography + controlled selection */
+html, body, button, input, select, textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body, button, a, label, p, h1, h2, h3, h4, h5, h6, li, span, div {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"],
+.home-metric, .home-secondary-metric, .home-stat strong, .home-ring-inner strong,
+.home-account-balance, .font-extrabold.text-base, .font-extrabold.text-lg,
+[data-number-selectable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+html[data-tab-swipe="left"] main { animation: appTabSwipeLeft .22s cubic-bezier(.22,.8,.2,1); }
+html[data-tab-swipe="right"] main { animation: appTabSwipeRight .22s cubic-bezier(.22,.8,.2,1); }
+@keyframes appTabSwipeLeft {
+  0% { opacity:.82; transform:translateX(18px); }
+  100% { opacity:1; transform:translateX(0); }
+}
+@keyframes appTabSwipeRight {
+  0% { opacity:.82; transform:translateX(-18px); }
+  100% { opacity:1; transform:translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-tab-swipe] main { animation:none !important; }
+}
