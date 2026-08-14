@@ -3,6 +3,9 @@
   const h = React.createElement;
 
   function Overview(props) {
+    const [smsOpen, setSmsOpen] = React.useState(false);
+    const [smsText, setSmsText] = React.useState("");
+    const [smsParsed, setSmsParsed] = React.useState(null);
     const {
       DashCard, accent, accounts, assets, cardCls, currency, currentMonthLabel, darkMode,
       exchangeRates, fmt, greeting, liveGoldAEDPerGram, momDeltaPct, monthlyExpenseAED,
@@ -10,7 +13,7 @@
       refreshLiveRates, renderTxRow, runwayStatus, savingsRate, setActiveTab, setCurrency,
       settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
       totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
-      goldChangePct, goldChangeAED, openAISpark
+      goldChangePct, goldChangeAED, parseBankTransactionSMS, importBankTransactionFromSMS
     } = props;
 
     const isPositive = monthlySavingsAED >= 0;
@@ -92,13 +95,45 @@
       ),
 
       h("section", { className: "home-actions-section" },
-        h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY")), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
-        h("div", { className: "home-actions-grid" },
+        h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY"), h("h2", null)), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
+        h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
           action("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
           action("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
-          action("AI Spark", Icons.IconSpark, "ai", openAISpark),
+          h("button", { type: "button", className: "home-action home-action-ai", onClick: () => { setSmsOpen(true); setSmsParsed(null); } },
+            h("span", { className: "home-action-icon home-ai-icon" }, h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.9", className: "w-4 h-4" },
+              h("path", { d: "M12 3l1.4 5.6L19 10l-5.6 1.4L12 17l-1.4-5.6L5 10l5.6-1.4L12 3Z" }),
+              h("path", { d: "M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15Z" })
+            )),
+            h("span", null, "AI Spark")
+          ),
           action("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
           action("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
+        )
+      ),
+
+      smsOpen && h("div", { className: "home-ai-modal fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" },
+        h("div", { className: `w-full max-w-md rounded-3xl border p-5 shadow-2xl ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}` },
+          h("div", { className: "flex items-center justify-between mb-3" },
+            h("div", null, h("h3", { className: "font-bold text-sm" }, "AI Spark"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Paste a bank SMS and AleemFin will detect the transaction.")),
+            h("button", { type: "button", onClick: () => { setSmsOpen(false); setSmsParsed(null); }, className: "p-2 rounded-xl text-zinc-400" }, h(Icons.IconClose, { className: "w-4 h-4" }))
+          ),
+          !smsParsed && h(React.Fragment, null,
+            h("textarea", { value: smsText, onChange: e => setSmsText(e.target.value), placeholder: "Paste your bank transaction SMS here…", rows: 6, className: `w-full rounded-2xl border p-3 text-sm outline-none resize-none ${darkMode ? "bg-zinc-950 border-zinc-800" : "bg-zinc-50 border-zinc-200"}` }),
+            h("button", { type: "button", disabled: !smsText.trim(), onClick: () => setSmsParsed(parseBankTransactionSMS(smsText)), className: `w-full mt-3 py-3 rounded-2xl text-xs font-bold text-white ${accent.solidBtn} disabled:opacity-40` }, "Analyze transaction")
+          ),
+          smsParsed && h("div", { className: "space-y-3" },
+            h("div", { className: `rounded-2xl border p-4 ${darkMode ? "bg-zinc-950 border-zinc-800" : "bg-zinc-50 border-zinc-200"}` },
+              smsParsed.type === "income" ? h("span", { className: "text-[10px] font-bold uppercase text-emerald-500" }, "Salary / Income") : smsParsed.type === "expense" ? h("span", { className: "text-[10px] font-bold uppercase text-rose-500" }, "Expense") : h("span", { className: "text-[10px] font-bold uppercase text-blue-500" }, "Transfer"),
+              h("div", { className: "text-2xl font-extrabold mt-1" }, `${smsParsed.currency} ${numFmt(smsParsed.amount)}`),
+              h("p", { className: "text-xs mt-1" }, smsParsed.title),
+              h("p", { className: "text-[10px] text-zinc-400 mt-2" }, `${smsParsed.category} · ${smsParsed.date} · ${smsParsed.accountName}`)
+            ),
+            h("div", { className: "flex gap-2" },
+              h("button", { type: "button", onClick: () => setSmsParsed(parseBankTransactionSMS(smsText)), className: `flex-1 py-3 rounded-2xl text-xs font-bold border ${darkMode ? "border-zinc-700 text-zinc-300" : "border-zinc-200 text-zinc-600"}` }, "Re-analyze"),
+              h("button", { type: "button", onClick: () => { if (importBankTransactionFromSMS(smsParsed)) { setSmsOpen(false); setSmsText(""); setSmsParsed(null); } }, className: `flex-1 py-3 rounded-2xl text-xs font-bold text-white ${accent.solidBtn}` }, "Confirm & save")
+            )
+          ),
+          smsText && !smsParsed && h("p", { className: "text-[9px] text-zinc-500 mt-2" }, "Nothing is saved until you confirm the detected transaction.")
         )
       ),
 
