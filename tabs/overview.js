@@ -3,9 +3,6 @@
   const h = React.createElement;
 
   function Overview(props) {
-    const [smsOpen, setSmsOpen] = React.useState(false);
-    const [smsText, setSmsText] = React.useState("");
-    const [smsParsed, setSmsParsed] = React.useState(null);
     const {
       DashCard, accent, accounts, assets, cardCls, currency, currentMonthLabel, darkMode,
       exchangeRates, fmt, greeting, liveGoldAEDPerGram, momDeltaPct, monthlyExpenseAED,
@@ -13,7 +10,8 @@
       refreshLiveRates, renderTxRow, runwayStatus, savingsRate, setActiveTab, setCurrency,
       settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
       totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
-      goldChangePct, goldChangeAED, parseBankTransactionSMS, importBankTransactionFromSMS
+      goldChangePct, goldChangeAED, parseBankTransactionSMS, importBankTransactionFromSMS,
+      smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed
     } = props;
 
     const isPositive = monthlySavingsAED >= 0;
@@ -111,7 +109,7 @@
         )
       ),
 
-      smsOpen && h("div", { className: "home-ai-modal fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" },
+      smsOpen && ReactDOM.createPortal(h("div", { className: "home-ai-modal fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" },
         h("div", { className: `w-full max-w-md rounded-3xl border p-5 shadow-2xl ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}` },
           h("div", { className: "flex items-center justify-between mb-3" },
             h("div", null, h("h3", { className: "font-bold text-sm" }, "AI Spark"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Paste a bank SMS and AleemFin will detect the transaction.")),
@@ -135,7 +133,7 @@
           ),
           smsText && !smsParsed && h("p", { className: "text-[9px] text-zinc-500 mt-2" }, "Nothing is saved until you confirm the detected transaction.")
         )
-      ),
+      ), document.body),
 
       h("section", { className: "home-stats-grid" }, (() => {
         const selected = Array.isArray(settings.dashboardCards) ? settings.dashboardCards : [];
