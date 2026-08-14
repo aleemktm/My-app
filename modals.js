@@ -32,6 +32,32 @@
   })));
   }
 
+  function AISparkModal(props) {
+    const { aiSparkText, analyzeAISpark, darkMode, setAISparkOpen, setAISparkText } = props;
+    return /* @__PURE__ */React.createElement("div", {
+      className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fadeIn"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: `w-full max-w-sm rounded-3xl border p-5 shadow-2xl space-y-3 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
+    }, /* @__PURE__ */React.createElement("div", { className: "flex items-center justify-between" },
+      /* @__PURE__ */React.createElement("div", { className: "flex items-center gap-2" },
+        /* @__PURE__ */React.createElement("div", { className: "w-8 h-8 rounded-xl flex items-center justify-center bg-amber-500/10 text-amber-500" }, /* @__PURE__ */React.createElement(Icons.IconSpark, { className: "w-4 h-4" })),
+        /* @__PURE__ */React.createElement("h3", { className: "font-bold text-sm" }, "AI Spark")
+      ),
+      /* @__PURE__ */React.createElement("button", { type: "button", onClick: () => setAISparkOpen(false), className: "p-1 rounded-lg text-zinc-400 hover:bg-zinc-800" }, /* @__PURE__ */React.createElement(Icons.IconClose, { className: "w-3.5 h-3.5" }))
+    ),
+    /* @__PURE__ */React.createElement("p", { className: "text-[11px] text-zinc-400" }, "Paste a bank transaction SMS and AleemFin will detect whether it is income or expense and prefill the entry."),
+    /* @__PURE__ */React.createElement("textarea", {
+      value: aiSparkText,
+      onChange: e => setAISparkText(e.target.value),
+      rows: 5,
+      autoFocus: true,
+      placeholder: "Paste bank SMS here…",
+      className: `w-full rounded-2xl border px-3 py-3 text-xs outline-none resize-none ${darkMode ? "bg-zinc-950 border-zinc-800" : "bg-zinc-50 border-zinc-200"}`
+    }),
+    /* @__PURE__ */React.createElement("button", { type: "button", onClick: analyzeAISpark, className: "w-full py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-white hover:bg-amber-400" }, "Analyze transaction")
+    ));
+  }
+
   function DeleteConfirm(props) {
     const { confirmDelete, darkMode, deleteTarget, setDeleteTarget } = props;
     return /* @__PURE__ */React.createElement("div", {
