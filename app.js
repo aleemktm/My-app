@@ -121,10 +121,6 @@ var NAV_ITEMS = [{
   id: "recurring",
   label: "Recurring",
   icon: Icons.IconCalendar
-}, {
-  id: "settings",
-  label: "Settings",
-  icon: Icons.IconMenu
 }];
 
   function App() {
@@ -176,7 +172,6 @@ const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
 const primaryNavIds = settings.primaryNavIds && settings.primaryNavIds.length === 4 ? settings.primaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
 const MORE_NAV_ITEMS = NAV_ITEMS.filter(t => !primaryNavIds.includes(t.id));
-const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(t => t.id !== "settings");
 const numFmt = (n, opts) => Number(n || 0).toLocaleString(settings.numberFormat === "period" ? "de-DE" : "en-US", opts);
 const dateFmt = iso => {
   if (!iso) return "";
@@ -205,39 +200,6 @@ useEffect(() => {
   }
 }, [settings.theme]);
 const [activeTab, setActiveTab] = useState("overview");
-useEffect(() => {
-  if (typeof window === "undefined" || window.innerWidth > 767) return;
-  let startX = 0, startY = 0, startTarget = null, tracking = false;
-  const onStart = e => {
-    const t = e.touches && e.touches[0];
-    if (!t || activeTab === "settings") return;
-    startX = t.clientX; startY = t.clientY; startTarget = e.target; tracking = true;
-  };
-  const onEnd = e => {
-    if (!tracking) return;
-    tracking = false;
-    const t = e.changedTouches && e.changedTouches[0];
-    if (!t) return;
-    const dx = t.clientX - startX, dy = t.clientY - startY;
-    if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
-    const target = startTarget && startTarget.closest && startTarget.closest("input, textarea, select, [contenteditable=\"true\"]");
-    if (target) return;
-    // Horizontal swipes inside Quick Entry belong to the card carousel, not tab navigation.
-    const quickEntry = startTarget && startTarget.closest && startTarget.closest(".home-actions-grid");
-    if (quickEntry) return;
-    const tabs = MOBILE_NAV_ITEMS;
-    const index = tabs.findIndex(tab => tab.id === activeTab);
-    if (index < 0) return;
-    const nextIndex = dx < 0 ? index + 1 : index - 1;
-    if (nextIndex < 0 || nextIndex >= tabs.length) return;
-    document.documentElement.dataset.tabSwipe = dx < 0 ? "left" : "right";
-    setActiveTab(tabs[nextIndex].id);
-    window.setTimeout(() => delete document.documentElement.dataset.tabSwipe, 240);
-  };
-  window.addEventListener("touchstart", onStart, { passive: true });
-  window.addEventListener("touchend", onEnd, { passive: true });
-  return () => { window.removeEventListener("touchstart", onStart); window.removeEventListener("touchend", onEnd); };
-}, [activeTab]);
 const [insightTrendPeriod, setInsightTrendPeriod] = useState("monthly");
 const [insightTrendStyle, setInsightTrendStyle] = useState("line");
 const [greetingTypingStarted, setGreetingTypingStarted] = useState(false);
@@ -296,14 +258,12 @@ const [assets, setAssets] = useState(() => loadStoredData("assets", [{
   name: "Physical Gold (24k)",
   category: "Gold",
   weightGrams: 50,
-  currency: "AED",
   purchasePriceAED: 11e3,
   currentPriceAED: 13750
 }, {
   id: "2",
   name: "Downtown Apartment",
   category: "Property",
-  currency: "AED",
   purchasePriceAED: 1e6,
   currentPriceAED: 12e5
 }]));
@@ -455,9 +415,6 @@ const handleRedo = () => {
   setTransactions(nextState.transactions);
   persistAllData(nextState.accounts, nextState.assets, nextState.loans, nextState.transactions);
 };
-const [smsOpen, setSmsOpen] = useState(false);
-const [smsText, setSmsText] = useState("");
-const [smsParsed, setSmsParsed] = useState(null);
 const [modalOpen, setModalOpen] = useState(false);
 const [modalType, setModalType] = useState("income");
 const [editingId, setEditingId] = useState(null);
@@ -516,7 +473,7 @@ const [goldSyncMsg, setGoldSyncMsg] = useState("");
 const [liveGoldAEDPerGram, setLiveGoldAEDPerGram] = useState(null);
 const netWorthWithRates = rates => {
   const liquid = accounts.reduce((sum, account) => sum + account.balance * (rates[account.currency] || 1), 0);
-  const fixedAssets = assets.reduce((sum, asset) => sum + (asset.currentPriceAED || 0) * (rates[asset.currency || "AED"] || 1), 0);
+  const fixedAssets = assets.reduce((sum, asset) => sum + (asset.currentPriceAED || 0), 0);
   const lent = loans.filter(loan => loan.type === "lent").reduce((sum, loan) => sum + (loan.amount - (loan.repaid || 0)) * (rates[loan.currency] || 1), 0);
   const borrowed = loans.filter(loan => loan.type === "borrowed").reduce((sum, loan) => sum + (loan.amount - (loan.repaid || 0)) * (rates[loan.currency] || 1), 0);
   return liquid + fixedAssets + lent - borrowed;
@@ -524,7 +481,7 @@ const netWorthWithRates = rates => {
 const flashHeroForRateUpdate = nextRates => setHeroFlash(netWorthWithRates(nextRates) >= netWorthWithRates(exchangeRates) ? "gain" : "loss");
 const flashHeroForGoldRate = nextRate => {
   const goldWeight = assets.filter(asset => asset.category === "Gold" && asset.weightGrams).reduce((sum, asset) => sum + Number(asset.weightGrams), 0);
-  const savedGoldRate = goldWeight > 0 ? assets.filter(asset => asset.category === "Gold" && asset.weightGrams).reduce((sum, asset) => sum + convertToAED(asset.currentPriceAED || 0, asset.currency || "AED"), 0) / goldWeight : 0;
+  const savedGoldRate = goldWeight > 0 ? assets.filter(asset => asset.category === "Gold" && asset.weightGrams).reduce((sum, asset) => sum + (asset.currentPriceAED || 0), 0) / goldWeight : 0;
   setHeroFlash(nextRate >= (liveGoldAEDPerGram || savedGoldRate || nextRate) ? "gain" : "loss");
 };
 const syncLiveExchangeRates = async () => {
@@ -578,12 +535,12 @@ const syncLiveGoldRate = async (rates = exchangeRates) => {
 const applyLiveGoldRate = () => {
   if (!liveGoldAEDPerGram) return;
   saveStateToHistory();
-  const previousGoldValue = assets.filter(a => a.category === "Gold").reduce((sum, a) => sum + convertToAED(a.currentPriceAED || 0, a.currency || "AED"), 0);
+  const previousGoldValue = assets.filter(a => a.category === "Gold").reduce((sum, a) => sum + (a.currentPriceAED || 0), 0);
   const updated = assets.map(a => a.category === "Gold" && a.weightGrams ? {
     ...a,
-    currentPriceAED: Math.round(convertFromAED(a.weightGrams * liveGoldAEDPerGram, a.currency || "AED") * 100) / 100
+    currentPriceAED: Math.round(a.weightGrams * liveGoldAEDPerGram)
   } : a);
-  const updatedGoldValue = updated.filter(a => a.category === "Gold").reduce((sum, a) => sum + convertToAED(a.currentPriceAED || 0, a.currency || "AED"), 0);
+  const updatedGoldValue = updated.filter(a => a.category === "Gold").reduce((sum, a) => sum + (a.currentPriceAED || 0), 0);
   setHeroFlash(updatedGoldValue >= previousGoldValue ? "gain" : "loss");
   setAssets(updated);
   persistAllData(accounts, updated, loans, transactions);
@@ -649,7 +606,6 @@ const openEditModal = (type, item) => {
       title: item.name,
       assetCategory: item.category,
       weightGrams: item.weightGrams ? String(item.weightGrams) : "",
-      currency: item.currency || "AED",
       purchasePriceAED: String(item.purchasePriceAED),
       currentPriceAED: String(item.currentPriceAED)
     });
@@ -690,10 +646,10 @@ const closeModal = () => {
   setFormInput(getDefaultFormInput());
 };
 const totalLiquidAED = accounts.reduce((acc, item) => acc + convertToAED(item.balance, item.currency), 0);
-const totalPhysicalAED = assets.reduce((acc, item) => acc + convertToAED(item.currentPriceAED || 0, item.currency || "AED"), 0);
+const totalPhysicalAED = assets.reduce((acc, item) => acc + (item.currentPriceAED || 0), 0);
 const goldAssets = assets.filter(item => item.category === "Gold");
-const goldPurchaseAED = goldAssets.reduce((acc, item) => acc + convertToAED(item.purchasePriceAED || 0, item.currency || "AED"), 0);
-const goldCurrentAED = goldAssets.reduce((acc, item) => acc + convertToAED(item.currentPriceAED || 0, item.currency || "AED"), 0);
+const goldPurchaseAED = goldAssets.reduce((acc, item) => acc + (item.purchasePriceAED || 0), 0);
+const goldCurrentAED = goldAssets.reduce((acc, item) => acc + (item.currentPriceAED || 0), 0);
 const goldChangeAED = goldCurrentAED - goldPurchaseAED;
 const goldChangePct = goldPurchaseAED > 0 ? goldChangeAED / goldPurchaseAED * 100 : null;
 const totalLoansLentAED = loans.filter(l => l.type === "lent").reduce((acc, l) => acc + convertToAED(l.amount - (l.repaid || 0), l.currency), 0);
@@ -750,8 +706,7 @@ const fmt = amtAED => {
   })}`;
 };
 const getLastInflow = accId => {
-  const accountKey = String(accId);
-  const inflows = transactions.filter(t => (t.type === "income" && String(t.accountId) === accountKey) || (t.type === "transfer" && String(t.toAccountId) === accountKey));
+  const inflows = transactions.filter(t => t.type === "income" && t.accountId === accId || t.type === "transfer" && t.toAccountId === accId);
   if (inflows.length === 0) return null;
   const latest = inflows.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
   const cutoff = new Date();
@@ -759,8 +714,7 @@ const getLastInflow = accId => {
   return latest.date >= toLocalISO(cutoff) ? latest : null;
 };
 const getLastOutflow = accId => {
-  const accountKey = String(accId);
-  const outflows = transactions.filter(t => (t.type === "expense" && String(t.accountId) === accountKey) || (t.type === "transfer" && String(t.accountId) === accountKey));
+  const outflows = transactions.filter(t => t.type === "expense" && t.accountId === accId || t.type === "transfer" && t.accountId === accId);
   if (outflows.length === 0) return null;
   const latest = outflows.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
   const cutoff = new Date();
@@ -849,64 +803,6 @@ const filteredTransactions = useMemo(() => {
   if (ledgerSort === "date_asc") sorted.sort((a, b) => (a.date || "").localeCompare(b.date || ""));else if (ledgerSort === "date_desc") sorted.sort((a, b) => (b.date || "").localeCompare(a.date || ""));else if (ledgerSort === "amount_desc") sorted.sort((a, b) => (b.amount || 0) - (a.amount || 0));else if (ledgerSort === "amount_asc") sorted.sort((a, b) => (a.amount || 0) - (b.amount || 0));
   return sorted;
 }, [transactions, ledgerSearch, ledgerFilter, ledgerSort]);
-const parseBankTransactionSMS = sms => {
-  const text = String(sms || "").replace(/\s+/g, " ").trim();
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  const amountMatch = text.match(/(?:aed|dhs?|dirhams?|usd|\$|pkr|rs\.?|inr|sar|qar)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i) || text.match(/(?:amount|amt|for|of|debited|credited|spent|paid|received)\s*(?:is|:|-)?\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i);
-  if (!amountMatch) return null;
-  const amount = Number(amountMatch[1].replace(/,/g, ""));
-  if (!(amount > 0)) return null;
-  const currencyMatch = text.match(/\b(AED|DHS?|USD|PKR|INR|SAR|QAR)\b|\$/i);
-  const rawCurrency = currencyMatch ? currencyMatch[0].toUpperCase() : null;
-  const currency = rawCurrency === "DHS" || rawCurrency === "DHS?" ? "AED" : rawCurrency === "$" ? "USD" : ["AED","USD","PKR"].includes(rawCurrency) ? rawCurrency : (accounts[0]?.currency || "AED");
-  const isTransfer = /transfer|transferred|funds transfer|internal transfer|iban transfer/i.test(lower);
-  const isCredit = /salary|payroll|wage|credited|credit(ed)?|received|deposit|cash deposit|inward/i.test(lower);
-  const isDebit = /debit(ed)?|purchase|spent|payment|withdraw|paid/i.test(lower);
-  const type = isTransfer ? (isCredit && !isDebit ? "income" : "expense") : isCredit && !isDebit ? "income" : "expense";
-  let category = type === "income" ? (/salary|payroll|wage/i.test(lower) ? "Salary" : isTransfer ? "Transfer" : "Other") : isTransfer ? "Transfer" : "Other";
-  if (type === "expense") {
-    if (/grocery|supermarket|lulu|carrefour|spinneys|union coop/i.test(lower)) category = "Groceries";
-    else if (/rent|property|housing/i.test(lower)) category = "Rent";
-    else if (/restaurant|cafe|coffee|dining|talabat|deliveroo/i.test(lower)) category = "Dining";
-    else if (/fuel|petrol|salik|taxi|uber|careem|transport/i.test(lower)) category = "Transport";
-    else if (/shopping|mall|amazon|noon/i.test(lower)) category = "Shopping";
-    else if (/utility|dewa|etisalat|du\b|internet|electric/i.test(lower)) category = "Utilities";
-    else if (/family|wife|allowance/i.test(lower)) category = "Family";
-  }
-  const dateMatch = text.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
-  const date = dateMatch ? `${String(dateMatch[3]).length === 2 ? `20${dateMatch[3]}` : dateMatch[3]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[1]).padStart(2,"0")}` : todayISO();
-  const accountHint = text.match(/(?:card|a\/c|account|acct|ending|xx|\*{2,})[^0-9]{0,8}(\d{3,6})/i)?.[1] || text.match(/\b(\d{4})\b/)?.[1] || "";
-  let account = accountHint ? accounts.find(a => String(a.name).toLowerCase().includes(lower.match(/[a-z]{2,}/)?.[0] || "never") || String(a.id).endsWith(accountHint) || String(a.name).toLowerCase().includes(accountHint)) : null;
-  if (!account && accounts.length === 1) account = accounts[0];
-  if (!account) account = accounts.find(a => a.currency === currency) || accounts[0] || null;
-  let title = type === "income" ? (category === "Salary" ? "Salary" : isTransfer ? "Bank transfer" : "Bank income") : isTransfer ? "Bank transfer" : "Bank transaction";
-  const merchantMatch = text.match(/(?:at|to|from|merchant|pos|purchase|payment)\s*[:\-]?\s*([A-Za-z][A-Za-z0-9 &'._-]{2,40})/i);
-  if (merchantMatch) title = merchantMatch[1].trim().replace(/[.,;:]+$/, "");
-  return { type, category, amount, currency, accountId: account?.id || "", accountName: account?.name || "Select account", date, title, source: text };
-};
-const importBankTransactionFromSMS = parsed => {
-  if (!parsed || !parsed.accountId) {
-    alert("I couldn't confidently match this SMS to an account. Please add/select the bank account first.");
-    return false;
-  }
-  const targetAcc = accounts.find(a => a.id === parsed.accountId);
-  if (!targetAcc) return false;
-  const amount = Number(parsed.amount);
-  if (!(amount > 0)) return false;
-  saveStateToHistory();
-  const accountAmt = convertFromAED(convertToAED(amount, parsed.currency), targetAcc.currency);
-  const tx = {
-    id: makeId(), title: parsed.title || "Bank transaction", type: parsed.type, category: parsed.category || "Other",
-    amount, currency: parsed.currency, rateToAED: exchangeRates[parsed.currency] || 1, accountAmount: accountAmt,
-    accountId: targetAcc.id, date: parsed.date || todayISO(), source: "bank-sms"
-  };
-  const updatedAccs = accounts.map(a => a.id === targetAcc.id ? { ...a, balance: a.balance + (parsed.type === "income" ? accountAmt : parsed.type === "expense" ? -accountAmt : 0) } : a);
-  const updatedTxns = [tx, ...transactions];
-  setAccounts(updatedAccs); setTransactions(updatedTxns);
-  persistAllData(updatedAccs, assets, loans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
-  return true;
-};
 const handleFormSubmit = e => {
   e.preventDefault();
   const amt = Number(formInput.amount);
@@ -988,7 +884,6 @@ const handleFormSubmit = e => {
         name: formInput.title,
         category: formInput.assetCategory,
         weightGrams: Number(formInput.weightGrams) || 0,
-        currency: formInput.currency,
         purchasePriceAED: purVal,
         currentPriceAED: curVal
       } : a);
@@ -998,7 +893,6 @@ const handleFormSubmit = e => {
         name: formInput.title,
         category: formInput.assetCategory,
         weightGrams: Number(formInput.weightGrams) || 0,
-        currency: formInput.currency,
         purchasePriceAED: purVal,
         currentPriceAED: curVal
       });
@@ -1916,7 +1810,17 @@ useEffect(() => {
   reminder.append(summary, done);
   greetingLine.append(reminder);
 }, [activeTab, recurringReminders, darkMode]);
-
+useEffect(() => {
+  if (activeTab !== "accounts") return;
+  const hiddenRows = [...document.querySelectorAll("span")].filter(node => /^No (inflow|outflow) recorded/.test(node.textContent || ""));
+  hiddenRows.forEach(message => {
+    const row = message.parentElement;
+    const section = row && row.parentElement;
+    if (!row || !section) return;
+    row.style.display = "none";
+    if ([...section.children].every(child => child.style.display === "none")) section.style.display = "none";
+  });
+}, [activeTab, accounts, transactions]);
 useEffect(() => {
   document.querySelectorAll("[data-loan-subtabs]").forEach(node => node.remove());
   if (activeTab !== "loans") return;
@@ -1984,15 +1888,24 @@ useEffect(() => {
   });
 }, [activeTab, loanView, loans, darkMode, accent.activeBg, accent.textStrong]);
 useEffect(() => {
-  if (activeTab === "settings" || window.innerWidth > 767) return;
-  const frame = requestAnimationFrame(() => {
-    const activeButton = document.querySelector(`[data-mobile-nav-tab="${activeTab}"]`);
-    const scroller = document.querySelector("[data-mobile-nav-scroll]");
-    if (activeButton && scroller) activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  });
-  return () => cancelAnimationFrame(frame);
-}, [activeTab]);
-
+  document.querySelectorAll("[data-header-settings]").forEach(node => node.remove());
+  const toolbars = [...document.querySelectorAll("header div")];
+  const toolbar = toolbars.find(node => node.classList.contains("space-x-2") && node.querySelector('button[title="Undo"]'));
+  if (!toolbar) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.headerSettings = "true";
+  button.title = "Settings";
+  button.setAttribute("aria-label", "Open Settings");
+  button.className = `p-2 rounded-xl border ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-emerald-400" : "bg-white border-zinc-200 text-zinc-700 hover:text-emerald-600"}`;
+  button.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h5M14 7h6M4 17h9M18 17h2M4 12h2M11 12h9"/><circle cx="11" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><circle cx="8" cy="12" r="2"/></svg>';
+  button.onclick = () => {
+    setMoreSheetOpen(false);
+    setActiveTab("settings");
+  };
+  toolbar.append(button);
+  return () => button.remove();
+}, [darkMode, activeTab]);
 useEffect(() => {
   document.querySelectorAll("[data-settings-scrim]").forEach(node => node.remove());
   if (activeTab !== "settings") return;
@@ -2041,7 +1954,7 @@ useEffect(() => {
   };
 }, [activeTab, darkMode]);
 
-    const tabProps = { DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, importBackup, importBankTransactionFromSMS, parseBankTransactionSMS, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+    const tabProps = { DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2051,7 +1964,7 @@ useEffect(() => {
     }, /* @__PURE__ */React.createElement("div", {
       className: "max-w-5xl mx-auto px-4 h-16 flex items-center justify-between safe-x"
     }, /* @__PURE__ */React.createElement("div", {
-      className: "flex items-center space-x-2 min-w-0"
+      className: "flex items-center space-x-3"
     }, /* @__PURE__ */React.createElement("div", {
       className: `p-2 bg-gradient-to-tr ${accent.grad} rounded-2xl text-white shadow-md shadow-emerald-500/20`
     }, /* @__PURE__ */React.createElement("svg", {
@@ -2069,9 +1982,9 @@ useEffect(() => {
     }), /* @__PURE__ */React.createElement("path", {
       d: "M18 12a2 2 0 0 0 0 4h4v-4Z"
     }))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("h1", {
-      className: "font-bold text-base leading-tight tracking-tight truncate"
+      className: "font-bold text-base leading-tight tracking-tight"
     }, "AleemFin"), /* @__PURE__ */React.createElement("p", {
-      className: `text-[10px] truncate ${darkMode ? "text-zinc-400" : "text-zinc-500"}`
+      className: `text-[10px] ${darkMode ? "text-zinc-400" : "text-zinc-500"}`
     }, "Wealth ", /* @__PURE__ */React.createElement("span", {
       className: "opacity-60"
     }, "\u2014 Created by Aleem")))), /* @__PURE__ */React.createElement("nav", {
@@ -2092,14 +2005,14 @@ useEffect(() => {
       onClick: handleUndo,
       disabled: history.length === 0,
       title: "Undo",
-      className: `min-w-[44px] min-h-[44px] p-2.5 rounded-2xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
+      className: `p-2 rounded-xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
     }, /* @__PURE__ */React.createElement(Icons.IconUndo, {
       className: "w-4 h-4"
     })), /* @__PURE__ */React.createElement("button", {
       onClick: handleRedo,
       disabled: redoStack.length === 0,
       title: "Redo",
-      className: `min-w-[44px] min-h-[44px] p-2.5 rounded-2xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
+      className: `p-2 rounded-xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
     }, /* @__PURE__ */React.createElement(Icons.IconRedo, {
       className: "w-4 h-4"
     })), /* @__PURE__ */React.createElement("button", {
@@ -2135,11 +2048,8 @@ useEffect(() => {
         position: "fixed"
       }
     }, /* @__PURE__ */React.createElement("div", {
-      className: "mobile-bottom-bar max-w-5xl mx-auto px-2 py-1.5 h-[74px] safe-x"
-    }, /* @__PURE__ */React.createElement("div", {
-      className: "mobile-nav-swipe",
-      "data-mobile-nav-scroll": "true"
-    }, MOBILE_NAV_ITEMS.filter(tab => tab.id !== "settings").map(tab => {
+      className: "max-w-md mx-auto px-2 py-1.5 h-[74px] grid grid-cols-5 items-center gap-1 safe-x"
+    }, PRIMARY_NAV_ITEMS.map(tab => {
       const Icon = tab.icon;
       const isActive = activeTab === tab.id;
       return /* @__PURE__ */React.createElement("button", {
@@ -2148,8 +2058,7 @@ useEffect(() => {
           setActiveTab(tab.id);
           setMoreSheetOpen(false);
         },
-        "data-mobile-nav-tab": tab.id,
-        className: `mobile-nav-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+        className: `flex flex-col items-center justify-center h-full w-full rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
         className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
       }, /* @__PURE__ */React.createElement(Icon, {
@@ -2157,30 +2066,16 @@ useEffect(() => {
       })), /* @__PURE__ */React.createElement("span", {
         className: "text-[10px] leading-none"
       }, tab.label));
-    })), /* @__PURE__ */React.createElement("div", {
-      className: "mobile-settings-fixed"
-    }, (() => {
-      const tab = NAV_ITEMS.find(item => item.id === "settings");
-      const Icon = tab.icon;
-      const isActive = activeTab === "settings";
-      return /* @__PURE__ */React.createElement("button", {
-        onClick: () => {
-          setActiveTab("settings");
-          setMoreSheetOpen(false);
-        },
-        "data-mobile-nav-tab": "settings",
-        "aria-label": "Settings",
-        title: "Settings",
-        className: `mobile-nav-tab mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
-      }, /* @__PURE__ */React.createElement("div", {
-        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
-      }, /* @__PURE__ */React.createElement(Icon, {
-        className: "w-5 h-5"
-      })), /* @__PURE__ */React.createElement("span", {
-        className: "text-[10px] leading-none"
-      }, "Settings"));
-    })()))),
-moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
+    }), /* @__PURE__ */React.createElement("button", {
+      onClick: () => setMoreSheetOpen(true),
+      className: `flex flex-col items-center justify-center h-full w-full rounded-2xl transition-all active:scale-95 ${moreSheetOpen || MORE_NAV_ITEMS.some(t => t.id === activeTab) ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+    }, /* @__PURE__ */React.createElement("div", {
+      className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${moreSheetOpen || MORE_NAV_ITEMS.some(t => t.id === activeTab) ? accent.activeBg : ""}`
+    }, /* @__PURE__ */React.createElement(Icons.IconMore, {
+      className: "w-5 h-5"
+    })), /* @__PURE__ */React.createElement("span", {
+      className: "text-[10px] leading-none"
+    }, "More")))), moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
     );
   }
 
