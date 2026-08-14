@@ -296,12 +296,14 @@ const [assets, setAssets] = useState(() => loadStoredData("assets", [{
   name: "Physical Gold (24k)",
   category: "Gold",
   weightGrams: 50,
+  currency: "AED",
   purchasePriceAED: 11e3,
   currentPriceAED: 13750
 }, {
   id: "2",
   name: "Downtown Apartment",
   category: "Property",
+  currency: "AED",
   purchasePriceAED: 1e6,
   currentPriceAED: 12e5
 }]));
@@ -514,7 +516,7 @@ const [goldSyncMsg, setGoldSyncMsg] = useState("");
 const [liveGoldAEDPerGram, setLiveGoldAEDPerGram] = useState(null);
 const netWorthWithRates = rates => {
   const liquid = accounts.reduce((sum, account) => sum + account.balance * (rates[account.currency] || 1), 0);
-  const fixedAssets = assets.reduce((sum, asset) => sum + (asset.currentPriceAED || 0), 0);
+  const fixedAssets = assets.reduce((sum, asset) => sum + (asset.currentPriceAED || 0) * (rates[asset.currency || "AED"] || 1), 0);
   const lent = loans.filter(loan => loan.type === "lent").reduce((sum, loan) => sum + (loan.amount - (loan.repaid || 0)) * (rates[loan.currency] || 1), 0);
   const borrowed = loans.filter(loan => loan.type === "borrowed").reduce((sum, loan) => sum + (loan.amount - (loan.repaid || 0)) * (rates[loan.currency] || 1), 0);
   return liquid + fixedAssets + lent - borrowed;
@@ -522,7 +524,7 @@ const netWorthWithRates = rates => {
 const flashHeroForRateUpdate = nextRates => setHeroFlash(netWorthWithRates(nextRates) >= netWorthWithRates(exchangeRates) ? "gain" : "loss");
 const flashHeroForGoldRate = nextRate => {
   const goldWeight = assets.filter(asset => asset.category === "Gold" && asset.weightGrams).reduce((sum, asset) => sum + Number(asset.weightGrams), 0);
-  const savedGoldRate = goldWeight > 0 ? assets.filter(asset => asset.category === "Gold" && asset.weightGrams).reduce((sum, asset) => sum + (asset.currentPriceAED || 0), 0) / goldWeight : 0;
+  const savedGoldRate = goldWeight > 0 ? assets.filter(asset => asset.category === "Gold" && asset.weightGrams).reduce((sum, asset) => sum + convertToAED(asset.currentPriceAED || 0, asset.currency || "AED"), 0) / goldWeight : 0;
   setHeroFlash(nextRate >= (liveGoldAEDPerGram || savedGoldRate || nextRate) ? "gain" : "loss");
 };
 const syncLiveExchangeRates = async () => {
@@ -576,12 +578,12 @@ const syncLiveGoldRate = async (rates = exchangeRates) => {
 const applyLiveGoldRate = () => {
   if (!liveGoldAEDPerGram) return;
   saveStateToHistory();
-  const previousGoldValue = assets.filter(a => a.category === "Gold").reduce((sum, a) => sum + (a.currentPriceAED || 0), 0);
+  const previousGoldValue = assets.filter(a => a.category === "Gold").reduce((sum, a) => sum + convertToAED(a.currentPriceAED || 0, a.currency || "AED"), 0);
   const updated = assets.map(a => a.category === "Gold" && a.weightGrams ? {
     ...a,
-    currentPriceAED: Math.round(a.weightGrams * liveGoldAEDPerGram)
+    currentPriceAED: Math.round(convertFromAED(a.weightGrams * liveGoldAEDPerGram, a.currency || "AED") * 100) / 100
   } : a);
-  const updatedGoldValue = updated.filter(a => a.category === "Gold").reduce((sum, a) => sum + (a.currentPriceAED || 0), 0);
+  const updatedGoldValue = updated.filter(a => a.category === "Gold").reduce((sum, a) => sum + convertToAED(a.currentPriceAED || 0, a.currency || "AED"), 0);
   setHeroFlash(updatedGoldValue >= previousGoldValue ? "gain" : "loss");
   setAssets(updated);
   persistAllData(accounts, updated, loans, transactions);
@@ -647,8 +649,9 @@ const openEditModal = (type, item) => {
       title: item.name,
       assetCategory: item.category,
       weightGrams: item.weightGrams ? String(item.weightGrams) : "",
-      purchasePriceAED: String(Math.round(convertFromAED(item.purchasePriceAED, currency) * 100) / 100),
-      currentPriceAED: String(Math.round(convertFromAED(item.currentPriceAED, currency) * 100) / 100)
+      currency: item.currency || "AED",
+      purchasePriceAED: String(item.purchasePriceAED),
+      currentPriceAED: String(item.currentPriceAED)
     });
   } else if (type === "loan") {
     setFormInput({
@@ -687,10 +690,10 @@ const closeModal = () => {
   setFormInput(getDefaultFormInput());
 };
 const totalLiquidAED = accounts.reduce((acc, item) => acc + convertToAED(item.balance, item.currency), 0);
-const totalPhysicalAED = assets.reduce((acc, item) => acc + (item.currentPriceAED || 0), 0);
+const totalPhysicalAED = assets.reduce((acc, item) => acc + convertToAED(item.currentPriceAED || 0, item.currency || "AED"), 0);
 const goldAssets = assets.filter(item => item.category === "Gold");
-const goldPurchaseAED = goldAssets.reduce((acc, item) => acc + (item.purchasePriceAED || 0), 0);
-const goldCurrentAED = goldAssets.reduce((acc, item) => acc + (item.currentPriceAED || 0), 0);
+const goldPurchaseAED = goldAssets.reduce((acc, item) => acc + convertToAED(item.purchasePriceAED || 0, item.currency || "AED"), 0);
+const goldCurrentAED = goldAssets.reduce((acc, item) => acc + convertToAED(item.currentPriceAED || 0, item.currency || "AED"), 0);
 const goldChangeAED = goldCurrentAED - goldPurchaseAED;
 const goldChangePct = goldPurchaseAED > 0 ? goldChangeAED / goldPurchaseAED * 100 : null;
 const totalLoansLentAED = loans.filter(l => l.type === "lent").reduce((acc, l) => acc + convertToAED(l.amount - (l.repaid || 0), l.currency), 0);
@@ -977,14 +980,15 @@ const handleFormSubmit = e => {
     }
     setAccounts(updatedAccs);
   } else if (modalType === "asset") {
-    const curVal = convertToAED(Number(formInput.currentPriceAED) || 0, currency);
-    const purVal = convertToAED(Number(formInput.purchasePriceAED) || 0, currency);
+    const curVal = Number(formInput.currentPriceAED) || 0;
+    const purVal = Number(formInput.purchasePriceAED) || 0;
     if (editingId) {
       updatedAsts = assets.map(a => a.id === editingId ? {
         ...a,
         name: formInput.title,
         category: formInput.assetCategory,
         weightGrams: Number(formInput.weightGrams) || 0,
+        currency: formInput.currency,
         purchasePriceAED: purVal,
         currentPriceAED: curVal
       } : a);
@@ -994,6 +998,7 @@ const handleFormSubmit = e => {
         name: formInput.title,
         category: formInput.assetCategory,
         weightGrams: Number(formInput.weightGrams) || 0,
+        currency: formInput.currency,
         purchasePriceAED: purVal,
         currentPriceAED: curVal
       });
