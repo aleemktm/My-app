@@ -121,6 +121,10 @@ var NAV_ITEMS = [{
   id: "recurring",
   label: "Recurring",
   icon: Icons.IconCalendar
+}, {
+  id: "settings",
+  label: "Settings",
+  icon: Icons.IconMore
 }];
 
   function App() {
@@ -172,6 +176,12 @@ const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
 const primaryNavIds = settings.primaryNavIds && settings.primaryNavIds.length === 4 ? settings.primaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
 const MORE_NAV_ITEMS = NAV_ITEMS.filter(t => !primaryNavIds.includes(t.id));
+const MOBILE_NAV_ITEMS = [
+  NAV_ITEMS.find(t => t.id === "overview"),
+  NAV_ITEMS.find(t => t.id === "transactions"),
+  NAV_ITEMS.find(t => t.id === "accounts"),
+  NAV_ITEMS.find(t => t.id === "settings")
+].filter(Boolean);
 const numFmt = (n, opts) => Number(n || 0).toLocaleString(settings.numberFormat === "period" ? "de-DE" : "en-US", opts);
 const dateFmt = iso => {
   if (!iso) return "";
@@ -706,7 +716,8 @@ const fmt = amtAED => {
   })}`;
 };
 const getLastInflow = accId => {
-  const inflows = transactions.filter(t => t.type === "income" && t.accountId === accId || t.type === "transfer" && t.toAccountId === accId);
+  const accountKey = String(accId);
+  const inflows = transactions.filter(t => (t.type === "income" && String(t.accountId) === accountKey) || (t.type === "transfer" && String(t.toAccountId) === accountKey));
   if (inflows.length === 0) return null;
   const latest = inflows.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
   const cutoff = new Date();
@@ -714,7 +725,8 @@ const getLastInflow = accId => {
   return latest.date >= toLocalISO(cutoff) ? latest : null;
 };
 const getLastOutflow = accId => {
-  const outflows = transactions.filter(t => t.type === "expense" && t.accountId === accId || t.type === "transfer" && t.accountId === accId);
+  const accountKey = String(accId);
+  const outflows = transactions.filter(t => (t.type === "expense" && String(t.accountId) === accountKey) || (t.type === "transfer" && String(t.accountId) === accountKey));
   if (outflows.length === 0) return null;
   const latest = outflows.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
   const cutoff = new Date();
@@ -1810,17 +1822,7 @@ useEffect(() => {
   reminder.append(summary, done);
   greetingLine.append(reminder);
 }, [activeTab, recurringReminders, darkMode]);
-useEffect(() => {
-  if (activeTab !== "accounts") return;
-  const hiddenRows = [...document.querySelectorAll("span")].filter(node => /^No (inflow|outflow) recorded/.test(node.textContent || ""));
-  hiddenRows.forEach(message => {
-    const row = message.parentElement;
-    const section = row && row.parentElement;
-    if (!row || !section) return;
-    row.style.display = "none";
-    if ([...section.children].every(child => child.style.display === "none")) section.style.display = "none";
-  });
-}, [activeTab, accounts, transactions]);
+
 useEffect(() => {
   document.querySelectorAll("[data-loan-subtabs]").forEach(node => node.remove());
   if (activeTab !== "loans") return;
@@ -1888,25 +1890,6 @@ useEffect(() => {
   });
 }, [activeTab, loanView, loans, darkMode, accent.activeBg, accent.textStrong]);
 useEffect(() => {
-  document.querySelectorAll("[data-header-settings]").forEach(node => node.remove());
-  const toolbars = [...document.querySelectorAll("header div")];
-  const toolbar = toolbars.find(node => node.classList.contains("space-x-2") && node.querySelector('button[title="Undo"]'));
-  if (!toolbar) return;
-  const button = document.createElement("button");
-  button.type = "button";
-  button.dataset.headerSettings = "true";
-  button.title = "Settings";
-  button.setAttribute("aria-label", "Open Settings");
-  button.className = `p-2 rounded-xl border ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-emerald-400" : "bg-white border-zinc-200 text-zinc-700 hover:text-emerald-600"}`;
-  button.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h5M14 7h6M4 17h9M18 17h2M4 12h2M11 12h9"/><circle cx="11" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><circle cx="8" cy="12" r="2"/></svg>';
-  button.onclick = () => {
-    setMoreSheetOpen(false);
-    setActiveTab("settings");
-  };
-  toolbar.append(button);
-  return () => button.remove();
-}, [darkMode, activeTab]);
-useEffect(() => {
   document.querySelectorAll("[data-settings-scrim]").forEach(node => node.remove());
   if (activeTab !== "settings") return;
   const heading = [...document.querySelectorAll("main h2")].find(node => node.textContent === "Settings");
@@ -1964,7 +1947,7 @@ useEffect(() => {
     }, /* @__PURE__ */React.createElement("div", {
       className: "max-w-5xl mx-auto px-4 h-16 flex items-center justify-between safe-x"
     }, /* @__PURE__ */React.createElement("div", {
-      className: "flex items-center space-x-3"
+      className: "flex items-center space-x-2 min-w-0"
     }, /* @__PURE__ */React.createElement("div", {
       className: `p-2 bg-gradient-to-tr ${accent.grad} rounded-2xl text-white shadow-md shadow-emerald-500/20`
     }, /* @__PURE__ */React.createElement("svg", {
@@ -1982,9 +1965,9 @@ useEffect(() => {
     }), /* @__PURE__ */React.createElement("path", {
       d: "M18 12a2 2 0 0 0 0 4h4v-4Z"
     }))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("h1", {
-      className: "font-bold text-base leading-tight tracking-tight"
+      className: "font-bold text-base leading-tight tracking-tight truncate"
     }, "AleemFin"), /* @__PURE__ */React.createElement("p", {
-      className: `text-[10px] ${darkMode ? "text-zinc-400" : "text-zinc-500"}`
+      className: `text-[10px] truncate ${darkMode ? "text-zinc-400" : "text-zinc-500"}`
     }, "Wealth ", /* @__PURE__ */React.createElement("span", {
       className: "opacity-60"
     }, "\u2014 Created by Aleem")))), /* @__PURE__ */React.createElement("nav", {
@@ -2005,14 +1988,14 @@ useEffect(() => {
       onClick: handleUndo,
       disabled: history.length === 0,
       title: "Undo",
-      className: `p-2 rounded-xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
+      className: `min-w-[44px] min-h-[44px] p-2.5 rounded-2xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
     }, /* @__PURE__ */React.createElement(Icons.IconUndo, {
       className: "w-4 h-4"
     })), /* @__PURE__ */React.createElement("button", {
       onClick: handleRedo,
       disabled: redoStack.length === 0,
       title: "Redo",
-      className: `p-2 rounded-xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
+      className: `min-w-[44px] min-h-[44px] p-2.5 rounded-2xl border text-xs disabled:opacity-30 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}`
     }, /* @__PURE__ */React.createElement(Icons.IconRedo, {
       className: "w-4 h-4"
     })), /* @__PURE__ */React.createElement("button", {
@@ -2048,8 +2031,8 @@ useEffect(() => {
         position: "fixed"
       }
     }, /* @__PURE__ */React.createElement("div", {
-      className: "max-w-md mx-auto px-2 py-1.5 h-[74px] grid grid-cols-5 items-center gap-1 safe-x"
-    }, PRIMARY_NAV_ITEMS.map(tab => {
+      className: "max-w-md mx-auto px-2 py-1.5 h-[74px] grid grid-cols-4 items-center gap-1 safe-x"
+    }, MOBILE_NAV_ITEMS.map(tab => {
       const Icon = tab.icon;
       const isActive = activeTab === tab.id;
       return /* @__PURE__ */React.createElement("button", {
@@ -2066,16 +2049,7 @@ useEffect(() => {
       })), /* @__PURE__ */React.createElement("span", {
         className: "text-[10px] leading-none"
       }, tab.label));
-    }), /* @__PURE__ */React.createElement("button", {
-      onClick: () => setMoreSheetOpen(true),
-      className: `flex flex-col items-center justify-center h-full w-full rounded-2xl transition-all active:scale-95 ${moreSheetOpen || MORE_NAV_ITEMS.some(t => t.id === activeTab) ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
-    }, /* @__PURE__ */React.createElement("div", {
-      className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${moreSheetOpen || MORE_NAV_ITEMS.some(t => t.id === activeTab) ? accent.activeBg : ""}`
-    }, /* @__PURE__ */React.createElement(Icons.IconMore, {
-      className: "w-5 h-5"
-    })), /* @__PURE__ */React.createElement("span", {
-      className: "text-[10px] leading-none"
-    }, "More")))), moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
+    }))), moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
     );
   }
 
