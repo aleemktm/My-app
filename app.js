@@ -6,7 +6,8 @@
 var {
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  useRef
 } = React;
 var ACCOUNT_COLORS = ["from-emerald-500/10 to-teal-500/10 border-emerald-500/20", "from-blue-500/10 to-indigo-500/10 border-blue-500/20", "from-sky-500/10 to-blue-500/10 border-sky-500/20", "from-amber-500/10 to-orange-500/10 border-amber-500/20", "from-violet-500/10 to-purple-500/10 border-violet-500/20", "from-rose-500/10 to-pink-500/10 border-rose-500/20"];
 var toLocalISO = d => {
@@ -176,12 +177,8 @@ const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
 const primaryNavIds = settings.primaryNavIds && settings.primaryNavIds.length === 4 ? settings.primaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
 const MORE_NAV_ITEMS = NAV_ITEMS.filter(t => !primaryNavIds.includes(t.id));
-const MOBILE_NAV_ITEMS = [
-  NAV_ITEMS.find(t => t.id === "overview"),
-  NAV_ITEMS.find(t => t.id === "transactions"),
-  NAV_ITEMS.find(t => t.id === "accounts"),
-  NAV_ITEMS.find(t => t.id === "settings")
-].filter(Boolean);
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(t => t.id !== "settings");
+const MOBILE_SETTINGS_ITEM = NAV_ITEMS.find(t => t.id === "settings");
 const numFmt = (n, opts) => Number(n || 0).toLocaleString(settings.numberFormat === "period" ? "de-DE" : "en-US", opts);
 const dateFmt = iso => {
   if (!iso) return "";
@@ -210,6 +207,16 @@ useEffect(() => {
   }
 }, [settings.theme]);
 const [activeTab, setActiveTab] = useState("overview");
+const mobileNavScrollRef = useRef(null);
+const mobileNavButtonRefs = useRef({});
+useEffect(() => {
+  if (activeTab === "settings") return;
+  const node = mobileNavButtonRefs.current[activeTab];
+  const scroller = mobileNavScrollRef.current;
+  if (node && scroller) {
+    node.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }
+}, [activeTab]);
 const [insightTrendPeriod, setInsightTrendPeriod] = useState("monthly");
 const [insightTrendStyle, setInsightTrendStyle] = useState("line");
 const [greetingTypingStarted, setGreetingTypingStarted] = useState(false);
@@ -2027,29 +2034,40 @@ useEffect(() => {
       className: "max-w-5xl mx-auto px-4 py-5 sm:py-6 space-y-5 sm:space-y-6 flex-1 w-full safe-x"
     }, activeTab === "overview" && Tabs.Overview(tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && Tabs.Accounts(tabProps), activeTab === "vault" && Tabs.Vault(tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "analytics" && Tabs.Analytics(tabProps)), activeTab === "analytics" && Tabs.AnalyticsSummary(tabProps), activeTab === "planning" && Tabs.Planning(tabProps), activeTab === "recurring" && Tabs.Recurring(tabProps), activeTab === "settings" && Tabs.Settings(tabProps), /* @__PURE__ */React.createElement("nav", {
       className: "md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t safe-bottom bg-zinc-900/95 border-zinc-800",
-      style: {
-        position: "fixed"
-      }
+      style: { position: "fixed" }
     }, /* @__PURE__ */React.createElement("div", {
-      className: "max-w-md mx-auto px-2 py-1.5 h-[74px] grid grid-cols-4 items-center gap-1 safe-x"
+      className: "mobile-nav-shell safe-x"
+    }, /* @__PURE__ */React.createElement("div", {
+      ref: mobileNavScrollRef,
+      className: "mobile-nav-scroll",
+      role: "tablist",
+      "aria-label": "App sections"
     }, MOBILE_NAV_ITEMS.map(tab => {
       const Icon = tab.icon;
       const isActive = activeTab === tab.id;
       return /* @__PURE__ */React.createElement("button", {
         key: tab.id,
-        onClick: () => {
-          setActiveTab(tab.id);
-          setMoreSheetOpen(false);
-        },
-        className: `flex flex-col items-center justify-center h-full w-full rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+        ref: node => { mobileNavButtonRefs.current[tab.id] = node; },
+        onClick: () => { setActiveTab(tab.id); setMoreSheetOpen(false); },
+        role: "tab",
+        "aria-selected": isActive,
+        className: `mobile-nav-item flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
         className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
-      }, /* @__PURE__ */React.createElement(Icon, {
-        className: "w-5 h-5"
-      })), /* @__PURE__ */React.createElement("span", {
+      }, /* @__PURE__ */React.createElement(Icon, { className: "w-5 h-5" })), /* @__PURE__ */React.createElement("span", {
         className: "text-[10px] leading-none"
       }, tab.label));
-    }))), moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
+    })), MOBILE_SETTINGS_ITEM && /* @__PURE__ */React.createElement("button", {
+      key: MOBILE_SETTINGS_ITEM.id,
+      onClick: () => { setActiveTab(MOBILE_SETTINGS_ITEM.id); setMoreSheetOpen(false); },
+      role: "tab",
+      "aria-selected": activeTab === MOBILE_SETTINGS_ITEM.id,
+      className: `mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${activeTab === MOBILE_SETTINGS_ITEM.id ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+    }, /* @__PURE__ */React.createElement("div", {
+      className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${activeTab === MOBILE_SETTINGS_ITEM.id ? accent.activeBg : ""}`
+    }, /* @__PURE__ */React.createElement(MOBILE_SETTINGS_ITEM.icon, { className: "w-5 h-5" })), /* @__PURE__ */React.createElement("span", {
+      className: "text-[10px] leading-none"
+    }, MOBILE_SETTINGS_ITEM.label)))), moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
     );
   }
 
