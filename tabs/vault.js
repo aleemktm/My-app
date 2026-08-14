@@ -1,7 +1,7 @@
 // tabs/vault.js — Vault (physical assets) tab.
 (function () {
   function Vault(props) {
-    const { applyLiveGoldRate, assets, darkMode, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, subCardCls, syncLiveGoldRate, syncingGold } = props;
+    const { applyLiveGoldRate, assets, darkMode, fmt, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, subCardCls, syncLiveGoldRate, syncingGold } = props;
     return /* @__PURE__ */React.createElement("div", {
     className: "space-y-4 max-w-2xl mx-auto w-full"
   }, /* @__PURE__ */React.createElement("div", {
@@ -46,11 +46,11 @@
       className: "text-[10px] opacity-60"
     }, "Weight: ", ast.weightGrams, "g") : null, /* @__PURE__ */React.createElement("p", {
       className: `text-[10px] font-bold mt-0.5 ${gain >= 0 ? "text-emerald-500" : "text-rose-500"}`
-    }, gain >= 0 ? "+" : "", "AED ", numFmt(gain), " (", gainPct, "%)")), /* @__PURE__ */React.createElement("div", {
+    }, gain >= 0 ? "+" : "", fmt(gain), " (", gainPct, "%)")), /* @__PURE__ */React.createElement("div", {
       className: "flex items-center space-x-2"
     }, /* @__PURE__ */React.createElement("span", {
       className: "font-bold text-sm text-amber-600 mr-1"
-    }, "AED ", numFmt(ast.currentPriceAED)), /* @__PURE__ */React.createElement("button", {
+    }, fmt(ast.currentPriceAED)), /* @__PURE__ */React.createElement("button", {
       onClick: () => openEditModal("asset", ast),
       title: "Edit",
       className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10 active:scale-95"
