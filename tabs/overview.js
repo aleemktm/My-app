@@ -9,7 +9,8 @@
       monthlyIncomeAED, monthlySavingsAED, netWorthTotal, numFmt, openAddModal, openRatesModal,
       refreshLiveRates, renderTxRow, runwayStatus, savingsRate, setActiveTab, setCurrency,
       settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
-      totalLoansLentAED, totalPhysicalAED, transactions
+      totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
+      goldChangePct, goldChangeAED
     } = props;
 
     const isPositive = monthlySavingsAED >= 0;
@@ -100,12 +101,26 @@
         )
       ),
 
-      h("section", { className: "home-stats-grid" },
-        stat("Cash & accounts", fmt(totalLiquidAED), `${accounts.length} account${accounts.length === 1 ? "" : "s"}`, "home-positive", () => setActiveTab("accounts")),
-        stat("Assets", fmt(totalPhysicalAED), `${assets.length} holding${assets.length === 1 ? "" : "s"}`, "home-amber", () => setActiveTab("vault")),
-        stat("Money lent", fmt(totalLoansLentAED), totalLoansBorrowedAED ? `${fmt(totalLoansBorrowedAED)} borrowed` : "Nothing borrowed", "home-violet", () => setActiveTab("loans")),
-        stat("This month", fmt(monthlySavingsAED), momDeltaPct === null ? "No comparison yet" : `${momDeltaPct >= 0 ? "▲" : "▼"} ${Math.abs(momDeltaPct)}% vs last month`, isPositive ? "home-positive" : "home-negative", () => setActiveTab("analytics"))
-      ),
+      h("section", { className: "home-stats-grid" }, (() => {
+        const selected = Array.isArray(settings.dashboardCards) ? settings.dashboardCards : [];
+        const cards = {
+          accounts: { label: "Cash & accounts", value: fmt(totalLiquidAED), note: `${accounts.length} account${accounts.length === 1 ? "" : "s"}`, cls: "home-positive", tab: "accounts" },
+          vault: { label: "Assets", value: fmt(totalPhysicalAED), note: `${assets.length} holding${assets.length === 1 ? "" : "s"}`, cls: "home-amber", tab: "vault" },
+          loans: { label: "Money lent", value: fmt(totalLoansLentAED), note: totalLoansBorrowedAED ? `${fmt(totalLoansBorrowedAED)} borrowed` : "Nothing borrowed", cls: "home-violet", tab: "loans" },
+          analytics: { label: "This month", value: fmt(monthlySavingsAED), note: momDeltaPct === null ? "No comparison yet" : `${momDeltaPct >= 0 ? "▲" : "▼"} ${Math.abs(momDeltaPct)}% vs last month`, cls: isPositive ? "home-positive" : "home-negative", tab: "analytics" },
+          planning: { label: "Plans & goals", value: `${budgets.length + goals.length}`, note: `${budgets.length} budget${budgets.length === 1 ? "" : "s"} · ${goals.length} goal${goals.length === 1 ? "" : "s"}`, cls: "home-positive", tab: "planning" },
+          recurring: { label: "Upcoming", value: `${recurringItems.filter(item => item.active).length}`, note: "Scheduled items", cls: "home-blue", tab: "recurring" },
+          gold: { label: "24k gold rate", value: liveGoldAEDPerGram ? `AED ${liveGoldAEDPerGram.toFixed(2)}/g` : "—", note: liveGoldAEDPerGram ? "Live market benchmark" : "Tap to refresh", cls: "home-amber", tab: "vault" },
+          rates: { label: "FX · AED / PKR", value: `1 AED = ${rateText} PKR`, note: `1 USD = AED ${exchangeRates.USD.toFixed(2)}`, cls: "home-blue", tab: "settings" },
+          "gold-performance": { label: "Gold performance", value: goldChangePct === null ? "—" : `${goldChangePct >= 0 ? "▲ +" : "▼ "}${Math.abs(goldChangePct).toFixed(1)}%`, note: goldChangePct === null ? "Add gold assets to track it" : `${goldChangeAED >= 0 ? "Up" : "Down"} AED ${numFmt(Math.abs(goldChangeAED))}`, cls: goldChangePct === null ? "home-muted" : goldChangePct >= 0 ? "home-positive" : "home-negative", tab: "vault" },
+          runway: { label: "Cash buffer", value: `${emergencyRunwayMonths} mo`, note: "At this month’s spending pace", cls: "home-blue", tab: "analytics" },
+          spending: { label: "Spending pace", value: fmt(monthlyExpenseAED), note: `${currentMonthLabel} expenses`, cls: "home-negative", tab: "analytics" }
+        };
+        return selected.slice(0, 4).map(id => {
+          const c = cards[id];
+          return c ? stat(c.label, c.value, c.note, c.cls, () => setActiveTab(c.tab)) : null;
+        });
+      })()),
 
       h("div", { className: "home-content-grid" },
         h("section", { className: `home-panel ${darkMode ? "home-panel-dark" : ""}` },
