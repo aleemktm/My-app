@@ -55,13 +55,13 @@
       className: "w-3.5 h-3.5 text-emerald-500 shrink-0"
     }), inflowInfo ? /* @__PURE__ */React.createElement("span", null, "Last inflow: ", /* @__PURE__ */React.createElement("strong", {
       className: "text-emerald-500"
-    }, "+", inflowInfo.cur, " ", numFmt(inflowInfo.amt)), " on ", dateFmt(inflow.date), inflowInfo.note) : /* @__PURE__ */React.createElement("span", null, "No inflow recorded for this account yet.")), /* @__PURE__ */React.createElement("div", {
+    }, "+", inflowInfo.cur, " ", numFmt(inflowInfo.amt)), " on ", dateFmt(inflow.date), inflowInfo.note) : null), /* @__PURE__ */React.createElement("div", {
       className: "flex items-center gap-1.5 text-[10px] opacity-70"
     }, /* @__PURE__ */React.createElement(Icons.IconInflow, {
       className: "w-3.5 h-3.5 text-rose-500 shrink-0 rotate-180"
     }), outflowInfo ? /* @__PURE__ */React.createElement("span", null, "Last outflow: ", /* @__PURE__ */React.createElement("strong", {
       className: "text-rose-500"
-    }, "-", outflowInfo.cur, " ", numFmt(outflowInfo.amt)), " on ", dateFmt(outflow.date), outflowInfo.note) : /* @__PURE__ */React.createElement("span", null, "No outflow recorded for this account yet."))));
+    }, "-", outflowInfo.cur, " ", numFmt(outflowInfo.amt)), " on ", dateFmt(outflow.date), outflowInfo.note) : null)));
   })));
   }
 
