@@ -5,7 +5,7 @@
       accent, darkMode, dateFmt, exportCSV, filteredTransactions, ledgerFilter,
       ledgerSearch, ledgerSort, numFmt, openAddModal, openEditModal,
       setDeleteTarget, setLedgerFilter, setLedgerSearch, setLedgerSort,
-      subCardCls, transactions
+      subCardCls, transactions, selectionKey
     } = props;
     const h = React.createElement;
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
@@ -42,12 +42,13 @@
           : filteredTransactions.map(tx => h(window.SwipeRow, {
               key: tx.id,
               onEdit: tx.type === "transfer" ? null : () => openEditModal(tx.type, tx),
-              onDelete: () => setDeleteTarget({ type: "transaction", id: tx.id, name: tx.title })
+              onDelete: () => setDeleteTarget({ type: "transaction", id: tx.id, name: tx.title }),
+              selectionKey: selectionKey("transaction", tx.id)
             },
               h("div", { className: `swipe-content-card p-4 rounded-2xl border flex justify-between items-center ${subCardCls}` },
                 h("div", null,
-                  h("div", { className: "flex items-center gap-2" },
-                    h("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, h((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category), { className: "w-3.5 h-3.5" })),
+                  h("div", { className: "flex items-center gap-1" },
+                    h("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, h((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })),
                     h("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
                     h("span", { className: "text-[10px] text-zinc-400" }, dateFmt(tx.date))
                   ),

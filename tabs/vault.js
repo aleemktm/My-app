@@ -1,7 +1,7 @@
 // tabs/vault.js — Vault (physical assets) tab.
 (function () {
   function Vault(props) {
-    const { applyLiveGoldRate, assets, darkMode, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, subCardCls, syncLiveGoldRate, syncingGold } = props;
+    const { applyLiveGoldRate, assets, darkMode, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, subCardCls, syncLiveGoldRate, syncingGold, selectionKey } = props;
     return /* @__PURE__ */React.createElement("div", {
     className: "space-y-4 max-w-2xl mx-auto w-full"
   }, /* @__PURE__ */React.createElement("div", {
@@ -38,7 +38,8 @@
     return /* @__PURE__ */React.createElement(window.SwipeRow, {
       key: ast.id,
       onEdit: () => openEditModal("asset", ast),
-      onDelete: () => setDeleteTarget({ type: "asset", id: ast.id, name: ast.name })
+      onDelete: () => setDeleteTarget({ type: "asset", id: ast.id, name: ast.name }),
+      selectionKey: selectionKey("asset", ast.id)
     }, /* @__PURE__ */React.createElement("div", {
       className: `swipe-content-card p-4 rounded-2xl border flex justify-between items-center ${subCardCls}`
     }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("span", {

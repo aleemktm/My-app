@@ -3,7 +3,7 @@
   const h = React.createElement;
 
   function Accounts(props) {
-    const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal } = props;
+    const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal, selectionKey } = props;
 
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "flex justify-between items-center px-1" },
@@ -19,7 +19,8 @@
         return h(window.SwipeRow, {
           key: acc.id,
           onEdit: () => openEditModal("account", acc),
-          onDelete: () => askDeleteAccount(acc)
+          onDelete: () => askDeleteAccount(acc),
+          selectionKey: selectionKey("account", acc.id)
         }, h("div", {
           className: `swipe-content-card p-4 rounded-2xl border bg-gradient-to-br ${acc.color || "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20"} space-y-2.5`
         },

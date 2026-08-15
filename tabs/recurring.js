@@ -1,7 +1,7 @@
 // tabs/recurring.js — Recurring items tab, originally renderRecurring().
 (function () {
   function Recurring(props) {
-    const { accent, accounts, advanceRecurringDate, cardCls, dateFmt, deleteRecurringItem, inputCls, numFmt, openRecurringEditor, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, saveRecurringItem, setRecurringEditor, setRecurringForm, settings, subCardCls, updateRecurringItem } = props;
+    const { accent, accounts, advanceRecurringDate, cardCls, dateFmt, deleteRecurringItem, inputCls, numFmt, openRecurringEditor, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, saveRecurringItem, setRecurringEditor, setRecurringForm, settings, subCardCls, updateRecurringItem, selectionKey } = props;
     const h = React.createElement;
     const categoryList = recurringForm.type === "income" ? settings.customCategories.income || ["Salary"] : settings.customCategories.expense || ["Groceries"];
     const upcoming = recurringItems.filter(item => item.active).slice().sort((a, b) => a.nextDate.localeCompare(b.nextDate)).slice(0, 5);
@@ -183,7 +183,8 @@
   }, recurringItems.slice().sort((a, b) => a.nextDate.localeCompare(b.nextDate)).map(item => h(window.SwipeRow, {
     key: item.id,
     onEdit: () => openRecurringEditor(item),
-    onDelete: () => deleteRecurringItem(item)
+    onDelete: () => deleteRecurringItem(item),
+    selectionKey: selectionKey("recurring", item.id)
   }, h("div", {
     className: `swipe-content-card p-4 ${subCardCls} space-y-3`
   }, h("div", {
