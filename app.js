@@ -52,12 +52,13 @@ var SwipeRow = ({ children, onEdit, onDelete, editLabel = "Edit", deleteLabel = 
   };
   const onPointerDown = e => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    const selectionMode = key && window.__aleemSelection && window.__aleemSelection.size > 0;
     startX.current = e.clientX;
     startY.current = e.clientY;
     dragging.current = true;
     moved.current = false;
     clearLongPress();
-    if (key) {
+    if (key && !selectionMode) {
       longPress.current = setTimeout(() => {
         if (!dragging.current || moved.current) return;
         dragging.current = false;
@@ -91,6 +92,12 @@ var SwipeRow = ({ children, onEdit, onDelete, editLabel = "Edit", deleteLabel = 
     if (!dragging.current) return;
     dragging.current = false;
     const dx = e.clientX - startX.current;
+    if (!moved.current && key && window.__aleemSelection && window.__aleemSelection.size > 0) {
+      window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key } }));
+      dragging.current = false;
+      moved.current = true;
+      return;
+    }
     if (dx < (open ? -35 : -55)) {
       hapticFeedback(16);
       setOpen(true);
@@ -126,7 +133,15 @@ var SwipeRow = ({ children, onEdit, onDelete, editLabel = "Edit", deleteLabel = 
       className: `swipe-content${open ? " is-swiped" : ""}`,
       onPointerDown, onPointerMove, onPointerUp,
       onPointerCancel: () => { clearLongPress(); dragging.current = false; setOffset(open ? -ACTION_WIDTH : 0); },
-      onClick: e => { if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; } }
+      onClick: e => {
+        if (key && window.__aleemSelection && window.__aleemSelection.size > 0) {
+          e.preventDefault(); e.stopPropagation();
+          if (moved.current) { moved.current = false; return; }
+          window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key } }));
+          return;
+        }
+        if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; }
+      }
     }, children)
   );
 };
@@ -577,6 +592,7 @@ useEffect(() => {
   return () => { window.removeEventListener("aleem-select", onSelect); window.removeEventListener("aleem-select-all", onSelectAll); };
 }, []);
 const currentSelectableKeys = () => {
+  if (activeTab === "overview") return transactions.slice(0, 5).map(x => selectionKey("transaction", x.id));
   if (activeTab === "transactions") return filteredTransactions.map(x => selectionKey("transaction", x.id));
   if (activeTab === "accounts") return accounts.map(x => selectionKey("account", x.id));
   if (activeTab === "vault") return assets.map(x => selectionKey("asset", x.id));
@@ -2179,7 +2195,16 @@ useEffect(() => {
   };
 }, [activeTab, darkMode]);
 
-    const tabProps = { selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, importBackup, importBankTransactionFromSMS, parseBankTransactionSMS, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+    const selectionToolbar = selectedCount > 0 ? React.createElement("div", { className: "selection-toolbar safe-x", role: "toolbar", "aria-label": "Selection actions" },
+  React.createElement("div", { className: "selection-toolbar-inner max-w-5xl mx-auto" },
+    React.createElement("button", { onClick: clearSelection, className: "selection-toolbar-button selection-toolbar-cancel", "aria-label": "Cancel selection" }, React.createElement(Icons.IconClose, { className: "w-4 h-4" })),
+    React.createElement("div", { className: "selection-toolbar-title" }, `${selectedCount} selected`),
+    React.createElement("button", { onClick: selectAllCurrent, className: "selection-toolbar-button", "aria-label": "Select all" }, "Select All"),
+    selectedCount === 1 && React.createElement("button", { onClick: editSelected, className: "selection-toolbar-button", "aria-label": "Edit selected" }, React.createElement(Icons.IconEdit, { className: "w-4 h-4" })),
+    React.createElement("button", { onClick: bulkDeleteSelected, className: "selection-toolbar-button selection-toolbar-delete", "aria-label": "Delete selected" }, React.createElement(Icons.IconTrash, { className: "w-4 h-4" }))
+  )
+) : null;
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, importBackup, importBankTransactionFromSMS, parseBankTransactionSMS, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2265,15 +2290,7 @@ useEffect(() => {
       className: "w-4 h-4"
     }))))), storageError && /* @__PURE__ */React.createElement("div", {
       className: "bg-rose-600 text-white text-xs font-semibold text-center py-2 px-4 safe-x"
-    }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), /* @__PURE__ */selectedCount > 0 && React.createElement("div", { className: "selection-toolbar safe-x", role: "toolbar", "aria-label": "Selection actions" },
-      React.createElement("div", { className: "selection-toolbar-inner max-w-5xl mx-auto" },
-        React.createElement("button", { onClick: clearSelection, className: "selection-toolbar-button selection-toolbar-cancel", "aria-label": "Cancel selection" }, React.createElement(Icons.IconClose, { className: "w-4 h-4" })),
-        React.createElement("div", { className: "selection-toolbar-title" }, `${selectedCount} selected`),
-        React.createElement("button", { onClick: selectAllCurrent, className: "selection-toolbar-button", "aria-label": "Select all" }, "Select All"),
-        selectedCount === 1 && React.createElement("button", { onClick: editSelected, className: "selection-toolbar-button", "aria-label": "Edit selected" }, React.createElement(Icons.IconEdit, { className: "w-4 h-4" })),
-        React.createElement("button", { onClick: bulkDeleteSelected, className: "selection-toolbar-button selection-toolbar-delete", "aria-label": "Delete selected" }, React.createElement(Icons.IconTrash, { className: "w-4 h-4" }))
-      )
-    ),
+    }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), activeTab !== "overview" && selectionToolbar,
     React.createElement("main", {
       className: "max-w-5xl mx-auto px-4 py-5 sm:py-6 space-y-5 sm:space-y-6 flex-1 w-full safe-x"
     }, activeTab === "overview" && Tabs.Overview(tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && Tabs.Accounts(tabProps), activeTab === "vault" && Tabs.Vault(tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "analytics" && Tabs.Analytics(tabProps)), activeTab === "analytics" && Tabs.AnalyticsSummary(tabProps), activeTab === "planning" && Tabs.Planning(tabProps), activeTab === "recurring" && Tabs.Recurring(tabProps), activeTab === "settings" && Tabs.Settings(tabProps), /* @__PURE__ */React.createElement("nav", {
