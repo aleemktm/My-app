@@ -24,7 +24,7 @@
         h("div", { className: "recurring-stat recurring-stat-expense" }, h(Icons.IconArrowUp45,{className:"w-4 h-4"}), h("div",null,h("span",null,"Monthly expenses"),h("strong",null,"-",monthlyExpense.toLocaleString()))),
         h("div", { className: "recurring-stat recurring-stat-neutral" }, h(Icons.IconCalendar,{className:"w-4 h-4"}), h("div",null,h("span",null,"Active schedules"),h("strong",null,String(activeItems.length))))
       ),
-      upcoming.length > 0 && h("section", { className: "recurring-next" },
+      upcoming.length > 0 && h("section", { className: `recurring-next ${darkMode ? "is-dark" : ""}` },
         h("div", { className: "recurring-section-head" }, h("div",null,h("span",null,"UP NEXT"),h("strong",null,"Upcoming")), h(Icons.IconChevron,{className:"w-4 h-4"})),
         h("div", { className: "recurring-next-list" }, upcoming.map(item => h("div", { key:item.id, className:"recurring-next-item" },
           h("div", { className:`recurring-next-icon ${item.type === "income" ? "is-income" : "is-expense"}` }, item.type === "income" ? h(Icons.IconArrowDown45,{className:"w-4 h-4"}) : h(Icons.IconArrowUp45,{className:"w-4 h-4"})),

@@ -3,8 +3,9 @@
   const h = React.createElement;
 
   function Accounts(props) {
-    const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal, selectionKey } = props;
-    const total = accounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+    const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal, selectionKey, settings, convertToBaseCurrency } = props;
+    const baseCurrency = settings?.defaultCurrency || "AED";
+    const total = accounts.reduce((sum, a) => sum + convertToBaseCurrency(Number(a.balance || 0), a.currency), 0);
 
     return h("div", { className: "accounts-native space-y-4 max-w-2xl mx-auto w-full" },
       h("section", { className: `accounts-header-card ${darkMode ? "accounts-header-dark" : ""}` },
@@ -18,7 +19,7 @@
         ),
         accounts.length > 0 && h("div", { className: "accounts-total-row" },
           h("span", null, "Combined balance"),
-          h("strong", null, numFmt(total))
+          h("strong", null, baseCurrency, " ", numFmt(total))
         )
       ),
       h("div", { className: "accounts-list" }, accounts.map(acc => {
@@ -36,10 +37,13 @@
         },
           h("div", { className: "account-card-head" },
             h("div", { className: "account-identity" },
-              h("span", { className: "account-color-dot", style: { background: "#1DBF73" } }),
-              h("div", { className: "min-w-0" },
-                h("span", { className: "account-type" }, acc.type || "Bank Account"),
-                h("h3", { className: "account-name" }, acc.name)
+              h("div", { className: "account-heading" },
+                h("span", { className: "account-type" }, acc.scope === "freelance" ? "Freelance account" : (acc.type || "Bank Account")),
+                h("div", { className: "account-title-row" },
+                  h("span", { className: "account-color-dot", style: { background: acc.color || "#1DBF73" } }),
+                  h("span", { className: "account-icon", "aria-hidden": "true" }, acc.scope === "freelance" ? h(Icons.IconBriefcase, { className: "w-4 h-4" }) : acc.type === "Bank" ? h(Icons.IconAccounts, { className: "w-4 h-4" }) : h(Icons.IconWallet, { className: "w-4 h-4" })),
+                  h("h3", { className: "account-name" }, acc.name)
+                )
               )
             ),
             h("div", { className: "account-balance-block" },
@@ -48,8 +52,8 @@
             )
           ),
           h("div", { className: "account-card-meta" },
-            h("span", null, h(Icons.IconWallet, { className: "w-3.5 h-3.5" }), acc.type || "Account"),
-            h("span", null, h(Icons.IconWallet, { className: "w-3.5 h-3.5" }), "Local account")
+            h("span", null, acc.currency, " · ", acc.scope === "freelance" ? "Freelance" : "Local"),
+            h("span", null, acc.type || "Account")
           ),
           (inflowInfo || outflowInfo) && h("div", { className: "account-flow-list" },
             inflowInfo && h("div", { className: "account-flow-row account-flow-income" },

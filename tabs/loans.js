@@ -1,7 +1,7 @@
 // tabs/loans.js — Loans & Liabilities tab.
 (function () {
   function Loans(props) {
-    const { accounts, darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey } = props;
+    const { accounts, darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, undoRepayment } = props;
     const h = React.createElement;
     const lentCount = sortedLoans.filter(l => l.type === "lent").length;
     const borrowedCount = sortedLoans.filter(l => l.type === "borrowed").length;
@@ -64,7 +64,7 @@
             h("button", { onClick: () => setExpandedLoanHistory(prev => ({ ...prev, [loan.id]: !prev[loan.id] })), className: "loan-icon-action loan-icon-action-history", title: expandedLoanHistory[loan.id] ? "Hide history" : "Show history", "aria-label": expandedLoanHistory[loan.id] ? "Hide history" : "Show history" }, h(Icons.IconHistory, { className: "w-4 h-4" }))
           ),
           expandedLoanHistory[loan.id] && h("div", { className: "loan-history-panel" },
-            (loan.movements && loan.movements.length > 0 ? [...loan.movements].sort((a,b) => (b.date || "").localeCompare(a.date || "")) : []).map(mv => h("div", { key: mv.id, className: "loan-history-row" }, h("span", null, dateFmt(mv.date), " · ", mv.kind === "principal" ? loan.type === "lent" ? "Given" : "Received" : "Repaid"), h("strong", { className: mv.kind === "principal" ? loan.type === "lent" ? "loan-history-out" : "loan-history-in" : loan.type === "lent" ? "loan-history-in" : "loan-history-out" }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)))),
+            (loan.movements && loan.movements.length > 0 ? [...loan.movements].sort((a,b) => (b.date || "").localeCompare(a.date || "")) : []).map(mv => h("div", { key: mv.id, className: "loan-history-row" }, h("span", null, dateFmt(mv.date), " · ", mv.kind === "principal" ? loan.type === "lent" ? "Given" : "Received" : "Repaid"), h("div", { className: "flex items-center gap-2" }, h("strong", { className: mv.kind === "principal" ? loan.type === "lent" ? "loan-history-out" : "loan-history-in" : loan.type === "lent" ? "loan-history-in" : "loan-history-out" }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)), mv.kind === "repayment" && mv.id && h("button", { type: "button", className: "loan-history-undo", onClick: () => undoRepayment(loan.id, mv.id), title: "Undo this payment", "aria-label": "Undo this payment" }, h(Icons.IconUndo, { className: "w-3 h-3" }))))),
             (!loan.movements || loan.movements.length === 0) && h("p", { className: "loan-history-empty" }, "No dated movements logged yet for this entry.")
           )
         ));
