@@ -313,6 +313,12 @@
     value: "Other"
   }, "Other"))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
+  }, "Account Group"), /* @__PURE__ */React.createElement("select", {
+    value: formInput.accountScope || "local",
+    onChange: e => setFormInput({ ...formInput, accountScope: e.target.value }),
+    className: inputCls
+  }, /* @__PURE__ */React.createElement("option", { value: "local" }, "Local"), /* @__PURE__ */React.createElement("option", { value: "freelance" }, "Freelance"), /* @__PURE__ */React.createElement("option", { value: "other" }, "Other"))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+    className: "block text-[11px] font-medium mb-1"
   }, editingId ? "Balance" : "Initial Balance"), /* @__PURE__ */React.createElement("input", {
     type: "number",
     inputMode: "decimal",
