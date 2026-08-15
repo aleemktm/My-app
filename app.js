@@ -6,7 +6,8 @@
 var {
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  useRef
 } = React;
 var ACCOUNT_COLORS = ["from-emerald-500/10 to-teal-500/10 border-emerald-500/20", "from-blue-500/10 to-indigo-500/10 border-blue-500/20", "from-sky-500/10 to-blue-500/10 border-sky-500/20", "from-amber-500/10 to-orange-500/10 border-amber-500/20", "from-violet-500/10 to-purple-500/10 border-violet-500/20", "from-rose-500/10 to-pink-500/10 border-rose-500/20"];
 var toLocalISO = d => {
@@ -136,6 +137,7 @@ const DEFAULT_SETTINGS = {
   dashboardCards: ["accounts", "vault", "loans", "analytics"],
   hiddenDashboardCards: [],
   liveRateSync: true,
+  hapticFeedback: true,
   showGreeting: true,
   primaryNavIds: ["overview", "transactions", "accounts", "loans"],
   defaultCurrency: "AED",
@@ -173,6 +175,8 @@ const updateSettings = partial => {
   });
 };
 const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
+const settingsRef = useRef(settings);
+settingsRef.current = settings;
 const primaryNavIds = settings.primaryNavIds && settings.primaryNavIds.length === 4 ? settings.primaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
 const MORE_NAV_ITEMS = NAV_ITEMS.filter(t => !primaryNavIds.includes(t.id));
@@ -204,14 +208,64 @@ useEffect(() => {
     return () => mq.removeEventListener("change", listener);
   }
 }, [settings.theme]);
-const [activeTab, setActiveTab] = useState("overview");
+const triggerHaptic = (type = "light") => {
+  if (settings && settings.soundEffects !== false && window.playSound) {
+    if (type === "light" || type === "tab" || type === "tap") window.playSound("click");
+    else if (type === "success" || type === "transaction") window.playSound("success");
+    else if (type === "delete" || type === "warning") window.playSound("delete");
+  }
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+  if (settings && settings.hapticFeedback === false) return;
+  try {
+    if (type === "light" || type === "tab" || type === "tap") {
+      navigator.vibrate(10);
+    } else if (type === "medium" || type === "action") {
+      navigator.vibrate(20);
+    } else if (type === "success" || type === "transaction") {
+      navigator.vibrate([15, 45, 25]);
+    } else if (type === "delete" || type === "warning") {
+      navigator.vibrate([30, 50, 25]);
+    } else if (Array.isArray(type) || typeof type === "number") {
+      navigator.vibrate(type);
+    } else {
+      navigator.vibrate(10);
+    }
+  } catch (e) {}
+};
+const [toasts, setToasts] = useState([]);
+const showToast = (message, tone = "default") => {
+  const id = `${Date.now()}_${Math.random()}`;
+  setToasts(prev => [...prev, { id, message, tone }]);
+  window.setTimeout(() => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, 2400);
+};
+const [activeTabState, setActiveTabState] = useState("overview");
+const setActiveTab = nextTab => {
+  setActiveTabState(prev => {
+    const target = typeof nextTab === "function" ? nextTab(prev) : nextTab;
+    if (target !== prev) {
+      triggerHaptic("tab");
+    }
+    return target;
+  });
+};
+const activeTab = activeTabState;
+const activeTabRef = useRef(activeTab);
+activeTabRef.current = activeTab;
 useEffect(() => {
   if (typeof window === "undefined" || window.innerWidth > 767) return;
   let startX = 0, startY = 0, startTarget = null, tracking = false;
   const onStart = e => {
     const t = e.touches && e.touches[0];
-    if (!t || activeTab === "settings") return;
-    startX = t.clientX; startY = t.clientY; startTarget = e.target; tracking = true;
+    if (!t) return;
+    const targetEl = e.target;
+    // Exclude touches intended for the quick entry card, bottom nav, form inputs, buttons, or dialogs
+    if (targetEl && targetEl.closest && targetEl.closest(".home-actions-section, .home-actions-grid, .home-action, [data-swipe-exclude=\"true\"], nav, .mobile-bottom-bar, .mobile-nav-swipe, .ios-swipe-row, input, textarea, select, [contenteditable=\"true\"], button, a, [role=\"dialog\"], .fixed.inset-0")) {
+      tracking = false;
+      return;
+    }
+    startX = t.clientX; startY = t.clientY; startTarget = targetEl; tracking = true;
   };
   const onEnd = e => {
     if (!tracking) return;
@@ -219,13 +273,10 @@ useEffect(() => {
     const t = e.changedTouches && e.changedTouches[0];
     if (!t) return;
     const dx = t.clientX - startX, dy = t.clientY - startY;
-    if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
-    const target = startTarget && startTarget.closest && startTarget.closest("input, textarea, select, [contenteditable=\"true\"]");
+    if (Math.abs(dx) < 45 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
+    const target = startTarget && startTarget.closest && startTarget.closest(".home-actions-section, .home-actions-grid, .home-action, [data-swipe-exclude=\"true\"], input, textarea, select, [contenteditable=\"true\"], nav, .mobile-bottom-bar, .mobile-nav-swipe, .ios-swipe-row, [role=\"dialog\"], .fixed.inset-0");
     if (target) return;
-    // Horizontal swipes inside Quick Entry belong to the card carousel, not tab navigation.
-    const quickEntry = startTarget && startTarget.closest && startTarget.closest(".home-actions-grid");
-    if (quickEntry) return;
-    const tabs = MOBILE_NAV_ITEMS;
+    const tabs = NAV_ITEMS;
     const index = tabs.findIndex(tab => tab.id === activeTab);
     if (index < 0) return;
     const nextIndex = dx < 0 ? index + 1 : index - 1;
@@ -411,8 +462,53 @@ const saveRates = e => {
 };
 useEffect(() => {
   document.documentElement.classList.toggle("dark", darkMode);
-}, [darkMode]);
+  document.documentElement.classList.toggle("oled-dark", darkMode && Boolean(settings.oledBlack));
+}, [darkMode, settings.oledBlack]);
+
+// Shake-to-Mask / Shake-to-Undo hardware gesture detector
+useEffect(() => {
+  if (typeof window === "undefined" || !window.DeviceMotionEvent) return;
+  let lastX = 0, lastY = 0, lastZ = 0, lastTime = 0;
+  const SHAKE_THRESHOLD = 22; // m/s^2 delta
+
+  const handleDeviceMotion = (e) => {
+    if (settings.shakeToMask === false) return;
+    const acc = e.accelerationIncludingGravity || e.acceleration;
+    if (!acc) return;
+    const now = Date.now();
+    if (now - lastTime < 700) return; // Debounce shake triggers
+
+    const deltaX = Math.abs(acc.x - lastX);
+    const deltaY = Math.abs(acc.y - lastY);
+    const deltaZ = Math.abs(acc.z - lastZ);
+
+    if (deltaX + deltaY + deltaZ > SHAKE_THRESHOLD) {
+      lastTime = now;
+      if (triggerHaptic) triggerHaptic("medium");
+      if (window.playSound) window.playSound("refresh");
+      // On the Ledger tab with something to undo, shake undoes the last
+      // recorded transaction instead of toggling privacy mode.
+      if (activeTabRef.current === "transactions" && historyRef.current.length > 0) {
+        handleUndoRef.current();
+        showToast("Last transaction undone", "info");
+      } else {
+        const nextDiscrete = !settingsRef.current.discreteMode;
+        updateSettings({ discreteMode: nextDiscrete });
+        showToast(nextDiscrete ? "Discrete Mode enabled" : "Discrete Mode disabled", "info");
+      }
+    }
+
+    lastX = acc.x || 0;
+    lastY = acc.y || 0;
+    lastZ = acc.z || 0;
+  };
+
+  window.addEventListener("devicemotion", handleDeviceMotion, { passive: true });
+  return () => window.removeEventListener("devicemotion", handleDeviceMotion);
+}, [settings.shakeToMask]);
 const [history, setHistory] = useState([]);
+const historyRef = useRef(history);
+historyRef.current = history;
 const [redoStack, setRedoStack] = useState([]);
 const saveStateToHistory = () => {
   setHistory(prev => [...prev.slice(-15), {
@@ -425,6 +521,7 @@ const saveStateToHistory = () => {
 };
 const handleUndo = () => {
   if (history.length === 0) return;
+  triggerHaptic("medium");
   const previousState = history[history.length - 1];
   setRedoStack(prev => [{
     accounts,
@@ -439,8 +536,11 @@ const handleUndo = () => {
   setTransactions(previousState.transactions);
   persistAllData(previousState.accounts, previousState.assets, previousState.loans, previousState.transactions);
 };
+const handleUndoRef = useRef(handleUndo);
+handleUndoRef.current = handleUndo;
 const handleRedo = () => {
   if (redoStack.length === 0) return;
+  triggerHaptic("medium");
   const nextState = redoStack[0];
   setHistory(prev => [...prev, {
     accounts,
@@ -458,6 +558,134 @@ const handleRedo = () => {
 const [smsOpen, setSmsOpen] = useState(false);
 const [smsText, setSmsText] = useState("");
 const [smsParsed, setSmsParsed] = useState(null);
+const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+const [widgetsModalOpen, setWidgetsModalOpen] = useState(false);
+const [bankSmsModalOpen, setBankSmsModalOpen] = useState(false);
+const [isAppLocked, setIsAppLocked] = useState(() => Boolean(settings.securityLockEnabled));
+
+// Privacy Screen Blur and Auto-lock timer
+useEffect(() => {
+  let hideTimestamp = 0;
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      hideTimestamp = Date.now();
+      if (settings.privacyScreenBlur !== false) {
+        document.documentElement.classList.add("privacy-blurred");
+      }
+    } else {
+      document.documentElement.classList.remove("privacy-blurred");
+      if (settings.securityLockEnabled && hideTimestamp > 0) {
+        const elapsedMinutes = (Date.now() - hideTimestamp) / (1000 * 60);
+        if (elapsedMinutes >= (settings.lockTimeoutMinutes || 1)) {
+          setIsAppLocked(true);
+        }
+      }
+    }
+  };
+
+  const onWindowBlur = () => {
+    if (settings.privacyScreenBlur !== false) {
+      document.documentElement.classList.add("privacy-blurred");
+    }
+  };
+
+  const onWindowFocus = () => {
+    document.documentElement.classList.remove("privacy-blurred");
+  };
+
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  window.addEventListener("blur", onWindowBlur);
+  window.addEventListener("focus", onWindowFocus);
+
+  return () => {
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    window.removeEventListener("blur", onWindowBlur);
+    window.removeEventListener("focus", onWindowFocus);
+    document.documentElement.classList.remove("privacy-blurred");
+  };
+}, [settings.privacyScreenBlur, settings.securityLockEnabled, settings.lockTimeoutMinutes]);
+
+// Push notifications due check on startup
+useEffect(() => {
+  if (settings.notificationsEnabled && typeof Notification !== "undefined" && Notification.permission === "granted") {
+    // Check upcoming loans due or bills
+    const dueLoans = loans.filter(l => l.dueDate && l.dueDate >= todayISO());
+    if (dueLoans.length > 0) {
+      const firstDue = dueLoans[0];
+      const today = new Date();
+      const dueDate = new Date(firstDue.dueDate);
+      const diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 3 && diffDays >= 0) {
+        Storage.sendLocalNotification("Upcoming Payment Alert", {
+          body: `Reminder: Loan "${firstDue.person}" has a due date in ${diffDays} day${diffDays === 1 ? "" : "s"}.`
+        });
+      }
+    }
+  }
+}, [settings.notificationsEnabled]);
+
+const openReceiptScanner = () => setReceiptModalOpen(true);
+const openWidgetsModal = () => setWidgetsModalOpen(true);
+const openBankSmsModal = () => setBankSmsModalOpen(true);
+
+const handleApplyScannedExpense = (parsed) => {
+  const defaultAcc = accounts[0] || { id: "1", currency: "AED" };
+  const amt = Number(parsed.amount) || 0;
+  const newTx = {
+    id: String(Date.now()),
+    type: "expense",
+    amount: amt,
+    currency: parsed.currency || currency || "AED",
+    accountId: defaultAcc.id,
+    category: parsed.category || "Shopping",
+    notes: parsed.merchant ? `Receipt: ${parsed.merchant}${parsed.notes ? ` (${parsed.notes})` : ""}` : "Scanned Receipt",
+    date: parsed.date || todayISO(),
+    receiptImage: parsed.receiptImage || null
+  };
+  const updatedAccounts = accounts.map(acc => {
+    if (acc.id === defaultAcc.id) {
+      return { ...acc, balance: Math.max(0, acc.balance - amt) };
+    }
+    return acc;
+  });
+  const nextTxns = [newTx, ...transactions];
+  pushHistory();
+  setAccounts(updatedAccounts);
+  setTransactions(nextTxns);
+  persistAllData(updatedAccounts, assets, loans, nextTxns);
+  if (triggerHaptic) triggerHaptic("transaction");
+};
+
+const handleAddParsedTransaction = (parsed) => {
+  const accId = parsed.accountId || (accounts[0] && accounts[0].id) || "1";
+  const targetAcc = accounts.find(a => a.id === accId) || accounts[0];
+  const amt = Number(parsed.amount) || 0;
+  const isIncome = parsed.type === "income";
+  const newTx = {
+    id: String(Date.now()),
+    type: isIncome ? "income" : "expense",
+    amount: amt,
+    currency: parsed.currency || (targetAcc && targetAcc.currency) || "AED",
+    accountId: accId,
+    category: parsed.category || (isIncome ? "Salary" : "Shopping"),
+    notes: parsed.merchant ? `${parsed.merchant}${parsed.notes ? ` · ${parsed.notes}` : ""}` : (parsed.notes || "Bank SMS Alert"),
+    date: parsed.date || todayISO()
+  };
+  const updatedAccounts = accounts.map(acc => {
+    if (acc.id === accId) {
+      const delta = isIncome ? amt : -amt;
+      return { ...acc, balance: acc.balance + delta };
+    }
+    return acc;
+  });
+  const nextTxns = [newTx, ...transactions];
+  pushHistory();
+  setAccounts(updatedAccounts);
+  setTransactions(nextTxns);
+  persistAllData(updatedAccounts, assets, loans, nextTxns);
+  if (triggerHaptic) triggerHaptic("transaction");
+};
+
 const [modalOpen, setModalOpen] = useState(false);
 const [modalType, setModalType] = useState("income");
 const [editingId, setEditingId] = useState(null);
@@ -616,6 +844,7 @@ const getDefaultFormInput = (overrides = {}) => ({
 });
 const [formInput, setFormInput] = useState(() => getDefaultFormInput());
 const openAddModal = (type, overrides = {}) => {
+  triggerHaptic("light");
   if (["income", "expense", "transfer"].includes(type) && accounts.length === 0) {
     alert("Add an account first before recording transactions.");
     setActiveTab("accounts");
@@ -905,6 +1134,7 @@ const importBankTransactionFromSMS = parsed => {
   const updatedTxns = [tx, ...transactions];
   setAccounts(updatedAccs); setTransactions(updatedTxns);
   persistAllData(updatedAccs, assets, loans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
+  triggerHaptic("success");
   return true;
 };
 const handleFormSubmit = e => {
@@ -1161,6 +1391,11 @@ const handleFormSubmit = e => {
     setTransactions(updatedTxns);
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
+  if (["income", "expense", "transfer"].includes(modalType)) {
+    triggerHaptic("success");
+  } else if (["loan", "account", "asset"].includes(modalType)) {
+    triggerHaptic("medium");
+  }
   closeModal();
 };
 const handleRepaymentSubmit = e => {
@@ -1220,6 +1455,7 @@ const handleRepaymentSubmit = e => {
   setAccounts(updatedAccs);
   setTransactions(updatedTxns);
   persistAllData(updatedAccs, assets, updatedLoans, updatedTxns);
+  triggerHaptic("success");
   setRepaymentModalLoan(null);
   setRepayAmount("");
   setRepayAccountId("");
@@ -1276,6 +1512,7 @@ const handleAddMoreSubmit = e => {
   setAccounts(updatedAccs);
   setTransactions(updatedTxns);
   persistAllData(updatedAccs, assets, updatedLoans, updatedTxns);
+  triggerHaptic("success");
   setLoanAddMoreTarget(null);
   setAddMoreAmount("");
   setAddMoreAccountId("");
@@ -1350,6 +1587,7 @@ const confirmDelete = () => {
     setLoans(updatedLoans);
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
+  triggerHaptic("delete");
   setDeleteTarget(null);
 };
 const askDeleteAccount = acc => {
@@ -1984,13 +2222,21 @@ useEffect(() => {
   });
 }, [activeTab, loanView, loans, darkMode, accent.activeBg, accent.textStrong]);
 useEffect(() => {
-  if (activeTab === "settings" || window.innerWidth > 767) return;
-  const frame = requestAnimationFrame(() => {
-    const activeButton = document.querySelector(`[data-mobile-nav-tab="${activeTab}"]`);
+  if (activeTab === "settings" || typeof window === "undefined" || window.innerWidth > 767) return;
+  const timer = setTimeout(() => {
     const scroller = document.querySelector("[data-mobile-nav-scroll]");
-    if (activeButton && scroller) activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  });
-  return () => cancelAnimationFrame(frame);
+    const activeButton = scroller && scroller.querySelector(`[data-mobile-nav-tab="${activeTab}"]`);
+    if (activeButton && scroller) {
+      const scrollerRect = scroller.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      const targetScroll = scroller.scrollLeft + (buttonRect.left - scrollerRect.left) - (scrollerRect.width / 2) + (buttonRect.width / 2);
+      scroller.scrollTo({
+        left: Math.max(0, targetScroll),
+        behavior: "smooth"
+      });
+    }
+  }, 25);
+  return () => clearTimeout(timer);
 }, [activeTab]);
 
 useEffect(() => {
@@ -2041,7 +2287,8 @@ useEffect(() => {
   };
 }, [activeTab, darkMode]);
 
-    const tabProps = { DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, importBackup, importBankTransactionFromSMS, parseBankTransactionSMS, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+    const tabProps = { DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, importBackup, importBankTransactionFromSMS, parseBankTransactionSMS, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, triggerHaptic, updateRecurringItem, updateSettings, yearlyHistory,
+      isAppLocked, setIsAppLocked, receiptModalOpen, setReceiptModalOpen, widgetsModalOpen, setWidgetsModalOpen, bankSmsModalOpen, setBankSmsModalOpen, openReceiptScanner, openWidgetsModal, openBankSmsModal, handleApplyScannedExpense, handleAddParsedTransaction };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2119,6 +2366,17 @@ useEffect(() => {
       onChange: importBackup,
       className: "hidden"
     })), /* @__PURE__ */React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        updateSettings({ discreteMode: !settings.discreteMode });
+        if (typeof triggerHaptic === "function") triggerHaptic("action");
+      },
+      title: settings.discreteMode ? "Show balances" : "Hide balances (Discrete Mode)",
+      "aria-label": settings.discreteMode ? "Show balances" : "Hide balances",
+      className: `p-2 rounded-xl border transition-all active:scale-95 ${settings.discreteMode ? `${accent.activeBg10} ${accent.textStrong} border-emerald-500/30 font-bold` : darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200" : "bg-white border-zinc-200 text-zinc-600 hover:text-zinc-900"}`
+    }, /* @__PURE__ */React.createElement(settings.discreteMode ? Icons.IconEyeOff : Icons.IconEye, {
+      className: "w-4 h-4"
+    })), /* @__PURE__ */React.createElement("button", {
       onClick: () => setDarkMode(!darkMode),
       className: `p-2 rounded-xl border ${darkMode ? "bg-zinc-900 border-zinc-800 text-amber-400" : "bg-white border-zinc-200 text-zinc-600"}`
     }, darkMode ? /* @__PURE__ */React.createElement(Icons.IconSun, {
@@ -2129,17 +2387,26 @@ useEffect(() => {
       className: "bg-rose-600 text-white text-xs font-semibold text-center py-2 px-4 safe-x"
     }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), /* @__PURE__ */React.createElement("main", {
       className: "max-w-5xl mx-auto px-4 py-5 sm:py-6 space-y-5 sm:space-y-6 flex-1 w-full safe-x"
-    }, activeTab === "overview" && Tabs.Overview(tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && Tabs.Accounts(tabProps), activeTab === "vault" && Tabs.Vault(tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "analytics" && Tabs.Analytics(tabProps)), activeTab === "analytics" && Tabs.AnalyticsSummary(tabProps), activeTab === "planning" && Tabs.Planning(tabProps), activeTab === "recurring" && Tabs.Recurring(tabProps), activeTab === "settings" && Tabs.Settings(tabProps), /* @__PURE__ */React.createElement("nav", {
+    }, activeTab === "overview" && React.createElement(Tabs.Overview, tabProps),
+       activeTab === "transactions" && React.createElement(Tabs.Ledger, tabProps),
+       activeTab === "accounts" && React.createElement(Tabs.Accounts, tabProps),
+       activeTab === "vault" && React.createElement(Tabs.Vault, tabProps),
+       activeTab === "loans" && React.createElement(Tabs.Loans, tabProps),
+       activeTab === "analytics" && React.createElement(Tabs.Analytics, tabProps)),
+       activeTab === "analytics" && React.createElement(Tabs.AnalyticsSummary, tabProps),
+       activeTab === "planning" && React.createElement(Tabs.Planning, tabProps),
+       activeTab === "recurring" && React.createElement(Tabs.Recurring, tabProps),
+       activeTab === "settings" && React.createElement(Tabs.Settings, tabProps), /* @__PURE__ */React.createElement("nav", {
       className: "md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t safe-bottom bg-zinc-900/95 border-zinc-800",
       style: {
         position: "fixed"
       }
     }, /* @__PURE__ */React.createElement("div", {
-      className: "mobile-bottom-bar max-w-5xl mx-auto px-2 py-1.5 h-[74px] safe-x"
+      className: "mobile-bottom-bar max-w-5xl mx-auto px-1 py-1 h-[70px] safe-x"
     }, /* @__PURE__ */React.createElement("div", {
       className: "mobile-nav-swipe",
       "data-mobile-nav-scroll": "true"
-    }, MOBILE_NAV_ITEMS.filter(tab => tab.id !== "settings").map(tab => {
+    }, NAV_ITEMS.filter(tab => tab.id !== "settings").map(tab => {
       const Icon = tab.icon;
       const isActive = activeTab === tab.id;
       return /* @__PURE__ */React.createElement("button", {
@@ -2149,13 +2416,14 @@ useEffect(() => {
           setMoreSheetOpen(false);
         },
         "data-mobile-nav-tab": tab.id,
+        "aria-label": tab.label,
         className: `mobile-nav-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
         className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
       }, /* @__PURE__ */React.createElement(Icon, {
         className: "w-5 h-5"
       })), /* @__PURE__ */React.createElement("span", {
-        className: "text-[10px] leading-none"
+        className: "text-[10px] leading-none whitespace-nowrap"
       }, tab.label));
     })), /* @__PURE__ */React.createElement("div", {
       className: "mobile-settings-fixed"
@@ -2171,16 +2439,41 @@ useEffect(() => {
         "data-mobile-nav-tab": "settings",
         "aria-label": "Settings",
         title: "Settings",
-        className: `mobile-nav-tab mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+        className: `mobile-nav-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
         className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
       }, /* @__PURE__ */React.createElement(Icon, {
         className: "w-5 h-5"
       })), /* @__PURE__ */React.createElement("span", {
-        className: "text-[10px] leading-none"
+        className: "text-[10px] leading-none whitespace-nowrap"
       }, "Settings"));
     })()))),
-moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
+moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps),
+deleteTarget && React.createElement(Modals.DeleteConfirm, tabProps),
+ratesModalOpen && React.createElement(Modals.RatesModal, tabProps),
+repaymentModalLoan && React.createElement(Modals.RepaymentModal, tabProps),
+loanAddMoreTarget && React.createElement(Modals.LoanAddMoreModal, tabProps),
+modalOpen && React.createElement(Modals.MainFormModal, tabProps),
+receiptModalOpen && React.createElement(Modals.ReceiptScanModal, { ...tabProps, isOpen: receiptModalOpen, onClose: () => setReceiptModalOpen(false), onApplyExpense: handleApplyScannedExpense }),
+widgetsModalOpen && React.createElement(Modals.WidgetsModal, { ...tabProps, isOpen: widgetsModalOpen, onClose: () => setWidgetsModalOpen(false) }),
+bankSmsModalOpen && React.createElement(Modals.BankSmsModal, { ...tabProps, isOpen: bankSmsModalOpen, onClose: () => setBankSmsModalOpen(false), onAddTransaction: handleAddParsedTransaction }),
+isAppLocked && React.createElement(Modals.SecurityLockOverlay, { ...tabProps, settings, onUnlock: () => setIsAppLocked(false) }),
+/* @__PURE__ */React.createElement("div", {
+  className: "privacy-blur-shield",
+  "aria-hidden": "true"
+}, /* @__PURE__ */React.createElement("div", {
+  className: "w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md border border-white/20 shadow-2xl"
+}, /* @__PURE__ */React.createElement(Icons.IconShield || Icons.IconLock, {
+  className: "w-6 h-6"
+})), /* @__PURE__ */React.createElement("p", {
+  className: "text-xs font-bold text-white/90 tracking-wide"
+}, "Privacy Protected")),
+toasts.length > 0 && /* @__PURE__ */React.createElement("div", {
+  className: "native-toast-container"
+}, toasts.map(t => /* @__PURE__ */React.createElement("div", {
+  key: t.id,
+  className: `native-toast px-4 py-2.5 rounded-2xl border shadow-2xl text-xs font-semibold flex items-center gap-2 backdrop-blur-xl ${darkMode ? "bg-zinc-900/95 border-zinc-800 text-zinc-100" : "bg-white/95 border-zinc-200 text-zinc-900"}`
+}, /* @__PURE__ */React.createElement(Icons.IconSparkles, { className: "w-3.5 h-3.5 text-emerald-500 shrink-0" }), t.message))))
     );
   }
 

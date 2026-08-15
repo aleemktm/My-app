@@ -263,11 +263,12 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 .mobile-bottom-bar {
   display:flex;
   align-items:stretch;
-  gap:.25rem;
   width:100%;
+  contain:paint;
 }
 .mobile-nav-swipe {
-  flex:1 1 auto;
+  flex:1 1 75%;
+  width:75%;
   min-width:0;
   display:flex;
   align-items:center;
@@ -277,30 +278,55 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
   -webkit-overflow-scrolling:touch;
   scroll-behavior:smooth;
   scroll-snap-type:x proximity;
+  scroll-snap-stop:normal;
   scrollbar-width:none;
   touch-action:pan-x;
-  padding:.05rem 0;
+  padding:.1rem 0;
+  will-change:scroll-position;
+  transform:translateZ(0);
+  contain:content;
 }
 .mobile-nav-swipe::-webkit-scrollbar { display:none; }
 .mobile-nav-swipe .mobile-nav-tab {
-  flex:0 0 calc((100% - .5rem) / 3);
-  min-width:calc((100% - .5rem) / 3);
+  flex:0 0 33.333333%;
+  min-width:33.333333%;
+  max-width:33.333333%;
+  width:33.333333%;
   height:100%;
-  scroll-snap-align:center;
+  scroll-snap-align:start;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  padding:.25rem .05rem;
+  box-sizing:border-box;
 }
 .mobile-settings-fixed {
-  flex:0 0 72px;
-  width:72px;
+  flex:0 0 25%;
+  min-width:25%;
+  max-width:25%;
+  width:25%;
+  height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
-  padding-left:.25rem;
-  border-left:1px solid rgba(255,255,255,.10);
+  border-left:1px solid rgba(255,255,255,.08);
+  box-sizing:border-box;
+  padding:.1rem 0;
+  touch-action:manipulation;
 }
-.mobile-settings-fixed .mobile-nav-tab { width:100%; height:100%; }
-.mobile-settings-tab { background:transparent; }
+.mobile-settings-fixed .mobile-nav-tab {
+  width:100%;
+  height:100%;
+  padding:.25rem .05rem;
+  box-sizing:border-box;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
 .mobile-nav-swipe .mobile-nav-tab,
-.mobile-settings-fixed .mobile-nav-tab { touch-action:manipulation; }
+.mobile-settings-fixed .mobile-nav-tab {
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
 
 @media (max-width:640px) {
   .home-hero .home-hero-main { padding: .95rem 0 1.1rem !important; }
@@ -309,7 +335,9 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
   .home-action { min-height:76px !important; padding:.45rem .2rem !important; gap:.28rem !important; font-size:10px !important; }
   .home-action-icon { width:34px !important; height:34px !important; border-radius:11px !important; }
   .home-action svg { width:19px !important; height:19px !important; }
-  .mobile-settings-fixed { flex-basis:68px; width:68px; }
+  .mobile-nav-swipe { flex:1 1 75%; width:75%; }
+  .mobile-nav-swipe .mobile-nav-tab { flex:0 0 33.333333%; min-width:33.333333%; max-width:33.333333%; }
+  .mobile-settings-fixed { flex:0 0 25%; min-width:25%; max-width:25%; width:25%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -382,3 +410,198 @@ html[data-tab-swipe="right"] main { animation: appTabSwipeRight .22s cubic-bezie
 .home-actions-grid { touch-action: pan-x; overscroll-behavior-x: contain; }
 .home-dashboard > .home-ai-modal { animation: none !important; transform: none !important; opacity: 1 !important; }
 .home-ai-btn { padding-top: 14px; padding-bottom: 14px; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+
+/* Native Privacy Blur Shield */
+html.privacy-blurred #root {
+  filter: blur(24px) grayscale(40%);
+  transition: filter 0.15s ease;
+  pointer-events: none;
+  user-select: none;
+}
+.privacy-blur-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgba(9, 9, 11, 0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+html:not(.dark).privacy-blurred .privacy-blur-shield {
+  background: rgba(244, 244, 245, 0.86);
+}
+html.privacy-blurred .privacy-blur-shield {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Apple True OLED Black Mode */
+html.oled-dark, html.oled-dark body, html.oled-dark #root, html.oled-dark .bg-zinc-950 {
+  background-color: #000000 !important;
+}
+html.oled-dark header, html.oled-dark nav, html.oled-dark .bg-zinc-900\/80, html.oled-dark .bg-zinc-900\/95 {
+  background-color: rgba(6, 6, 8, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+html.oled-dark .border-zinc-800 {
+  border-color: #1e1e24 !important;
+}
+
+/* Apple iOS Pull-to-Refresh Indicator */
+.pull-refresh-container {
+  overflow: hidden;
+  transition: height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pull-refresh-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(16, 185, 129, 0.25);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+/* Apple iOS Native Swipe Row Container */
+.ios-swipe-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  touch-action: pan-y;
+}
+.ios-swipe-actions-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  border-radius: 1rem;
+  pointer-events: none;
+}
+.ios-swipe-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  transition: transform 0.15s ease;
+  pointer-events: auto;
+}
+.ios-swipe-content {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Apple-style tabular figures — keeps digit widths fixed so balances
+   don't jitter/reflow as they update (matches Wallet/Stocks behavior) */
+.home-metric,
+.home-secondary-metric,
+.home-stat strong,
+.counter-number-flow,
+.ios-swipe-content,
+.ios-swipe-row {
+  font-variant-numeric: tabular-nums;
+}
+.counter-number-flow {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+}
+
+/* Biometric & Lock Screen */
+.security-lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1.5px solid currentColor;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pin-dot.filled {
+  background-color: currentColor;
+  transform: scale(1.15);
+}
+.pin-pad-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 9999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+  touch-action: manipulation;
+}
+.pin-pad-btn:active {
+  transform: scale(0.92);
+}
+
+/* Receipt Scanner Radar Effect */
+.scanner-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+.scanner-laser {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  box-shadow: 0 0 12px #10b981, 0 0 24px #10b981;
+  animation: scanLaser 2s ease-in-out infinite alternate;
+}
+@keyframes scanLaser {
+  0% { top: 4%; }
+  100% { top: 96%; }
+}
+
+/* Toast Notifications */
+.native-toast-container {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99995;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: calc(100% - 2rem);
+  max-width: 400px;
+}
+.native-toast {
+  pointer-events: auto;
+  animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes toastSlideDown {
+  0% { opacity: 0; transform: translateY(-16px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
