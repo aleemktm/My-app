@@ -5,6 +5,14 @@
   function Accounts(props) {
     const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal, selectionKey, settings, convertToBaseCurrency } = props;
     const baseCurrency = settings?.defaultCurrency || "AED";
+    const accountColor = acc => {
+      const name = String(acc.name || "").toLowerCase();
+      if (name.includes("fiverr")) return "#3B82F6";
+      if (name.includes("paypal")) return "#6366F1";
+      if (name.includes("ubl")) return "#F59E0B";
+      if (name.includes("dib")) return "#1DBF73";
+      return acc.color || (acc.scope === "freelance" ? "#3B82F6" : "#1DBF73");
+    };
     const total = accounts.reduce((sum, a) => sum + convertToBaseCurrency(Number(a.balance || 0), a.currency), 0);
 
     return h("div", { className: "accounts-native space-y-4 max-w-2xl mx-auto w-full" },
@@ -40,7 +48,7 @@
               h("div", { className: "account-heading" },
                 h("span", { className: "account-type" }, acc.scope === "freelance" ? "Freelance account" : (acc.type || "Bank Account")),
                 h("div", { className: "account-title-row" },
-                  h("span", { className: "account-color-dot", style: { background: acc.color || "#1DBF73" } }),
+                  h("span", { className: "account-color-dot", style: { backgroundColor: accountColor(acc), boxShadow: `0 0 0 3px ${accountColor(acc)}22` }, title: `${acc.name} color identity` }),
                   h("span", { className: "account-icon", "aria-hidden": "true" }, acc.scope === "freelance" ? h(Icons.IconBriefcase, { className: "w-4 h-4" }) : acc.type === "Bank" ? h(Icons.IconAccounts, { className: "w-4 h-4" }) : h(Icons.IconWallet, { className: "w-4 h-4" })),
                   h("h3", { className: "account-name" }, acc.name)
                 )

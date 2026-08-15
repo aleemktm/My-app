@@ -52,7 +52,7 @@
           h("article",{className:`recurring-card ${darkMode?"is-dark":""} ${!item.active?"is-paused":""}`},
             h("div",{className:"recurring-card-main"},h("div",{className:`recurring-card-icon ${item.type==="income"?"is-income":"is-expense"}`},item.type==="income"?h(Icons.IconArrowDown45,{className:"w-4 h-4"}):h(Icons.IconArrowUp45,{className:"w-4 h-4"})),h("div",{className:"min-w-0 flex-1"},h("div",{className:"recurring-card-title-row"},h("h3",null,item.title),h("span",{className:item.active?"status-active":"status-paused"},item.active?"Active":"Paused")),h("p",null,`${item.frequency} · Next ${dateFmt(item.nextDate)} · ${item.category}`)),h("div",{className:`recurring-card-amount ${item.type==="income"?"is-income":"is-expense"}`},`${item.type==="income"?"+":"-"}${item.currency} ${numFmt(item.amount)}`)),
             h("div",{className:"recurring-card-actions"},
-              item.active&&h("button",{type:"button",onClick:()=>recordRecurringOccurrence(item),className:"recurring-action-primary"},h(Icons.IconRepayment,{className:"w-3.5 h-3.5"}),"Record now"),
+              item.active&&h("button",{type:"button",onClick:()=>recordRecurringOccurrence(item),className:"recurring-action-primary"},h(Icons.IconPlus,{className:"w-3.5 h-3.5"}),"Record now"),
               h("button",{type:"button",onClick:()=>updateRecurringItem(item,{active:!item.active}),className:"recurring-action-secondary"},item.active?"Pause":"Resume"),
               item.active&&h("button",{type:"button",onClick:()=>updateRecurringItem(item,{nextDate:advanceRecurringDate(item.nextDate,item.frequency)}),className:"recurring-action-secondary"},"Skip next")
             )

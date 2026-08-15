@@ -8,7 +8,7 @@
     children,
     tone = "text-zinc-500"
   }) => /* @__PURE__ */React.createElement("section", {
-    className: "space-y-2"
+    className: "settings-section space-y-2"
   }, /* @__PURE__ */React.createElement("h3", {
     className: `text-[10px] font-bold uppercase tracking-wider px-1 ${tone}`
   }, title), children);
@@ -19,9 +19,9 @@
     children,
     danger = false
   }) => /* @__PURE__ */React.createElement("div", {
-    className: `p-4 ${subCardCls} flex items-center gap-3`
+    className: `settings-row ${danger ? "settings-row-danger" : ""} ${subCardCls} flex items-center gap-3`
   }, Icon && /* @__PURE__ */React.createElement("div", {
-    className: `w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}`
+    className: `settings-icon w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}`
   }, /* @__PURE__ */React.createElement(Icon, {
     className: "w-4 h-4"
   })), /* @__PURE__ */React.createElement("div", {
@@ -89,9 +89,9 @@
     });
   };
     return h(React.Fragment, null, h("div", {
-    className: "space-y-6 max-w-xl mx-auto w-full"
+    className: "settings-native"
   }, h("div", {
-    className: "px-1"
+    className: "settings-hero"
   }, h("h2", {
     className: `text-sm font-bold uppercase tracking-wider ${accent.textStrong}`
   }, "Settings"), h("p", {
