@@ -4,54 +4,63 @@
 
   function Accounts(props) {
     const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal, selectionKey } = props;
+    const total = accounts.reduce((sum, a) => sum + Number(a.balance || 0), 0);
 
-    return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
-      h("div", { className: "flex justify-between items-center px-1" },
-        h("h2", { className: "text-sm font-bold uppercase tracking-wider text-teal-500" }, "Bank & Wallets"),
-        h("button", { onClick: () => openAddModal("account"), className: "px-3 py-1.5 bg-teal-600 text-white rounded-xl text-xs font-semibold" }, "+ New Account")
+    return h("div", { className: "accounts-native space-y-4 max-w-2xl mx-auto w-full" },
+      h("section", { className: `accounts-header-card ${darkMode ? "accounts-header-dark" : ""}` },
+        h("div", { className: "accounts-header-top" },
+          h("div", null,
+            h("span", { className: "accounts-eyebrow" }, "YOUR MONEY"),
+            h("h2", { className: "accounts-title" }, "Accounts"),
+            h("p", { className: "accounts-subtitle" }, `${accounts.length} account${accounts.length === 1 ? "" : "s"} · ${accounts.length ? "All balances in your account currencies" : "Add an account to get started"}`)
+          ),
+          h("button", { onClick: () => openAddModal("account"), className: "accounts-add-button", "aria-label": "Add account" }, h(Icons.IconPlus, { className: "w-4 h-4" }), h("span", null, "Add"))
+        ),
+        accounts.length > 0 && h("div", { className: "accounts-total-row" },
+          h("span", null, "Combined balance"),
+          h("strong", null, numFmt(total))
+        )
       ),
-      h("div", { className: "space-y-2.5" }, accounts.map(acc => {
+      h("div", { className: "accounts-list" }, accounts.map(acc => {
         const inflow = getLastInflow(acc.id);
         const outflow = getLastOutflow(acc.id);
         const inflowInfo = inflow ? describeAccountMovement(inflow, acc) : null;
         const outflowInfo = outflow ? describeAccountMovement(outflow, acc) : null;
-
         return h(window.SwipeRow, {
           key: acc.id,
           onEdit: () => openEditModal("account", acc),
           onDelete: () => askDeleteAccount(acc),
           selectionKey: selectionKey("account", acc.id)
         }, h("div", {
-          className: `swipe-content-card p-4 rounded-2xl border bg-gradient-to-br ${acc.color || "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20"} space-y-2.5`
+          className: `account-native-card ${darkMode ? "account-native-dark" : ""}`
         },
-          h("div", { className: "flex justify-between items-center" },
-            h("div", null,
-              h("span", { className: "text-[10px] font-bold uppercase tracking-wider opacity-60" }, acc.type || "Bank Account"),
-              h("h3", { className: "font-bold text-base mt-0.5" }, acc.name)
+          h("div", { className: "account-card-head" },
+            h("div", { className: "account-identity" },
+              h("span", { className: "account-color-dot", style: { background: "#1DBF73" } }),
+              h("div", { className: "min-w-0" },
+                h("span", { className: "account-type" }, acc.type || "Bank Account"),
+                h("h3", { className: "account-name" }, acc.name)
+              )
             ),
-            h("div", { className: "flex items-center space-x-2" },
-              h("div", { className: "text-right mr-1" },
-                h("span", { className: "text-[10px] font-bold opacity-60 block" }, acc.currency),
-                h("span", { className: `font-extrabold text-base ${darkMode ? "text-emerald-400" : "text-emerald-600"}` }, numFmt(acc.balance))
-              ),
+            h("div", { className: "account-balance-block" },
+              h("span", { className: "account-currency" }, acc.currency),
+              h("strong", { className: "account-balance" }, numFmt(acc.balance))
             )
           ),
-          (inflowInfo || outflowInfo) && h("div", { className: "pt-2 border-t border-black/10 space-y-1.5" },
-            inflowInfo && h("div", { className: "flex items-center gap-1.5 text-[10px] opacity-70" },
-              h(Icons.IconInflow, { className: "w-3.5 h-3.5 text-emerald-500 shrink-0 account-flow-in" }),
-              h("span", null,
-                "Last inflow: ",
-                h("strong", { className: "text-emerald-500" }, "+", inflowInfo.cur, " ", numFmt(inflowInfo.amt)),
-                " on ", dateFmt(inflow.date), inflowInfo.note
-              )
+          h("div", { className: "account-card-meta" },
+            h("span", null, h(Icons.IconWallet, { className: "w-3.5 h-3.5" }), acc.type || "Account"),
+            h("span", null, h(Icons.IconShield, { className: "w-3.5 h-3.5" }), "Protected locally")
+          ),
+          (inflowInfo || outflowInfo) && h("div", { className: "account-flow-list" },
+            inflowInfo && h("div", { className: "account-flow-row account-flow-income" },
+              h(Icons.IconInflow, { className: "w-4 h-4 account-flow-in" }),
+              h("div", { className: "min-w-0" }, h("span", null, "Last inflow"), h("small", null, `${dateFmt(inflow.date)}${inflowInfo.note || ""}`)),
+              h("strong", null, "+", inflowInfo.cur, " ", numFmt(inflowInfo.amt))
             ),
-            outflowInfo && h("div", { className: "flex items-center gap-1.5 text-[10px] opacity-70" },
-              h(Icons.IconInflow, { className: "w-3.5 h-3.5 text-rose-500 shrink-0 account-flow-out" }),
-              h("span", null,
-                "Last outflow: ",
-                h("strong", { className: "text-rose-500" }, "-", outflowInfo.cur, " ", numFmt(outflowInfo.amt)),
-                " on ", dateFmt(outflow.date), outflowInfo.note
-              )
+            outflowInfo && h("div", { className: "account-flow-row account-flow-expense" },
+              h(Icons.IconInflow, { className: "w-4 h-4 account-flow-out" }),
+              h("div", { className: "min-w-0" }, h("span", null, "Last outflow"), h("small", null, `${dateFmt(outflow.date)}${outflowInfo.note || ""}`)),
+              h("strong", null, "-", outflowInfo.cur, " ", numFmt(outflowInfo.amt))
             )
           )
         ));

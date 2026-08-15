@@ -11,7 +11,7 @@
       settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
       totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
       goldChangePct, goldChangeAED, parseBankTransactionSMS, importBankTransactionFromSMS,
-      smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed
+      smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, selectionToolbar
     } = props;
 
     const isPositive = monthlySavingsAED >= 0;
@@ -158,6 +158,7 @@
 
       h("div", { className: "home-content-grid" },
         h("section", { className: `home-panel ${darkMode ? "home-panel-dark" : ""}` },
+          selectionToolbar && h("div", { className: "home-selection-toolbar-wrap" }, selectionToolbar),
           h("div", { className: "home-panel-heading" }, h("div", null, h("span", null, "RECENT ACTIVITY"), h("h2", null, "Latest transactions")), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "View all →")),
           transactions.length ? h("div", { className: "home-transaction-list" }, transactions.slice(0, 5).map(renderTxRow)) : h("div", { className: "home-empty" }, h("div", { className: "home-empty-icon" }, h(Icons.IconLedger, { className: "w-5 h-5" })), h("strong", null, "No transactions yet"), h("span", null, "Your latest income and expenses will appear here."))
         ),
