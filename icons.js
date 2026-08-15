@@ -69,9 +69,12 @@
     transport: IconCar, dining: IconForkKnife, shopping: IconCart, transfer: IconTransfer,
     loan: IconLoan, "loan repayment": IconRepayment, "balance adjustment": IconTune
   };
-  var getCategoryIcon = (category) => {
+  var getCategoryIcon = (category, type) => {
     var key = String(category || "other").trim().toLowerCase();
-    return categoryIconMap[key] || IconCategoryOther;
+    if (categoryIconMap[key]) return categoryIconMap[key];
+    if (String(type || "").toLowerCase() === "income") return IconArrowDown45;
+    if (String(type || "").toLowerCase() === "expense") return IconArrowUp45;
+    return IconCategoryOther;
   };
   window.Icons = { IconOverview,IconLedger,IconAccounts,IconVault,IconLoan,IconAnalytics,IconUndo,IconRedo,IconDownload,IconUpload,IconSun,IconMoon,IconTrash,IconPlus,IconEdit,IconSearch,IconCSV,IconTransfer,IconFilter,IconSort,IconChevron,IconClose,IconRates,IconWallet,IconInflow,IconSync,IconMore,IconMenu,IconSettings,IconTune,IconTag,IconTarget,IconCalendar,IconRepayment,IconAddMore,IconHistory,IconBriefcase,IconSparkles,IconGift,IconCart,IconHome,IconUtilities,IconCar,IconForkKnife,IconPeople,IconEllipsisCircle,IconArrowDownCircle,IconArrowUpCircle,IconArrowDown45,IconArrowUp45,IconCategoryOther,getCategoryIcon };
 })();
