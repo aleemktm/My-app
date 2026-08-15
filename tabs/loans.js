@@ -10,21 +10,15 @@
     className: "text-sm font-bold uppercase tracking-wider text-emerald-600"
   }, "Loans & Liabilities"), /* @__PURE__ */React.createElement("div", {
     className: "flex items-center gap-2"
-  }, /* @__PURE__ */React.createElement("select", {
+  }, /* @__PURE__ */React.createElement("label", {
+    className: `icon-select ${darkMode ? "icon-select-dark" : ""}`,
+    title: "Sort loans",
+    "aria-label": "Sort loans"
+  }, /* @__PURE__ */React.createElement(Icons.IconSort, { className: "w-4 h-4" }), /* @__PURE__ */React.createElement("select", {
     value: loanSort,
     onChange: e => setLoanSort(e.target.value),
-    className: `px-2 py-1.5 rounded-xl text-xs border outline-none ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
-  }, /* @__PURE__ */React.createElement("option", {
-    value: "date_desc"
-  }, "Newest First"), /* @__PURE__ */React.createElement("option", {
-    value: "date_asc"
-  }, "Oldest First"), /* @__PURE__ */React.createElement("option", {
-    value: "amount_desc"
-  }, "Amount: High-Low"), /* @__PURE__ */React.createElement("option", {
-    value: "amount_asc"
-  }, "Amount: Low-High"), /* @__PURE__ */React.createElement("option", {
-    value: "name"
-  }, "Name A-Z")), /* @__PURE__ */React.createElement("button", {
+    "aria-label": "Sort loans"
+  }, /* @__PURE__ */React.createElement("option", { value: "date_desc" }, "Newest First"), /* @__PURE__ */React.createElement("option", { value: "date_asc" }, "Oldest First"), /* @__PURE__ */React.createElement("option", { value: "amount_desc" }, "Amount: High-Low"), /* @__PURE__ */React.createElement("option", { value: "amount_asc" }, "Amount: Low-High"), /* @__PURE__ */React.createElement("option", { value: "name" }, "Name A-Z"))), /* @__PURE__ */React.createElement("button", {
     onClick: () => openAddModal("loan"),
     className: "px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold whitespace-nowrap"
   }, "+ Add Entry"))), /* @__PURE__ */React.createElement("div", {
@@ -45,9 +39,12 @@
     const percentPaid = Math.round(repaid / loan.amount * 100) || 0;
     const isFullyPaid = outstanding <= 0;
     const isOverdue = !isFullyPaid && loan.dueDate && loan.dueDate < todayStr;
-    return /* @__PURE__ */React.createElement("div", {
+    return /* @__PURE__ */React.createElement(window.SwipeRow, {
       key: loan.id,
-      className: `p-4 rounded-2xl border space-y-3 ${subCardCls}`
+      onEdit: () => openEditModal("loan", loan),
+      onDelete: () => setDeleteTarget({ type: "loan", id: loan.id, name: loan.name })
+    }, /* @__PURE__ */React.createElement("div", {
+      className: `swipe-content-card p-4 rounded-2xl border space-y-3 ${subCardCls}`
     }, /* @__PURE__ */React.createElement("div", {
       className: "flex justify-between items-start"
     }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("div", {
@@ -75,23 +72,7 @@
       className: `font-bold text-sm block ${isFullyPaid ? "text-zinc-400 line-through" : loan.type === "lent" ? "text-emerald-600" : "text-rose-500"}`
     }, loan.currency, " ", numFmt(outstanding)), /* @__PURE__ */React.createElement("span", {
       className: "text-[10px] opacity-50"
-    }, "Orig: ", numFmt(loan.amount))), /* @__PURE__ */React.createElement("button", {
-      onClick: () => openEditModal("loan", loan),
-      title: "Edit",
-      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10 active:scale-95"
-    }, /* @__PURE__ */React.createElement(Icons.IconEdit, {
-      className: "w-4 h-4"
-    })), /* @__PURE__ */React.createElement("button", {
-      onClick: () => setDeleteTarget({
-        type: "loan",
-        id: loan.id,
-        name: loan.name
-      }),
-      title: "Delete",
-      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 active:scale-95"
-    }, /* @__PURE__ */React.createElement(Icons.IconTrash, {
-      className: "w-4 h-4"
-    })))), /* @__PURE__ */React.createElement("div", {
+    }, "Orig: ", numFmt(loan.amount))),)), /* @__PURE__ */React.createElement("div", {
       className: "space-y-1"
     }, /* @__PURE__ */React.createElement("div", {
       className: "flex justify-between text-[10px] text-zinc-400"
@@ -111,22 +92,22 @@
         setRepayAccountId((accounts[0] ? accounts[0].id : "") || "");
         setRepayDate(todayISO());
       },
-      className: "px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-xl text-xs font-bold"
-    }, "+ Record Repayment"), /* @__PURE__ */React.createElement("button", {
+      className: "loan-text-action loan-text-action-repay", title: "Record repayment", "aria-label": "Record repayment"
+    }, "+Repayment"), /* @__PURE__ */React.createElement("button", {
       onClick: () => {
         setLoanAddMoreTarget(loan);
         setAddMoreAmount("");
         setAddMoreAccountId((accounts[0] ? accounts[0].id : "") || "");
         setAddMoreDate(todayISO());
       },
-      className: "px-3 py-1.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-xl text-xs font-bold"
-    }, "+ Add More"), /* @__PURE__ */React.createElement("button", {
+      className: "loan-text-action loan-text-action-add", title: "Add more to loan", "aria-label": "Add more to loan"
+    }, "+Add more"), /* @__PURE__ */React.createElement("button", {
       onClick: () => setExpandedLoanHistory(prev => ({
         ...prev,
         [loan.id]: !prev[loan.id]
       })),
-      className: "px-3 py-1.5 bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20 rounded-xl text-xs font-bold"
-    }, expandedLoanHistory[loan.id] ? "Hide History" : "History"), expandedLoanHistory[loan.id] && /* @__PURE__ */React.createElement("div", {
+      className: "loan-icon-action loan-icon-action-history", title: expandedLoanHistory[loan.id] ? "Hide history" : "Show history", "aria-label": expandedLoanHistory[loan.id] ? "Hide history" : "Show history"
+    }, React.createElement(Icons.IconHistory, { className: "w-4 h-4" })), expandedLoanHistory[loan.id] && /* @__PURE__ */React.createElement("div", {
       className: "w-full pt-2 space-y-1.5"
     }, (loan.movements && loan.movements.length > 0 ? [...loan.movements].slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")) : []).map(mv => /* @__PURE__ */React.createElement("div", {
       key: mv.id,
@@ -137,7 +118,7 @@
       className: `font-bold ${mv.kind === "principal" ? loan.type === "lent" ? "text-rose-500" : "text-emerald-600" : loan.type === "lent" ? "text-emerald-600" : "text-rose-500"}`
     }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)))), (!loan.movements || loan.movements.length === 0) && /* @__PURE__ */React.createElement("p", {
       className: "text-[10px] text-zinc-400 text-center py-2"
-    }, "No dated movements logged yet for this entry."))));
+    }, "No dated movements logged yet for this entry.")))));
   })));
   }
 

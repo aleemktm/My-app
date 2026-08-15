@@ -180,9 +180,12 @@
     className: "text-[10px] text-zinc-400 mt-1"
   }, "You stay in control—nothing is automatically recorded.")) : h("div", {
     className: "space-y-2"
-  }, recurringItems.slice().sort((a, b) => a.nextDate.localeCompare(b.nextDate)).map(item => h("div", {
+  }, recurringItems.slice().sort((a, b) => a.nextDate.localeCompare(b.nextDate)).map(item => h(window.SwipeRow, {
     key: item.id,
-    className: `p-4 ${subCardCls} space-y-3`
+    onEdit: () => openRecurringEditor(item),
+    onDelete: () => deleteRecurringItem(item)
+  }, h("div", {
+    className: `swipe-content-card p-4 ${subCardCls} space-y-3`
   }, h("div", {
     className: "flex items-start justify-between gap-2"
   }, h("div", null, h("div", {
@@ -212,17 +215,7 @@
       nextDate: advanceRecurringDate(item.nextDate, item.frequency)
     }),
     className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500"
-  }, "Skip next"), h("button", {
-    onClick: () => openRecurringEditor(item),
-    className: "p-2 rounded-xl text-zinc-400 hover:text-emerald-500"
-  }, h(Icons.IconEdit, {
-    className: "w-4 h-4"
-  })), h("button", {
-    onClick: () => deleteRecurringItem(item),
-    className: "p-2 rounded-xl text-zinc-400 hover:text-rose-500"
-  }, h(Icons.IconTrash, {
-    className: "w-4 h-4"
-  }))))))));
+  }, "Skip next"))))))));
   }
 
   window.Tabs = window.Tabs || {};

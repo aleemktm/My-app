@@ -1,7 +1,7 @@
 // tabs/vault.js — Vault (physical assets) tab.
 (function () {
   function Vault(props) {
-    const { applyLiveGoldRate, assets, darkMode, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, subCardCls, syncLiveGoldRate, syncingGold, settings } = props;
+    const { applyLiveGoldRate, assets, darkMode, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, subCardCls, syncLiveGoldRate, syncingGold } = props;
     return /* @__PURE__ */React.createElement("div", {
     className: "space-y-4 max-w-2xl mx-auto w-full"
   }, /* @__PURE__ */React.createElement("div", {
@@ -35,9 +35,12 @@
   }, assets.map(ast => {
     const gain = ast.currentPriceAED - ast.purchasePriceAED;
     const gainPct = ast.purchasePriceAED > 0 ? (gain / ast.purchasePriceAED * 100).toFixed(1) : 0;
-    return /* @__PURE__ */React.createElement("div", {
+    return /* @__PURE__ */React.createElement(window.SwipeRow, {
       key: ast.id,
-      className: `p-4 rounded-2xl border flex justify-between items-center ${subCardCls}`
+      onEdit: () => openEditModal("asset", ast),
+      onDelete: () => setDeleteTarget({ type: "asset", id: ast.id, name: ast.name })
+    }, /* @__PURE__ */React.createElement("div", {
+      className: `swipe-content-card p-4 rounded-2xl border flex justify-between items-center ${subCardCls}`
     }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("span", {
       className: "px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded text-[9px] font-bold uppercase"
     }, ast.category), /* @__PURE__ */React.createElement("h3", {
@@ -46,27 +49,11 @@
       className: "text-[10px] opacity-60"
     }, "Weight: ", ast.weightGrams, "g") : null, /* @__PURE__ */React.createElement("p", {
       className: `text-[10px] font-bold mt-0.5 ${gain >= 0 ? "text-emerald-500" : "text-rose-500"}`
-    }, settings && settings.discreteMode ? "••••••" : `${gain >= 0 ? "+" : ""}${ast.currency || "AED"} ${numFmt(gain)} (${gainPct}%)`)), /* @__PURE__ */React.createElement("div", {
+    }, gain >= 0 ? "+" : "", ast.currency || "AED", " ", numFmt(gain), " (", gainPct, "%)")), /* @__PURE__ */React.createElement("div", {
       className: "flex items-center space-x-2"
     }, /* @__PURE__ */React.createElement("span", {
       className: "font-bold text-sm text-amber-600 mr-1"
-    }, settings && settings.discreteMode ? "••••••" : `${ast.currency || "AED"} ${numFmt(ast.currentPriceAED)}`), /* @__PURE__ */React.createElement("button", {
-      onClick: () => openEditModal("asset", ast),
-      title: "Edit",
-      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10 active:scale-95"
-    }, /* @__PURE__ */React.createElement(Icons.IconEdit, {
-      className: "w-4 h-4"
-    })), /* @__PURE__ */React.createElement("button", {
-      onClick: () => setDeleteTarget({
-        type: "asset",
-        id: ast.id,
-        name: ast.name
-      }),
-      title: "Delete",
-      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 active:scale-95"
-    }, /* @__PURE__ */React.createElement(Icons.IconTrash, {
-      className: "w-4 h-4"
-    }))));
+    }, ast.currency || "AED", " ", numFmt(ast.currentPriceAED)))));
   })));
   }
 

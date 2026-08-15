@@ -94,9 +94,12 @@
     const progress = Math.min(100, Math.round(spent / budget.amount * 100));
     const status = progress >= 100 ? "text-rose-500" : progress >= 80 ? "text-amber-500" : accent.textStrong;
     const bar = progress >= 100 ? "bg-rose-500" : progress >= 80 ? "bg-amber-500" : accent.swatch;
-    return h("div", {
+    return h(window.SwipeRow, {
       key: budget.id,
-      className: `p-4 ${subCardCls} space-y-3`
+      onEdit: () => openBudgetEditor(budget),
+      onDelete: () => deleteBudget(budget)
+    }, h("div", {
+      className: `swipe-content-card p-4 ${subCardCls} space-y-3`
     }, h("div", {
       className: "flex items-start justify-between gap-2"
     }, h("div", null, h("h4", {
@@ -104,20 +107,8 @@
     }, budget.category), h("p", {
       className: `text-[10px] font-semibold mt-0.5 ${status}`
     }, progress >= 100 ? "Over budget" : progress >= 80 ? "Almost at budget" : "On track")), h("div", {
-      className: "flex gap-1"
-    }, h("button", {
-      onClick: () => openBudgetEditor(budget),
-      title: "Edit budget",
-      className: "p-1.5 text-zinc-400 hover:text-emerald-500"
-    }, h(Icons.IconEdit, {
-      className: "w-3.5 h-3.5"
-    })), h("button", {
-      onClick: () => deleteBudget(budget),
-      title: "Remove budget",
-      className: "p-1.5 text-zinc-400 hover:text-rose-500"
-    }, h(Icons.IconTrash, {
-      className: "w-3.5 h-3.5"
-    })))), h("div", {
+      className: "text-xs font-bold text-zinc-400"
+    }, `${budget.currency} ${numFmt(budget.amount)}`), h("div", {
       className: "flex justify-between text-xs"
     }, h("span", {
       className: "text-zinc-400"
@@ -136,7 +127,7 @@
       className: "flex justify-between text-[10px] text-zinc-400"
     }, h("span", null, `${progress}% used`), h("span", {
       className: remaining < 0 ? "text-rose-500 font-bold" : ""
-    }, remaining < 0 ? `${budget.currency} ${numFmt(Math.abs(remaining))} over` : `${budget.currency} ${numFmt(remaining)} remaining`)));
+    }, remaining < 0 ? `${budget.currency} ${numFmt(Math.abs(remaining))} over` : `${budget.currency} ${numFmt(remaining)} remaining`)))));
   }))), h("section", {
     className: "space-y-3"
   }, h("div", {
@@ -230,9 +221,12 @@
   }, goals.map(goal => {
     const progress = Math.min(100, Math.round(goal.currentAmount / goal.targetAmount * 100));
     const monthly = goalMonthlyNeed(goal);
-    return h("div", {
+    return h(window.SwipeRow, {
       key: goal.id,
-      className: `p-4 ${subCardCls} space-y-3`
+      onEdit: () => openGoalEditor(goal),
+      onDelete: () => deleteGoal(goal)
+    }, h("div", {
+      className: `swipe-content-card p-4 ${subCardCls} space-y-3`
     }, h("div", {
       className: "flex items-start justify-between gap-2"
     }, h("div", null, h("h4", {
@@ -240,20 +234,8 @@
     }, goal.name), goal.targetDate && h("p", {
       className: "text-[10px] text-zinc-400 mt-0.5"
     }, `Target ${dateFmt(goal.targetDate)}`)), h("div", {
-      className: "flex gap-1"
-    }, h("button", {
-      onClick: () => openGoalEditor(goal),
-      title: "Edit goal",
-      className: "p-1.5 text-zinc-400 hover:text-emerald-500"
-    }, h(Icons.IconEdit, {
-      className: "w-3.5 h-3.5"
-    })), h("button", {
-      onClick: () => deleteGoal(goal),
-      title: "Remove goal",
-      className: "p-1.5 text-zinc-400 hover:text-rose-500"
-    }, h(Icons.IconTrash, {
-      className: "w-3.5 h-3.5"
-    })))), h("div", {
+      className: "text-xs font-bold text-zinc-400"
+    }, `${goal.currency} ${numFmt(goal.currentAmount)}`), h("div", {
       className: "flex justify-between text-xs"
     }, h("span", {
       className: "text-zinc-400"
@@ -268,7 +250,7 @@
       }
     })), h("div", {
       className: "flex justify-between text-[10px] text-zinc-400"
-    }, h("span", null, `${progress}% complete`), monthly ? h("span", null, `~${goal.currency} ${numFmt(monthly.amount)}/month for ${monthly.months} mo`) : h("span", null, goal.currentAmount >= goal.targetAmount ? "Goal reached" : "No target date")));
+    }, h("span", null, `${progress}% complete`), monthly ? h("span", null, `~${goal.currency} ${numFmt(monthly.amount)}/month for ${monthly.months} mo`) : h("span", null, goal.currentAmount >= goal.targetAmount ? "Goal reached" : "No target date")))));
   }))));
   }
 
