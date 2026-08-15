@@ -1,10 +1,11 @@
 // tabs/loans.js — Loans & Liabilities tab.
 (function () {
   function Loans(props) {
-    const { accounts, darkMode, dateFmt, expandedLoanHistory, fmt, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey } = props;
+    const { accounts, darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey } = props;
     const h = React.createElement;
     const lentCount = sortedLoans.filter(l => l.type === "lent").length;
     const borrowedCount = sortedLoans.filter(l => l.type === "borrowed").length;
+    const visibleLoans = loanFilter === "all" ? sortedLoans : sortedLoans.filter(l => l.type === loanFilter);
     return h("div", { className: "loans-native space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "loans-header" },
         h("div", null, h("span", { className: "accounts-eyebrow" }, "MONEY OWED"), h("h2", { className: "accounts-title" }, "Loans"), h("p", { className: "accounts-subtitle" }, `${lentCount} lent · ${borrowedCount} borrowed`)),
@@ -18,11 +19,16 @@
           h("button", { onClick: () => openAddModal("loan"), className: "accounts-add-button", "aria-label": "Add loan" }, h(Icons.IconPlus, { className: "w-4 h-4" }), h("span", null, "Add"))
         )
       ),
-      h("div", { className: "loan-native-summary" },
-        h("div", { className: "loan-native-summary-card loan-native-lent" }, h(Icons.IconArrowUp45, { className: "loan-native-summary-icon" }), h("div", null, h("span", null, "Lent out"), h("strong", null, fmt(totalLoansLentAED)), h("small", null, "Money others owe you"))),
-        h("div", { className: "loan-native-summary-card loan-native-borrowed" }, h(Icons.IconArrowDown45, { className: "loan-native-summary-icon" }), h("div", null, h("span", null, "Borrowed"), h("strong", null, fmt(totalLoansBorrowedAED)), h("small", null, "Money you owe")))
+      h("div", { className: "loan-filter-segment", role: "tablist", "aria-label": "Loan type" },
+        [
+          ["all", "All", sortedLoans.length], ["lent", "Lent out", lentCount], ["borrowed", "Borrowed", borrowedCount]
+        ].map(([value, label, count]) => h("button", { key: value, type: "button", role: "tab", "aria-selected": loanFilter === value, onClick: () => setLoanFilter(value), className: `loan-filter-tab ${loanFilter === value ? "is-active" : ""}` }, label, h("span", null, count)))
       ),
-      h("div", { className: "loans-list" }, sortedLoans.map(loan => {
+      h("div", { className: "loan-native-summary" },
+        h("button", { type: "button", className: `loan-native-summary-card loan-native-lent ${loanFilter === "lent" ? "is-filtered" : ""}`, onClick: () => setLoanFilter("lent"), "aria-label": "Show lent out loans" }, h(Icons.IconArrowUp45, { className: "loan-native-summary-icon" }), h("div", null, h("span", null, "Lent out"), h("strong", null, fmt(totalLoansLentAED)), h("small", null, "Money others owe you"))),
+        h("button", { type: "button", className: `loan-native-summary-card loan-native-borrowed ${loanFilter === "borrowed" ? "is-filtered" : ""}`, onClick: () => setLoanFilter("borrowed"), "aria-label": "Show borrowed loans" }, h(Icons.IconArrowDown45, { className: "loan-native-summary-icon" }), h("div", null, h("span", null, "Borrowed"), h("strong", null, fmt(totalLoansBorrowedAED)), h("small", null, "Money you owe")))
+      ),
+      h("div", { className: "loans-list" }, visibleLoans.length === 0 ? h("div", { className: "loan-empty-state" }, h(Icons.IconLoan, { className: "w-5 h-5" }), h("strong", null, loanFilter === "lent" ? "No lent-out loans" : loanFilter === "borrowed" ? "No borrowed loans" : "No loans yet"), h("span", null, "Add a loan to start tracking it.")) : visibleLoans.map(loan => {
         const repaid = Number(loan.repaid || 0);
         const outstanding = Math.max(0, Number(loan.amount || 0) - repaid);
         const percentPaid = Math.min(100, Math.round(repaid / Number(loan.amount || 1) * 100) || 0);
@@ -53,7 +59,7 @@
           ),
           loan.whatsapp && !isFullyPaid && h("a", { href: `https://wa.me/${loan.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${loan.name}, reminder regarding the outstanding balance of ${loan.currency} ${numFmt(outstanding)}`)}`, target: "_blank", rel: "noreferrer", className: "loan-reminder" }, "WhatsApp Reminder →"),
           h("div", { className: "loan-card-actions" },
-            !isFullyPaid && h("button", { onClick: () => { setRepaymentModalLoan(loan); setRepayAmount(outstanding.toString()); setRepayAccountId((accounts[0] ? accounts[0].id : "") || ""); setRepayDate(todayISO()); }, className: "loan-text-action loan-text-action-repay", title: "Record repayment", "aria-label": "Record repayment" }, "+Repayment"),
+            !isFullyPaid && h("button", { onClick: () => { setRepaymentModalLoan(loan); setRepayAmount(outstanding.toString()); setRepayAccountId((accounts[0] ? accounts[0].id : "") || ""); setRepayDate(todayISO()); }, className: "loan-text-action loan-text-action-repay", title: "Record repayment", "aria-label": "Record repayment" }, "+ Record payment"),
             h("button", { onClick: () => { setLoanAddMoreTarget(loan); setAddMoreAmount(""); setAddMoreAccountId((accounts[0] ? accounts[0].id : "") || ""); setAddMoreDate(todayISO()); }, className: "loan-text-action loan-text-action-add", title: "Add more to loan", "aria-label": "Add more to loan" }, "+Add more"),
             h("button", { onClick: () => setExpandedLoanHistory(prev => ({ ...prev, [loan.id]: !prev[loan.id] })), className: "loan-icon-action loan-icon-action-history", title: expandedLoanHistory[loan.id] ? "Hide history" : "Show history", "aria-label": expandedLoanHistory[loan.id] ? "Hide history" : "Show history" }, h(Icons.IconHistory, { className: "w-4 h-4" }))
           ),

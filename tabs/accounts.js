@@ -49,7 +49,7 @@
           ),
           h("div", { className: "account-card-meta" },
             h("span", null, h(Icons.IconWallet, { className: "w-3.5 h-3.5" }), acc.type || "Account"),
-            h("span", null, h(Icons.IconShield, { className: "w-3.5 h-3.5" }), "Protected locally")
+            h("span", null, h(Icons.IconWallet, { className: "w-3.5 h-3.5" }), "Local account")
           ),
           (inflowInfo || outflowInfo) && h("div", { className: "account-flow-list" },
             inflowInfo && h("div", { className: "account-flow-row account-flow-income" },
