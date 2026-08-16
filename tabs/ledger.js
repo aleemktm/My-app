@@ -12,22 +12,18 @@
     const h = React.createElement;
     const statementSheetRef = React.useRef(null);
     const statementTouchRef = React.useRef({});
-    React.useEffect(() => {
-      if (!statementOpen) return undefined;
-      const body = document.body;
-      const html = document.documentElement;
-      const prevBodyOverflow = body.style.overflow;
-      const prevBodyTouchAction = body.style.touchAction;
-      const prevHtmlOverscroll = html.style.overscrollBehavior;
-      body.style.overflow = "hidden";
-      body.style.touchAction = "none";
-      html.style.overscrollBehavior = "none";
-      return () => {
-        body.style.overflow = prevBodyOverflow;
-        body.style.touchAction = prevBodyTouchAction;
-        html.style.overscrollBehavior = prevHtmlOverscroll;
-      };
-    }, [statementOpen]);
+    const lockStatementPage = () => {
+      document.body.dataset.ledgerStatementLock = "1";
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      document.documentElement.style.overscrollBehavior = "none";
+    };
+    const unlockStatementPage = () => {
+      delete document.body.dataset.ledgerStatementLock;
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+      document.documentElement.style.overscrollBehavior = "";
+    };
     const closeStatementAfterSwipe = () => {
       const sheet = statementSheetRef.current;
       if (sheet) {
@@ -35,7 +31,7 @@
         sheet.style.transform = "translate3d(0,100%,0)";
         sheet.style.opacity = "0";
       }
-      window.setTimeout(() => setStatementOpen(false), 280);
+      window.setTimeout(() => { unlockStatementPage(); setStatementOpen(false); }, 280);
     };
     const onStatementTouchStart = e => {
       const t = e.touches && e.touches[0];
@@ -75,14 +71,14 @@
       sheet.style.transform = "translate3d(0,0,0)";
       sheet.style.opacity = "1";
     };
-    const statementCardMessage = tx => statementMessageFor(tx).replace(/\s*Available balance(?: is)?\s+[^.]+\.?\s*$/i, "").trim();
+    const statementCardMessage = tx => statementMessageFor(tx).replace(/\s*Available balance is [^.]+\.?\s*$/i, "");
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "flex justify-between items-center px-1 gap-2" },
         h("h2", { className: "text-sm font-bold uppercase tracking-wider text-emerald-500" }, "Connected Transactions Ledger"),
         h("div", { className: "flex items-center gap-2" },
           h("button", { onClick: exportCSV, title: "Export CSV", className: `p-2 rounded-xl border ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}` },
             h(Icons.IconCSV, { className: "w-4 h-4" })),
-          h("button", { onClick: () => setStatementOpen(true), title: "Export statement", className: `px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-200" : "bg-white border-zinc-200 text-zinc-700"}` }, "Statement"),
+          h("button", { onClick: () => { lockStatementPage(); setStatementOpen(true); }, title: "Export statement", className: `px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-200" : "bg-white border-zinc-200 text-zinc-700"}` }, "Statement"),
           h("button", { onClick: () => openAddModal("income", { category: "Salary" }), className: `px-3 py-1.5 ${accent.solidBtn} text-white rounded-xl text-xs font-semibold whitespace-nowrap` }, "+ Add Entry")
         )
       ),
@@ -146,12 +142,12 @@
           })
       ),
       statementOpen && ReactDOM.createPortal(
-        h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) setStatementOpen(false); } },
+        h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) { unlockStatementPage(); setStatementOpen(false); } } },
           h("div", { ref: statementSheetRef, className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}`, onTouchStart: onStatementTouchStart, onTouchMove: onStatementTouchMove, onTouchEnd: onStatementTouchEnd, onTouchCancel: onStatementTouchEnd },
           h("div", { className: "ledger-statement-handle" }),
           h("div", { className: "flex items-center justify-between gap-3 mb-4" },
             h("div", null, h("h3", { className: "text-sm font-bold" }, "Export statement"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Bank-style records with available balance after each transaction.")),
-            h("button", { type: "button", onClick: () => setStatementOpen(false), className: "p-2 rounded-xl bg-zinc-500/10", "aria-label": "Close statement export" }, h(Icons.IconClose, { className: "w-4 h-4" }))
+            h("button", { type: "button", onClick: () => { unlockStatementPage(); setStatementOpen(false); }, className: "p-2 rounded-xl bg-zinc-500/10", "aria-label": "Close statement export" }, h(Icons.IconClose, { className: "w-4 h-4" }))
           ),
           h("div", { className: "space-y-3" },
             h("label", { className: "block text-xs font-semibold" }, "Account", h("select", { value: statementAccountId, onChange: e => setStatementAccountId(e.target.value), className: "ledger-statement-input mt-1" },
