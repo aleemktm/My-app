@@ -1306,3 +1306,7 @@ html.dark .ledger-account-from,html.dark .ledger-account-to,.ledger-statement-da
   .ledger-statement-sheet{max-height:min(82dvh,680px)}
   .ledger-statement-sheet .grid{grid-template-columns:1fr;gap:12px}
 }
+
+/* Ledger account direction labels: match Available balance styling exactly. */
+.ledger-account-chip.ledger-account-from, .ledger-account-chip.ledger-account-to { color:#8e8e93 !important; background:transparent !important; border:0 !important; padding:0 !important; font-size:9px !important; font-weight:600 !important; }
+html.dark .ledger-account-chip.ledger-account-from, html.dark .ledger-account-chip.ledger-account-to { color:#8e8e93 !important; }
