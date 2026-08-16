@@ -12,6 +12,22 @@
     const h = React.createElement;
     const statementSheetRef = React.useRef(null);
     const statementTouchRef = React.useRef({});
+    React.useEffect(() => {
+      if (!statementOpen) return undefined;
+      const body = document.body;
+      const html = document.documentElement;
+      const prevBodyOverflow = body.style.overflow;
+      const prevBodyTouchAction = body.style.touchAction;
+      const prevHtmlOverscroll = html.style.overscrollBehavior;
+      body.style.overflow = "hidden";
+      body.style.touchAction = "none";
+      html.style.overscrollBehavior = "none";
+      return () => {
+        body.style.overflow = prevBodyOverflow;
+        body.style.touchAction = prevBodyTouchAction;
+        html.style.overscrollBehavior = prevHtmlOverscroll;
+      };
+    }, [statementOpen]);
     const closeStatementAfterSwipe = () => {
       const sheet = statementSheetRef.current;
       if (sheet) {
@@ -59,7 +75,7 @@
       sheet.style.transform = "translate3d(0,0,0)";
       sheet.style.opacity = "1";
     };
-    const statementCardMessage = tx => statementMessageFor(tx).replace(/\s*Available balance is [^.]+\.?\s*$/i, "");
+    const statementCardMessage = tx => statementMessageFor(tx).replace(/\s*Available balance(?: is)?\s+[^.]+\.?\s*$/i, "").trim();
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "flex justify-between items-center px-1 gap-2" },
         h("h2", { className: "text-sm font-bold uppercase tracking-wider text-emerald-500" }, "Connected Transactions Ledger"),
