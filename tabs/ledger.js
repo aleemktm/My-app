@@ -10,6 +10,56 @@
       setStatementFromDate, statementToDate, setStatementToDate, exportStatement, accounts
     } = props;
     const h = React.createElement;
+    const statementSheetRef = React.useRef(null);
+    const statementTouchRef = React.useRef({});
+    const closeStatementAfterSwipe = () => {
+      const sheet = statementSheetRef.current;
+      if (sheet) {
+        sheet.style.transition = "transform .34s cubic-bezier(.22,1,.36,1), opacity .26s ease";
+        sheet.style.transform = "translate3d(0,100%,0)";
+        sheet.style.opacity = "0";
+      }
+      window.setTimeout(() => setStatementOpen(false), 280);
+    };
+    const onStatementTouchStart = e => {
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      statementTouchRef.current = { x: t.clientX, y: t.clientY, lastY: t.clientY, active: true, vertical: null };
+      const sheet = statementSheetRef.current;
+      if (sheet) sheet.style.transition = "none";
+    };
+    const onStatementTouchMove = e => {
+      const state = statementTouchRef.current;
+      const t = e.touches && e.touches[0];
+      const sheet = statementSheetRef.current;
+      if (!state.active || !t || !sheet) return;
+      const dx = t.clientX - state.x;
+      const dy = t.clientY - state.y;
+      if (state.vertical === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) state.vertical = Math.abs(dy) >= Math.abs(dx);
+      if (state.vertical !== true) return;
+      if (dy > 0) {
+        e.preventDefault();
+        sheet.style.transform = `translate3d(0,${dy}px,0)`;
+        sheet.style.opacity = String(Math.max(.72, 1 - dy / 520));
+      } else if (sheet.scrollTop <= 0) {
+        e.preventDefault();
+      }
+      state.lastY = t.clientY;
+    };
+    const onStatementTouchEnd = e => {
+      const state = statementTouchRef.current;
+      const sheet = statementSheetRef.current;
+      if (!state.active || !sheet) return;
+      const t = e.changedTouches && e.changedTouches[0];
+      const dy = t ? t.clientY - state.y : 0;
+      const isSwipeDown = state.vertical === true && dy > 90;
+      state.active = false;
+      if (isSwipeDown) { closeStatementAfterSwipe(); return; }
+      sheet.style.transition = "transform .38s cubic-bezier(.22,1,.36,1), opacity .28s ease";
+      sheet.style.transform = "translate3d(0,0,0)";
+      sheet.style.opacity = "1";
+    };
+    const statementCardMessage = tx => statementMessageFor(tx).replace(/\s*Available balance is [^.]+\.?\s*$/i, "");
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "flex justify-between items-center px-1 gap-2" },
         h("h2", { className: "text-sm font-bold uppercase tracking-wider text-emerald-500" }, "Connected Transactions Ledger"),
@@ -66,7 +116,7 @@
                       h("div", { className: "ledger-account-balance-row" },
                         h("span", { className: `ledger-account-chip ${isIn ? "ledger-account-to" : "ledger-account-from"}` }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`)
                       ),
-                      h("p", { className: "ledger-statement-message", title: statementMessageFor(tx) }, statementMessageFor(tx))
+                      h("p", { className: "ledger-statement-message", title: statementCardMessage(tx) }, statementCardMessage(tx))
                     );
                   })()
                 ),
@@ -81,7 +131,7 @@
       ),
       statementOpen && ReactDOM.createPortal(
         h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) setStatementOpen(false); } },
-          h("div", { className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}` },
+          h("div", { ref: statementSheetRef, className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}`, onTouchStart: onStatementTouchStart, onTouchMove: onStatementTouchMove, onTouchEnd: onStatementTouchEnd, onTouchCancel: onStatementTouchEnd },
           h("div", { className: "ledger-statement-handle" }),
           h("div", { className: "flex items-center justify-between gap-3 mb-4" },
             h("div", null, h("h3", { className: "text-sm font-bold" }, "Export statement"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Bank-style records with available balance after each transaction.")),
