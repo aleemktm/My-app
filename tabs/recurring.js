@@ -1,14 +1,15 @@
 // tabs/recurring.js — Premium recurring planner.
 (function () {
   function Recurring(props) {
-    const { accounts, accent, advanceRecurringDate, dateFmt, deleteRecurringItem, inputCls, numFmt, openRecurringEditor, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, saveRecurringItem, setRecurringEditor, setRecurringForm, settings, updateRecurringItem, selectionKey, darkMode } = props;
+    const { accounts, accent, advanceRecurringDate, convertToBaseCurrency, dateFmt, deleteRecurringItem, inputCls, numFmt, openRecurringEditor, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, saveRecurringItem, setRecurringEditor, setRecurringForm, settings, updateRecurringItem, selectionKey, darkMode } = props;
     const h = React.createElement;
     const incomeItems = recurringItems.filter(item => item.type === "income");
     const expenseItems = recurringItems.filter(item => item.type === "expense");
     const activeItems = recurringItems.filter(item => item.active);
     const upcoming = activeItems.slice().sort((a,b) => (a.nextDate || "").localeCompare(b.nextDate || "")).slice(0, 4);
-    const monthlyIncome = incomeItems.filter(x => x.active && x.frequency === "monthly").reduce((s,x)=>s+Number(x.amount||0),0);
-    const monthlyExpense = expenseItems.filter(x => x.active && x.frequency === "monthly").reduce((s,x)=>s+Number(x.amount||0),0);
+    const baseCurrency = settings.defaultCurrency || "AED";
+    const monthlyIncome = incomeItems.filter(x => x.active && x.frequency === "monthly").reduce((s,x)=>s+convertToBaseCurrency(Number(x.amount||0), x.currency || baseCurrency),0);
+    const monthlyExpense = expenseItems.filter(x => x.active && x.frequency === "monthly").reduce((s,x)=>s+convertToBaseCurrency(Number(x.amount||0), x.currency || baseCurrency),0);
     const categoryList = recurringForm.type === "income" ? (settings.customCategories.income || ["Salary"]) : (settings.customCategories.expense || ["Groceries"]);
     return h("div", { className: "recurring-native space-y-4 max-w-2xl mx-auto w-full" },
       h("section", { className: "recurring-hero" },
@@ -40,7 +41,7 @@
           h("label",null,h("span",null,"Amount"),h("input",{type:"number",inputMode:"decimal",min:"0.01",step:"0.01",required:true,value:recurringForm.amount,onChange:e=>setRecurringForm({...recurringForm,amount:e.target.value}),className:inputCls})),
           h("label",null,h("span",null,"Frequency"),h("select",{value:recurringForm.frequency,onChange:e=>setRecurringForm({...recurringForm,frequency:e.target.value}),className:inputCls},h("option",{value:"monthly"},"Monthly"),h("option",{value:"weekly"},"Weekly"),h("option",{value:"yearly"},"Yearly"))),
           h("label",null,h("span",null,"Next date"),h("input",{type:"date",required:true,value:recurringForm.nextDate,onChange:e=>setRecurringForm({...recurringForm,nextDate:e.target.value}),className:inputCls})),
-          h("label",null,h("span",null,"Account"),h("select",{required:true,value:recurringForm.accountId,onChange:e=>setRecurringForm({...recurringForm,accountId:e.target.value}),className:inputCls},accounts.map(a=>h("option",{key:a.id,value:a.id},`${a.name} (${a.currency})`)))),
+          h("label",null,h("span",null,"Account"),h("select",{required:true,value:recurringForm.accountId,onChange:e=>{const nextAccount=accounts.find(a=>a.id===e.target.value);setRecurringForm({...recurringForm,accountId:e.target.value,currency:(nextAccount&&nextAccount.currency)||recurringForm.currency});},className:inputCls},accounts.map(a=>h("option",{key:a.id,value:a.id},`${a.name} (${a.currency})`)))),
           h("label",null,h("span",null,"Category"),h("select",{value:recurringForm.category,onChange:e=>setRecurringForm({...recurringForm,category:e.target.value}),className:inputCls},categoryList.map(name=>h("option",{key:name,value:name},name))))
         ),
         h("div",{className:"recurring-editor-actions"},h("button",{type:"button",onClick:()=>setRecurringEditor(null),className:"recurring-secondary"},"Cancel"),h("button",{type:"submit",className:"recurring-primary"},recurringForm.id?"Save changes":"Create schedule"))

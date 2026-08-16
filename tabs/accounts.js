@@ -11,7 +11,8 @@
       if (name.includes("paypal")) return "#6366F1";
       if (name.includes("ubl")) return "#F59E0B";
       if (name.includes("dib")) return "#1DBF73";
-      return acc.color || (acc.scope === "freelance" ? "#3B82F6" : "#1DBF73");
+      if (name.includes("cash") || String(acc.type || "").toLowerCase() === "cash") return "#8E8E93";
+      return acc.color || "#1DBF73";
     };
     const total = accounts.reduce((sum, a) => sum + convertToBaseCurrency(Number(a.balance || 0), a.currency), 0);
 
@@ -46,10 +47,10 @@
           h("div", { className: "account-card-head" },
             h("div", { className: "account-identity" },
               h("div", { className: "account-heading" },
-                h("span", { className: "account-type" }, acc.scope === "freelance" ? "Freelance account" : (acc.type || "Bank Account")),
+                h("span", { className: "account-type" }, acc.type || "Bank Account"),
                 h("div", { className: "account-title-row" },
                   h("span", { className: "account-color-dot", style: { backgroundColor: accountColor(acc), boxShadow: `0 0 0 3px ${accountColor(acc)}22` }, title: `${acc.name} color identity` }),
-                  h("span", { className: "account-icon", "aria-hidden": "true" }, acc.scope === "freelance" ? h(Icons.IconBriefcase, { className: "w-4 h-4" }) : acc.type === "Bank" ? h(Icons.IconAccounts, { className: "w-4 h-4" }) : h(Icons.IconWallet, { className: "w-4 h-4" })),
+                  h("span", { className: "account-icon", "aria-hidden": "true" }, acc.type === "Bank" ? h(Icons.IconAccounts, { className: "w-4 h-4" }) : h(Icons.IconWallet, { className: "w-4 h-4" })),
                   h("h3", { className: "account-name" }, acc.name)
                 )
               )
@@ -60,7 +61,7 @@
             )
           ),
           h("div", { className: "account-card-meta" },
-            h("span", null, acc.currency, " · ", acc.scope === "freelance" ? "Freelance" : "Local"),
+            h("span", null, acc.currency),
             h("span", null, acc.type || "Account")
           ),
           (inflowInfo || outflowInfo) && h("div", { className: "account-flow-list" },

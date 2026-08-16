@@ -1,7 +1,7 @@
 // tabs/loans.js — Loans & Liabilities tab.
 (function () {
   function Loans(props) {
-    const { accounts, darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, undoRepayment } = props;
+    const { accounts, transactions = [], darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, undoLoanMovement } = props;
     const h = React.createElement;
     const lentCount = sortedLoans.filter(l => l.type === "lent").length;
     const borrowedCount = sortedLoans.filter(l => l.type === "borrowed").length;
@@ -64,8 +64,20 @@
             h("button", { onClick: () => setExpandedLoanHistory(prev => ({ ...prev, [loan.id]: !prev[loan.id] })), className: "loan-icon-action loan-icon-action-history", title: expandedLoanHistory[loan.id] ? "Hide history" : "Show history", "aria-label": expandedLoanHistory[loan.id] ? "Hide history" : "Show history" }, h(Icons.IconHistory, { className: "w-4 h-4" }))
           ),
           expandedLoanHistory[loan.id] && h("div", { className: "loan-history-panel" },
-            (loan.movements && loan.movements.length > 0 ? [...loan.movements].sort((a,b) => (b.date || "").localeCompare(a.date || "")) : []).map(mv => h("div", { key: mv.id, className: "loan-history-row" }, h("span", null, dateFmt(mv.date), " · ", mv.kind === "principal" ? loan.type === "lent" ? "Given" : "Received" : "Repaid"), h("div", { className: "flex items-center gap-2" }, h("strong", { className: mv.kind === "principal" ? loan.type === "lent" ? "loan-history-out" : "loan-history-in" : loan.type === "lent" ? "loan-history-in" : "loan-history-out" }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)), mv.kind === "repayment" && mv.id && h("button", { type: "button", className: "loan-history-undo", onClick: () => undoRepayment(loan.id, mv.id), title: "Undo this payment", "aria-label": "Undo this payment" }, h(Icons.IconUndo, { className: "w-3 h-3" }))))),
-            (!loan.movements || loan.movements.length === 0) && h("p", { className: "loan-history-empty" }, "No dated movements logged yet for this entry.")
+            (() => {
+              const movements = Array.isArray(loan.movements) ? [...loan.movements] : [];
+              const movementTxIds = new Set(movements.map(m => m.id));
+              const legacyRepayments = transactions.filter(t => t && t.loanId === loan.id && t.type && t.category === "Loan Repayment" && !movementTxIds.has(t.movementId));
+              const history = movements.concat(legacyRepayments.map(t => ({ id: "legacy:" + t.id, legacyTransactionId: t.id, kind: "repayment", amount: Number(t.accountAmount != null ? t.accountAmount : t.amount) || 0, date: t.date, accountId: t.accountId })));
+              return history.sort((a,b) => (b.date || "").localeCompare(a.date || "")).map(mv => h("div", { key: mv.id, className: "loan-history-row" },
+                h("span", null, dateFmt(mv.date), " · ", mv.kind === "principal" ? loan.type === "lent" ? "Given" : "Received" : "Repaid"),
+                h("div", { className: "flex items-center gap-2" },
+                  h("strong", { className: mv.kind === "principal" ? loan.type === "lent" ? "loan-history-out" : "loan-history-in" : loan.type === "repayment" ? loan.type === "lent" ? "loan-history-in" : "loan-history-out" : "" }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)),
+                  h("button", { type: "button", className: "loan-icon-action loan-icon-action-history loan-history-undo", onClick: () => undoLoanMovement(loan.id, mv.id, mv.legacyTransactionId), title: "Undo this record", "aria-label": "Undo this record" }, h(Icons.IconUndo, { className: "w-3 h-3" }))
+                )
+              ));
+            })(),
+            (!loan.movements || loan.movements.length === 0) && !transactions.some(t => t && t.loanId === loan.id && t.category === "Loan Repayment") && h("p", { className: "loan-history-empty" }, "No dated movements logged yet for this entry.")
           )
         ));
       }))

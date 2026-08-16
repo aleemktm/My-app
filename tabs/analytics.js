@@ -79,7 +79,7 @@
         h("div", { className: "insight-kpi" }, h("span", null, "INCOME"), h("strong", { style: { color: GREEN } }, fmt(monthlyIncomeAED)), h("small", null, "this month")),
         h("div", { className: "insight-kpi" }, h("span", null, "SPENDING"), h("strong", { style: { color: RED } }, fmt(monthlyExpenseAED)), h("small", null, "this month")),
         h("div", { className: "insight-kpi" }, h("span", null, "NET"), h("strong", { className: monthlySavingsAED >= 0 ? "insight-positive" : "insight-negative" }, moneyDelta(monthlySavingsAED, fmt)), h("small", null, "after expenses")),
-        h("div", { className: "insight-kpi" }, h("span", null, "BUFFER"), h("strong", null, `${emergencyRunwayMonths} mo`), h("small", null, runwayStatus.label)));
+        h("div", { className: "insight-kpi" }, h("span", null, "BUFFER"), h("strong", { className: "insight-buffer-value" }, `${emergencyRunwayMonths} mo`), h("small", null, runwayStatus.label)));
   }
 
   function CashFlowCard({ darkMode, fmt, monthlyHistory, insightTrendPeriod, setInsightTrendPeriod }) {
@@ -108,8 +108,42 @@
         h("div", null, h("span", null, "Net"), h("strong", { className: net >= 0 ? "insight-positive" : "insight-negative" }, moneyDelta(net, fmt)))));
   }
 
+  function GoldPerformanceCard(props) {
+    const { darkMode, fmt, goldAssets, goldHistory, settings, exchangeRates } = props;
+    const h = React.createElement;
+    const baseCurrency = settings && settings.defaultCurrency || "AED";
+    const totalWeight = goldAssets.reduce((sum, a) => sum + Number(a.weightGrams || 0), 0);
+    const avgPurchasePerGram = totalWeight > 0 ? goldAssets.reduce((sum, a) => sum + Number(a.purchaseValueBase || 0), 0) / totalWeight : 0;
+    const series = (goldHistory || []).map(item => {
+      const rate = Number(item.rateAEDPerGram || 0) / (exchangeRates && exchangeRates[baseCurrency] || 1);
+      const pnl = goldAssets.reduce((sum, a) => {
+        const grams = Number(a.weightGrams || 0);
+        const purchase = Number(a.purchaseValueBase || 0);
+        return sum + (grams > 0 ? grams * (rate - purchase / grams) : 0);
+      }, 0);
+      return { ...item, pnl, rate };
+    });
+    const latest = series[series.length - 1];
+    const previous = series[series.length - 2];
+    const currentPnl = latest ? latest.pnl : goldAssets.reduce((sum,a)=>sum + Number(a.currentValueBase||0) - Number(a.purchaseValueBase||0),0);
+    const labels = series.map(x => ({ date:x.date, label:new Date(`${x.date}T12:00:00`).toLocaleDateString("en-US", {month:"short",day:"numeric"}), pnl:x.pnl }));
+    const values = [0].concat(labels.map(x=>x.pnl));
+    const min = Math.min(0,...values), max = Math.max(0,...values), range = Math.max(1,max-min), width=640, height=210, padX=24, padY=22;
+    const pointFor=(v,i)=>[padX+i*(width-padX*2)/Math.max(1,values.length-1),height-padY-(v-min)/range*(height-padY*2)];
+    const points=values.map((v,i)=>pointFor(v,i).map(n=>n.toFixed(1)).join(",")).join(" ");
+    const zeroY=pointFor(0,0)[1];
+    return h("section",{className:`insight-panel gold-performance-panel ${darkMode?"insight-panel-dark":""}`},
+      h("div",{className:"insight-panel-head"},h("div",null,h("span",{className:"insight-section-kicker gold-kicker"},"GOLD PERFORMANCE"),h("h2",null,"Daily profit & loss")),h("strong",{className:currentPnl>=0?"gold-positive":"gold-negative"},`${currentPnl>=0?"+":"-"}${fmt(Math.abs(currentPnl))}`)),
+      goldAssets.length===0?h("div",{className:"insight-empty"},"Add gold assets to track their daily profit and loss."):series.length===0?h("div",{className:"insight-empty"},"Daily gold performance will appear after the next successful gold-rate sync."):h("div",{className:"gold-performance-chart"},
+        h("svg",{viewBox:`0 0 ${width} ${height}`,role:"img","aria-label":"Daily gold profit and loss trend"},h("line",{x1:padX,y1:zeroY,x2:width-padX,y2:zeroY,stroke:"#D4AF37",strokeWidth:"1",strokeDasharray:"4 5",opacity:".45"}),h("polyline",{points,fill:"none",stroke:"#D4AF37",strokeWidth:"3",strokeLinecap:"round",strokeLinejoin:"round"}),values.map((v,i)=>{const [x,y]=pointFor(v,i);return h("circle",{key:i,cx:x,cy:y,r:i===values.length-1?4.5:3,fill:darkMode?"#18181B":"#FFFFFF",stroke:"#D4AF37",strokeWidth:"2"})})),
+        h("div",{className:"gold-performance-labels"},h("span",null,"Purchase baseline"),labels.slice(-7).map(x=>h("span",{key:x.date,title:x.date},x.label))),
+        h("div",{className:"gold-performance-meta"},h("span",null,`Avg purchase ${fmt(avgPurchasePerGram)} / g`),h("span",null,latest?`Latest ${fmt(latest.rate)} / g`:"Latest pending"),h("span",null,previous?`Previous ${fmt(previous.rate)} / g`:"Previous pending")),
+        h("div",{className:"gold-performance-note"},`Daily fetched benchmark compared with your recorded gold purchase cost. P/L is based only on your gold weight and is shown in ${baseCurrency}.`))
+    );
+  }
+
   function Analytics(props) {
-    const { cardCls, categoryBreakdown, currentMonthLabel, darkMode, fmt, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, savingsRate, emergencyRunwayMonths, runwayStatus, biggestExpenseThisMonth, totalLiquidAED, totalPhysicalAED, totalLoansLentAED, totalLoansBorrowedAED } = props;
+    const { cardCls, categoryBreakdown = [], currentMonthLabel, darkMode, fmt, goldAssets = [], goldHistory = [], settings = {}, exchangeRates = { AED: 1 }, monthlyExpenseAED = 0, monthlyHistory = [], monthlyIncomeAED = 0, monthlySavingsAED = 0, savingsRate, emergencyRunwayMonths = 0, runwayStatus = { label: "—" }, biggestExpenseThisMonth, totalLiquidAED = 0, totalPhysicalAED = 0, totalLoansLentAED = 0, totalLoansBorrowedAED = 0 } = props;
     const top = categoryBreakdown[0];
     const categoryTotal = Math.max(1, monthlyExpenseAED);
     const categories = categoryBreakdown.slice(0, 5);
@@ -140,8 +174,8 @@
   }
 
   function AnalyticsSummary(props) {
-    const { darkMode, fmt, monthlyHistory, yearlyHistory, insightTrendPeriod, setInsightTrendPeriod, insightTrendStyle, setInsightTrendStyle, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, categoryBreakdown } = props;
-    const data = insightTrendPeriod === "yearly" ? yearlyHistory : monthlyHistory;
+    const { darkMode, fmt, monthlyHistory = [], yearlyHistory = [], insightTrendPeriod, setInsightTrendPeriod, insightTrendStyle, setInsightTrendStyle, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, categoryBreakdown = [], goldAssets = [], goldHistory = [], settings = {}, exchangeRates = { AED: 1 } } = props;
+    const data = (insightTrendPeriod === "yearly" ? yearlyHistory : monthlyHistory) || [];
     const trendNet = data.reduce((a, x) => a + x.net, 0);
     const average = data.length ? trendNet / data.length : 0;
     const positivePeriods = data.filter(x => x.net >= 0).length;
@@ -153,12 +187,13 @@
         h("div", { className: "insight-mini-chart" }, sparkline(data, "net", trendNet >= 0 ? GREEN : RED, darkMode)),
         h("div", { className: "insight-style-row" }, ["line", "bars"].map(id => h("button", { key: id, type: "button", onClick: () => setInsightTrendStyle(id), className: insightTrendStyle === id ? "active" : "" }, id === "line" ? "Trend line" : "Bars"))),
         insightTrendStyle === "bars" && h("div", { className: "insight-compact-bars" }, data.map(item => h("div", { key: item.key }, h("span", { style: { height: `${Math.max(4, Math.abs(item.net) / Math.max(1, ...data.map(x => Math.abs(x.net))) * 100)}%`, background: item.net >= 0 ? GREEN : RED } }), h("small", null, item.label))))),
-      h("div", { className: "insight-two-col" },
+      h("div", { className: "insight-two-col insight-summary-stack" },
         h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` }, h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SIGNALS"), h("h2", null, "Worth noticing"))),
           h("div", { className: "insight-signal-list" },
             h("div", null, h("span", null, "Best month"), h("strong", null, bestMonth && bestMonth.net !== 0 ? `${bestMonth.label} · ${moneyDelta(bestMonth.net, fmt)}` : "Not enough data")),
             h("div", null, h("span", null, "Top category"), h("strong", null, categoryBreakdown[0] ? `${categoryBreakdown[0][0]} · ${fmt(categoryBreakdown[0][1])}` : "Not enough data")),
             h("div", null, h("span", null, "Largest transaction"), h("strong", null, biggestExpenseThisMonth ? `${biggestExpenseThisMonth.title} · ${fmt(biggestExpenseThisMonth.aed)}` : "Not enough data")))),
+        h(GoldPerformanceCard, { darkMode, fmt, goldAssets, goldHistory, settings, exchangeRates }),
         h("section", { className: `insight-panel insight-ai-panel ${darkMode ? "insight-panel-dark" : ""}` }, h("div", { className: "insight-ai-label" }, "✦ SMART NOTE"), h("h2", null, trendNet >= 0 ? "Your trend is compounding." : "Your trend needs a reset."), h("p", null, trendNet >= 0 ? "The strongest move now is consistency: protect the positive months and keep fixed costs predictable." : "Look for one recurring cost to trim and one category to cap. Small changes compound quickly over a full year."), h("div", { className: "insight-note-pill" }, insightTrendPeriod === "yearly" ? "Annual view" : "Recent view"))),
       h("div", { className: "insight-footnote" }, "Insights are generated from transactions recorded in AleemFin. They are guidance, not financial advice."));
   }
