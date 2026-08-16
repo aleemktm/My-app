@@ -79,8 +79,9 @@
             );
           })
       ),
-      statementOpen && h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) setStatementOpen(false); } },
-        h("div", { className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}` },
+      statementOpen && ReactDOM.createPortal(
+        h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) setStatementOpen(false); } },
+          h("div", { className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}` },
           h("div", { className: "ledger-statement-handle" }),
           h("div", { className: "flex items-center justify-between gap-3 mb-4" },
             h("div", null, h("h3", { className: "text-sm font-bold" }, "Export statement"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Bank-style records with available balance after each transaction.")),
@@ -97,7 +98,9 @@
             ),
             h("button", { type: "button", onClick: exportStatement, className: `w-full py-3 rounded-2xl text-xs font-bold ${accent.solidBtn} text-white` }, "Export Statement CSV")
           )
-        )
+          )
+        ),
+        document.body
       )
     );
   }
