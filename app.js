@@ -2339,9 +2339,9 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
           setMoreSheetOpen(false);
         },
         "data-mobile-nav-tab": tab.id,
-        className: `mobile-nav-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+        className: `mobile-nav-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? "mobile-nav-tab-active" : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
-        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
+        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? "mobile-nav-icon-active" : ""}`
       }, /* @__PURE__ */React.createElement(Icon, {
         className: "w-5 h-5"
       })), /* @__PURE__ */React.createElement("span", {
@@ -2361,9 +2361,9 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         "data-mobile-nav-tab": "settings",
         "aria-label": "Settings",
         title: "Settings",
-        className: `mobile-nav-tab mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? "settings-nav-active font-bold" : "text-zinc-400 hover:text-zinc-200"}`
+        className: `mobile-nav-tab mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? "mobile-nav-tab-active settings-nav-active font-bold" : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
-        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? "settings-nav-active-icon" : ""}`
+        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? "mobile-nav-icon-active settings-nav-active-icon" : ""}`
       }, /* @__PURE__ */React.createElement(Icon, {
         className: "w-5 h-5"
       })), /* @__PURE__ */React.createElement("span", {
