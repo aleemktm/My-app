@@ -1202,15 +1202,25 @@ html.dark .insight-buffer-value{color:#F2F2F7!important;opacity:1!important;visi
 }
 
 /* Transaction statement metadata/export — additive only. */
-.ledger-account-balance-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}
-.ledger-account-chip{font-size:9px;font-weight:700;padding:3px 7px;border-radius:999px;background:rgba(29,191,115,.10);color:#1DBF73;white-space:nowrap}
+ .ledger-account-balance-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}
+.ledger-account-chip{font-size:9px;font-weight:700;padding:3px 7px;border-radius:999px;white-space:nowrap}
+.ledger-account-from{background:rgba(244,63,94,.10);color:#f43f5e}
+.ledger-account-to{background:rgba(29,191,115,.10);color:#1DBF73}
 .ledger-available-balance{font-size:9px;color:#8e8e93;white-space:nowrap}
-.ledger-statement-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.34);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center}
-.ledger-statement-sheet{width:min(100%,560px);background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.08);border-bottom:0;border-radius:30px 30px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.18)}
-.ledger-statement-dark{background:rgba(24,24,27,.97);border-color:rgba(255,255,255,.08);color:#fff}
+.ledger-amount-stack{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;min-width:max-content;margin-left:12px}
+.ledger-available-right{font-weight:600;text-align:right}
+.home-tx-account{display:inline-flex;margin-top:4px}
+.ledger-statement-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.34);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center;padding:0;isolation:isolate}
+.ledger-statement-sheet{position:relative;z-index:100000;width:min(100%,560px);max-height:min(88dvh,720px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:rgba(255,255,255,.98);border:1px solid rgba(0,0,0,.08);border-bottom:0;border-radius:30px 30px 0 0;padding:12px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.18);box-sizing:border-box}
+.ledger-statement-sheet > *{min-width:0}
+.ledger-statement-dark{background:rgba(24,24,27,.98);border-color:rgba(255,255,255,.08);color:#fff}
 .ledger-statement-handle{width:38px;height:5px;border-radius:999px;background:rgba(142,142,147,.38);margin:0 auto 14px}
-.ledger-statement-input{width:100%;border:1px solid rgba(142,142,147,.22);border-radius:14px;padding:10px 11px;background:rgba(118,118,128,.08);font-size:12px;outline:none}
+.ledger-statement-input{display:block;width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(142,142,147,.22);border-radius:14px;padding:11px 12px;background:rgba(118,118,128,.08);font-size:16px;line-height:1.25;outline:none;min-height:44px;appearance:auto;-webkit-appearance:auto}
+.ledger-statement-sheet label{min-width:0}
+.ledger-statement-sheet .grid{grid-template-columns:repeat(2,minmax(0,1fr));min-width:0}
+.ledger-statement-sheet button{min-height:50px;touch-action:manipulation}
 .ledger-statement-dark .ledger-statement-input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:#fff}
-@media(min-width:768px){.ledger-statement-overlay{align-items:center;padding:24px}.ledger-statement-sheet{border:1px solid rgba(0,0,0,.08);border-radius:28px;max-width:520px}.ledger-statement-dark{border-color:rgba(255,255,255,.08)}}
+@media(max-width:480px){.ledger-statement-sheet{width:100%;padding-left:16px;padding-right:16px;border-radius:30px 30px 0 0}.ledger-statement-sheet .grid{gap:10px}}
+@media(min-width:768px){.ledger-statement-overlay{align-items:center;padding:24px}.ledger-statement-sheet{border:1px solid rgba(0,0,0,.08);border-radius:28px;max-width:520px;max-height:min(86vh,720px)}.ledger-statement-dark{border-color:rgba(255,255,255,.08)}}
 
 .ledger-statement-message{font-size:9px;line-height:1.35;color:#8e8e93;margin-top:4px;max-width:48ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

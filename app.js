@@ -1226,7 +1226,9 @@ const filteredTransactions = useMemo(() => {
   const q = ledgerSearch.trim().toLowerCase();
   const list = transactions.filter(t => {
     const matchesType = ledgerFilter === "all" || t.type === ledgerFilter;
-    const matchesSearch = !q || t.title.toLowerCase().includes(q) || (t.category || "").toLowerCase().includes(q);
+    const accountName = accounts.find(a => String(a.id) === String(t.accountId))?.name || "";
+    const toAccountName = t.type === "transfer" ? (accounts.find(a => String(a.id) === String(t.toAccountId))?.name || "") : "";
+    const matchesSearch = !q || t.title.toLowerCase().includes(q) || (t.category || "").toLowerCase().includes(q) || accountName.toLowerCase().includes(q) || toAccountName.toLowerCase().includes(q);
     return matchesType && matchesSearch;
   });
   const sorted = [...list];
@@ -2071,6 +2073,9 @@ const cardCls = `rounded-3xl border ${darkMode ? "bg-zinc-900/50 border-zinc-800
 const subCardCls = `rounded-2xl border ${darkMode ? "bg-zinc-900/40 border-zinc-800" : "bg-white border-zinc-200"}`;
 const renderTxRow = tx => {
   const isTransfer = tx.type === "transfer";
+  const statementMeta = getTransactionStatementMeta(tx);
+  const isInflow = tx.type === "income" || (tx.type === "transfer" && statementMeta?.toAccount && String(tx.toAccountId) === String(statementMeta.toAccount.id));
+  const availableBalance = statementMeta?.account ? (isInflow && statementMeta.toBalance != null ? statementMeta.toBalance : statementMeta.balance) : null;
   const content = React.createElement("div", {
     className: `p-3.5 rounded-2xl border flex justify-between items-center text-xs ${subCardCls}`
   }, React.createElement("div", null, React.createElement("div", {
@@ -2080,10 +2085,14 @@ const renderTxRow = tx => {
     title: tx.category,
     "aria-label": tx.category
   }, React.createElement((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })), React.createElement("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category), React.createElement("span", { className: "text-[10px] text-zinc-400" }, dateFmt(tx.date))),
-  React.createElement("p", { className: "font-bold mt-1 text-sm" }, tx.title)),
-  React.createElement("div", { className: "flex items-center space-x-2" },
+  React.createElement("p", { className: "font-bold mt-1 text-sm" }, tx.title),
+  statementMeta?.account && React.createElement("span", { className: `ledger-account-chip ${isInflow ? "ledger-account-to" : "ledger-account-from"} home-tx-account` },
+    `${isInflow ? "to" : "from"} a/c ${statementMeta.account.name}`)),
+  React.createElement("div", { className: "ledger-amount-stack" },
     React.createElement("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` },
-      tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount))));
+      tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount)),
+    availableBalance != null && React.createElement("span", { className: "ledger-available-balance ledger-available-right" },
+      `Available ${statementMeta.account.currency} ${numFmt(availableBalance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)));
   if (isTransfer) return React.createElement("div", { key: tx.id, className: "swipe-row" }, React.createElement("div", { className: "swipe-content" }, content));
   return React.createElement(SwipeRow, {
     key: tx.id,
