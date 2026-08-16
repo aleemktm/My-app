@@ -5,7 +5,9 @@
       accent, darkMode, dateFmt, exportCSV, filteredTransactions, ledgerFilter,
       ledgerSearch, ledgerSort, numFmt, openAddModal, openEditModal,
       setDeleteTarget, setLedgerFilter, setLedgerSearch, setLedgerSort,
-      subCardCls, transactions, selectionKey
+      subCardCls, transactions, selectionKey, getTransactionStatementMeta, statementMessageFor,
+      statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate,
+      setStatementFromDate, statementToDate, setStatementToDate, exportStatement, accounts
     } = props;
     const h = React.createElement;
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
@@ -14,6 +16,7 @@
         h("div", { className: "flex items-center gap-2" },
           h("button", { onClick: exportCSV, title: "Export CSV", className: `p-2 rounded-xl border ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}` },
             h(Icons.IconCSV, { className: "w-4 h-4" })),
+          h("button", { onClick: () => setStatementOpen(true), title: "Export statement", className: `px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-200" : "bg-white border-zinc-200 text-zinc-700"}` }, "Statement"),
           h("button", { onClick: () => openAddModal("income", { category: "Salary" }), className: `px-3 py-1.5 ${accent.solidBtn} text-white rounded-xl text-xs font-semibold whitespace-nowrap` }, "+ Add Entry")
         )
       ),
@@ -52,7 +55,20 @@
                     h("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
                     h("span", { className: "text-[10px] text-zinc-400" }, dateFmt(tx.date))
                   ),
-                  h("h3", { className: "font-bold text-sm mt-1" }, tx.title)
+                  h("h3", { className: "font-bold text-sm mt-1" }, tx.title),
+                  (() => {
+                    const meta = getTransactionStatementMeta(tx);
+                    if (!meta?.account) return null;
+                    const isIn = tx.type === "income" || (tx.type === "transfer" && String(tx.toAccountId) === String(meta.account.id));
+                    const balance = isIn && meta.toAccount ? meta.toBalance : meta.balance;
+                    return h("div", { className: "ledger-statement-meta" },
+                      h("div", { className: "ledger-account-balance-row" },
+                        h("span", { className: "ledger-account-chip" }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`),
+                        h("span", { className: "ledger-available-balance" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+                      ),
+                      h("p", { className: "ledger-statement-message", title: statementMessageFor(tx) }, statementMessageFor(tx))
+                    );
+                  })()
                 ),
                 h("div", { className: "flex items-center space-x-2" },
                   h("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` },
@@ -61,6 +77,26 @@
               )
             )
           )
+      ),
+      statementOpen && h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) setStatementOpen(false); } },
+        h("div", { className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}` },
+          h("div", { className: "ledger-statement-handle" }),
+          h("div", { className: "flex items-center justify-between gap-3 mb-4" },
+            h("div", null, h("h3", { className: "text-sm font-bold" }, "Export statement"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Bank-style records with available balance after each transaction.")),
+            h("button", { type: "button", onClick: () => setStatementOpen(false), className: "p-2 rounded-xl bg-zinc-500/10", "aria-label": "Close statement export" }, h(Icons.IconClose, { className: "w-4 h-4" }))
+          ),
+          h("div", { className: "space-y-3" },
+            h("label", { className: "block text-xs font-semibold" }, "Account", h("select", { value: statementAccountId, onChange: e => setStatementAccountId(e.target.value), className: "ledger-statement-input mt-1" },
+              h("option", { value: "all" }, "All bank accounts"),
+              accounts.map(acc => h("option", { key: acc.id, value: acc.id }, `${acc.name} · ${acc.currency}`))
+            )),
+            h("div", { className: "grid grid-cols-2 gap-2" },
+              h("label", { className: "block text-xs font-semibold" }, "From", h("input", { type: "date", value: statementFromDate, onChange: e => setStatementFromDate(e.target.value), className: "ledger-statement-input mt-1" })),
+              h("label", { className: "block text-xs font-semibold" }, "To", h("input", { type: "date", value: statementToDate, onChange: e => setStatementToDate(e.target.value), className: "ledger-statement-input mt-1" }))
+            ),
+            h("button", { type: "button", onClick: exportStatement, className: `w-full py-3 rounded-2xl text-xs font-bold ${accent.solidBtn} text-white` }, "Export Statement CSV")
+          )
+        )
       )
     );
   }

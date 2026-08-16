@@ -2,7 +2,7 @@
 // and SettingsRow are bundled in since they were only ever used here).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen } = props;
     const SettingsSection = ({
     title,
     children,
@@ -116,24 +116,30 @@
     value: "auto"
   }, "System")))), h(SettingsSection, {
     title: "Home dashboard"
+  }, h("button", {
+    type: "button",
+    onClick: () => setDashboardCardsSheetOpen(true),
+    className: `w-full text-left ${subCardCls} p-4 rounded-2xl border transition-all active:scale-[0.99]`
   }, h("div", {
-    className: `p-4 ${subCardCls} space-y-3`
-  }, h("div", null, h("p", {
+    className: "flex items-center justify-between gap-3"
+  }, h("div", {
+    className: "min-w-0"
+  }, h("p", {
     className: "text-xs font-bold"
   }, "Choose four cards"), h("p", {
-    className: "text-[10px] text-zinc-400 mt-0.5"
-  }, `${selectedDashboardCards.length}/4 selected. Choose from your finance totals, plans, upcoming items, or live market information.`)), h("div", {
-    className: "grid grid-cols-2 gap-2"
-  }, dashboardOptions.map(option => {
-    const selected = selectedDashboardCards.includes(option.id);
-    const unavailable = !selected && selectedDashboardCards.length >= 4;
-    return h("button", {
-      key: option.id,
-      onClick: () => toggleDashboardCard(option.id),
-      disabled: unavailable,
-      className: `px-3 py-2.5 rounded-xl border text-left text-xs font-bold disabled:opacity-40 ${selected ? "settings-selection-active" : darkMode ? "bg-zinc-950 border-zinc-800 text-zinc-400" : "bg-zinc-50 border-zinc-200 text-zinc-500"}`
-    }, selected ? "✓ " : "", option.label);
-  })))), h(SettingsSection, {
+    className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed"
+  }, `${selectedDashboardCards.length}/4 selected · Customize your Home dashboard cards.`)), h("div", {
+    className: `shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-bold ${accent.activeBg10} ${accent.textStrong}`
+  }, `${selectedDashboardCards.length}/4`)), h("div", {
+    className: "mt-3 flex flex-wrap gap-1.5"
+  }, selectedDashboardCards.map(id => {
+    const option = dashboardOptions.find(item => item.id === id);
+    return option ? h("span", {
+      key: id,
+      className: `px-2.5 py-1 rounded-lg text-[10px] font-semibold ${darkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`
+    }, option.label) : null;
+  }))))
+, h(SettingsSection, {
     title: "Currency"
   }, h("div", {
     className: "space-y-2"
