@@ -241,41 +241,86 @@
     const { accent, accounts, closeMainFormModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, modalClosing, numFmt, setFormInput, settings } = props;
     const [offsetY, setOffsetY] = React.useState(0);
     const [dragging, setDragging] = React.useState(false);
-    const startY = React.useRef(0);
+    const sheetRef = React.useRef(null);
+    const dragStart = React.useRef(null);
     const dismissFromSwipe = () => {
       if (modalClosing) return;
-      setOffsetY(120);
+      setDragging(false);
+      setOffsetY(140);
       closeMainFormModal();
     };
-    const onPointerDown = e => {
-      if (modalClosing) return;
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (e.target.closest && e.target.closest("input, select, textarea, button")) return;
-      startY.current = e.clientY;
-      setDragging(true);
-      if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
-    };
-    const onPointerMove = e => {
-      if (!dragging || modalClosing) return;
-      const dy = e.clientY - startY.current;
-      if (dy > 0) setOffsetY(Math.min(220, dy));
-    };
-    const onPointerUp = e => {
-      if (!dragging) return;
-      setDragging(false);
-      const dy = e.clientY - startY.current;
-      if (dy > 70) dismissFromSwipe();
-      else setOffsetY(0);
-    };
+
+    // Safari/WKWebView: use a real non-passive touch listener on the sheet
+    // so the page behind it cannot steal the vertical swipe gesture.
+    React.useEffect(() => {
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+      const isInteractive = target => target && target.closest && target.closest("input, select, textarea, button, a");
+      const start = e => {
+        if (modalClosing || !e.touches || e.touches.length !== 1) return;
+        if (isInteractive(e.target)) return;
+        const t = e.touches[0];
+        dragStart.current = { x: t.clientX, y: t.clientY };
+      };
+      const move = e => {
+        if (!dragStart.current || modalClosing || !e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        const dx = t.clientX - dragStart.current.x;
+        const dy = t.clientY - dragStart.current.y;
+        // Lock the sheet to vertical motion; do not allow horizontal drift.
+        if (Math.abs(dx) > Math.abs(dy) || dy <= 0) return;
+        if (dy > 6) {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragging(true);
+          setOffsetY(Math.min(260, dy));
+        }
+      };
+      const end = e => {
+        if (!dragStart.current) return;
+        const y = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : dragStart.current.y;
+        const dy = y - dragStart.current.y;
+        dragStart.current = null;
+        if (dy > 85) dismissFromSwipe();
+        else {
+          setDragging(false);
+          setOffsetY(0);
+        }
+      };
+      sheet.addEventListener("touchstart", start, { passive: false });
+      sheet.addEventListener("touchmove", move, { passive: false });
+      sheet.addEventListener("touchend", end, { passive: false });
+      sheet.addEventListener("touchcancel", end, { passive: false });
+      return () => {
+        sheet.removeEventListener("touchstart", start);
+        sheet.removeEventListener("touchmove", move);
+        sheet.removeEventListener("touchend", end);
+        sheet.removeEventListener("touchcancel", end);
+      };
+    }, [modalClosing]);
+
+    // Prevent the document/root scroller from moving while the sheet is open.
+    React.useEffect(() => {
+      const html = document.documentElement;
+      const body = document.body;
+      const prev = { htmlOverflow: html.style.overflow, bodyOverflow: body.style.overflow, bodyOverscroll: body.style.overscrollBehavior };
+      html.style.overflow = "hidden";
+      body.style.overflow = "hidden";
+      body.style.overscrollBehavior = "none";
+      return () => {
+        html.style.overflow = prev.htmlOverflow;
+        body.style.overflow = prev.bodyOverflow;
+        body.style.overscrollBehavior = prev.bodyOverscroll;
+      };
+    }, []);
     return /* @__PURE__ */React.createElement("div", {
     className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${modalClosing ? "is-closing" : ""}`,
     onClick: e => { if (e.target === e.currentTarget) closeMainFormModal(); }
   }, /* @__PURE__ */React.createElement("div", {
+    ref: sheetRef,
     className: `ios-form-bottom-sheet w-full max-w-md rounded-t-[30px] border border-b-0 p-5 pb-6 shadow-2xl max-h-[92vh] overflow-y-auto md:rounded-3xl md:border-b md:max-h-[90vh] ${darkMode ? "is-dark" : ""} ${modalClosing ? "is-closing" : ""} ${dragging ? "is-dragging" : ""}`,
     style: { "--sheet-offset": `${offsetY}px` },
-    onClick: e => e.stopPropagation(),
-    onPointerDown, onPointerMove, onPointerUp,
-    onPointerCancel: () => { setDragging(false); setOffsetY(0); }
+    onClick: e => e.stopPropagation()
   }, /* @__PURE__ */React.createElement("div", {
     className: "ios-form-sheet-handle md:hidden"
   }), /* @__PURE__ */React.createElement("div", {

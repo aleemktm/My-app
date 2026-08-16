@@ -1071,6 +1071,6 @@ html.dark .insight-buffer-value{color:#F2F2F7!important;opacity:1!important;visi
 @media(prefers-reduced-motion:reduce){.ios-form-sheet-backdrop,.ios-form-bottom-sheet{animation:none!important;transition:none!important}}
 /* Final Safari/WKWebView compatibility overrides */
 .ios-form-sheet-backdrop{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(0,0,0,.42)!important}
-.ios-form-bottom-sheet{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,248,250,.96)!important;will-change:transform;contain:paint}
-.ios-form-bottom-sheet.is-dark{background:rgba(35,35,38,.97)!important}
+.ios-form-bottom-sheet{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,248,250,.96)!important;will-change:transform;contain:paint;overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y}
+.ios-form-bottom-sheet.is-dark{background:rgba(35,35,38,.97)!important;overflow-x:hidden;overscroll-behavior-x:none}
 @media(min-width:768px){.ios-form-sheet-backdrop{background:rgba(0,0,0,.52)!important}}
