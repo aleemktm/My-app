@@ -2370,7 +2370,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         className: "text-[10px] leading-none"
       }, "Settings"));
     })()))),
-moreSheetOpen && Modals.MoreSheet(tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && Modals.MainFormModal(tabProps))
+moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps))
     );
   }
 
