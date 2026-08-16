@@ -245,7 +245,7 @@
     const dismissFromSwipe = () => {
       if (modalClosing) return;
       setOffsetY(120);
-      setTimeout(() => closeModal(), 0);
+      closeMainFormModal();
     };
     const onPointerDown = e => {
       if (modalClosing) return;

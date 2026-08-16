@@ -929,3 +929,143 @@ html.dark .home-hero-dark{background:radial-gradient(circle at 82% 18%,rgba(29,1
 .settings-native{display:flex;flex-direction:column;gap:15px;max-width:42rem;margin:0 auto;width:100%}.settings-hero{padding:17px 2px 2px}.settings-hero h2{font-size:24px;font-weight:900;letter-spacing:-.045em}.settings-hero p{font-size:10px;color:#8e8e93;margin-top:4px}.settings-card{padding:0;overflow:hidden;border:1px solid rgba(60,60,67,.10);border-radius:18px;background:#fff}.settings-card-title{padding:11px 13px 7px;font-size:8px;letter-spacing:.12em;font-weight:850;color:#8e8e93;text-transform:uppercase}.settings-row{padding:12px 13px!important;border-radius:0!important;border-left:0!important;border-right:0!important;box-shadow:none!important}.settings-row+.settings-row{border-top:1px solid rgba(60,60,67,.08)}.settings-icon{width:34px!important;height:34px!important;border-radius:10px!important;background:rgba(29,191,115,.10)!important;color:var(--af-green)!important}.settings-row-danger .settings-icon{background:rgba(229,72,77,.10)!important;color:#e5484d!important}.settings-row .text-xs{font-size:11px!important}.settings-row .text-\[10px\]{font-size:9px!important}
 @media(max-width:560px){.assets-summary-grid{grid-template-columns:1fr 1fr}.assets-summary-main{grid-column:1/-1}.asset-row-card{grid-template-columns:34px 1fr auto}.settings-card{border-radius:16px}}
 html.dark .settings-section{background:transparent}.settings-section>h3{padding:0 3px;margin-bottom:5px}.settings-section>.settings-row,.settings-section>div.settings-row{background:rgba(255,255,255,.84)}html.dark .settings-section>.settings-row,html.dark .settings-section>div.settings-row{background:var(--af-dark-card)!important}.settings-section>.settings-row:first-of-type{border-top-left-radius:16px!important;border-top-right-radius:16px!important}.settings-section>.settings-row:last-child{border-bottom-left-radius:16px!important;border-bottom-right-radius:16px!important}
+/* 2026-08 premium finance refinements */
+html.dark { --af-bg:#151517 !important; --af-dark-bg:#151517 !important; --af-dark-card:#222225 !important; --af-dark-surface:#2A2A2E !important; }
+html.dark body, html.dark #root, html.dark main { background:#151517 !important; }
+html.dark .account-native-card,html.dark .assets-summary-card,html.dark .assets-gold-card,html.dark .asset-row-card,html.dark .recurring-card,html.dark .recurring-next,html.dark .planning-summary-card,html.dark .planning-item,html.dark .planning-goal-card,html.dark .loan-native-summary-card,html.dark .loan-card,html.dark .insight-card { background:#222225 !important; }
+.account-color-dot{width:10px!important;height:10px!important;border-radius:50%;display:inline-block!important;opacity:1!important;filter:none!important;background-clip:padding-box!important;}
+.account-title-row{gap:6px!important;align-items:center!important}.account-name{line-height:1.2!important}
+.assets-insight-shortcut{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:13px 14px;border:1px solid rgba(29,191,115,.18);border-radius:18px;background:rgba(29,191,115,.08);color:#1a8f5d;text-align:left}.assets-insight-copy span{display:block;font-size:8px;letter-spacing:.12em;font-weight:850;color:#1DBF73}.assets-insight-copy strong{display:block;font-size:12px;margin-top:2px}.assets-insight-copy small{display:block;font-size:8px;color:#8e8e93;margin-top:2px}.assets-insight-shortcut>svg{color:#1DBF73;flex:none}html.dark .assets-insight-shortcut{background:rgba(29,191,115,.10);border-color:rgba(29,191,115,.2);color:#7ee2b3}
+
+/* Requested polish: account identity, recurring, shared tab margins, gold insights, and FX workspace. */
+.account-color-dot{width:10px!important;height:10px!important;border-radius:50%;display:inline-block!important;opacity:1!important;border:1px solid rgba(255,255,255,.34);box-shadow:0 0 0 3px color-mix(in srgb, currentColor 14%, transparent),0 0 10px rgba(29,191,115,.28)!important;}
+.account-title-row .account-color-dot{position:relative;isolation:isolate}
+html.dark .account-color-dot{border-color:rgba(255,255,255,.42);box-shadow:0 0 0 3px rgba(255,255,255,.06),0 0 12px rgba(29,191,115,.32)!important}
+
+/* Keep the final tabs on the same content rail as every other tab. */
+main.max-w-5xl.mx-auto{box-sizing:border-box}
+.planning-native,.recurring-native,.settings-native,.rates-native{width:100%;max-width:42rem;margin-left:auto;margin-right:auto}
+.recurring-native,.planning-native,.settings-native,.rates-native{padding-left:0;padding-right:0}
+
+/* Recurring dark-mode surfaces and form controls. */
+html.dark .recurring-hero{background:linear-gradient(145deg,#222225,#1c2b24)!important;border-color:rgba(255,255,255,.08)!important}
+html.dark .recurring-card,html.dark .recurring-next,html.dark .recurring-editor,html.dark .recurring-empty{background:#222225!important;border-color:rgba(255,255,255,.09)!important;color:#f2f2f7}
+html.dark .recurring-card-main p,html.dark .recurring-next-item span,html.dark .recurring-section-head span{color:#a1a1aa}
+html.dark .recurring-editor input,html.dark .recurring-editor select{background:#151517!important;color:#f4f4f5!important;border-color:#3f3f46!important}
+html.dark .recurring-type-toggle{background:#151517!important}
+
+.gold-performance-panel{border-top:1px solid rgba(212,175,55,.18)!important}
+.gold-kicker{color:#b48b19!important}
+.gold-positive{color:#a9821f!important}.gold-negative{color:#c04a42!important}
+.gold-performance-chart{width:100%;overflow:hidden;margin-top:4px}
+.gold-performance-chart svg{display:block;width:100%;height:auto;min-height:150px}
+.gold-performance-labels{display:flex;gap:8px;justify-content:space-between;margin-top:6px;color:#8e8e93;font-size:8px;white-space:nowrap}
+.gold-performance-labels span{max-width:25%;overflow:hidden;text-overflow:ellipsis}
+.gold-performance-note{font-size:9px;color:#8e8e93;margin-top:10px}
+
+.rates-native{display:flex;flex-direction:column;gap:15px}
+.rates-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px;border-radius:22px;border:1px solid rgba(60,60,67,.10);background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(244,250,247,.90));box-shadow:0 12px 30px rgba(15,23,42,.045)}
+.rates-hero.is-dark{background:linear-gradient(145deg,#222225,#1c2b24);border-color:rgba(255,255,255,.08)}
+.rates-hero-actions{display:flex;flex-direction:column;align-items:stretch;gap:6px}.rates-auto{min-height:30px;border:0;border-radius:10px;background:rgba(118,118,128,.08);color:#71717a;font-size:8px;font-weight:850}.rates-auto.is-off{opacity:.65}.rates-sync{min-height:40px;padding:0 12px;border-radius:13px;border:1px solid rgba(29,191,115,.24);background:rgba(29,191,115,.12);color:#168b56;font-size:10px;font-weight:850;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.rates-sync.is-syncing{opacity:.65}.rates-message{font-size:9px;color:#8e8e93;margin:-7px 2px 0}
+.rates-card{border:1px solid rgba(60,60,67,.10);background:rgba(255,255,255,.84);border-radius:19px;padding:14px;box-shadow:0 10px 30px rgba(15,23,42,.035)}
+.rates-card.is-dark{background:#222225;border-color:rgba(255,255,255,.09);color:#f2f2f7}
+.rates-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.rates-card-head span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-weight:850;color:#8e8e93}.rates-card-head strong{display:block;margin-top:2px;font-size:13px}.rates-base-pill{padding:5px 8px;border-radius:999px;background:rgba(118,118,128,.08);font-size:8px!important;letter-spacing:0!important;text-transform:none!important;white-space:nowrap}
+.rates-convert-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px}.rates-convert-grid label,.rates-list label{display:block}.rates-convert-grid label>span,.rates-list label>span{display:block;font-size:8px;font-weight:800;color:#8e8e93;margin-bottom:4px}.rates-result{margin-top:12px;padding:14px;border-radius:15px;background:rgba(29,191,115,.07);border:1px solid rgba(29,191,115,.12)}.rates-result span,.rates-result small{display:block;color:#8e8e93;font-size:8px}.rates-result strong{display:block;margin:3px 0;font-size:20px;letter-spacing:-.035em}.rates-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.rates-list small{display:block;color:#8e8e93;font-size:7px;margin-top:3px}.rates-save{grid-column:1/-1;min-height:38px;border:0;border-radius:12px;color:#fff;font-size:10px;font-weight:850}
+@media(max-width:520px){.rates-hero{padding:15px}.rates-convert-grid{grid-template-columns:1fr 1fr}.rates-convert-grid label:first-child{grid-column:1/-1}.rates-list{grid-template-columns:1fr}.rates-save{grid-column:auto}.gold-performance-labels{font-size:7px}}
+
+
+/* Requested polish */
+.account-color-dot{width:10px!important;height:10px!important;border-radius:50%;display:inline-block!important;opacity:1!important;border:1px solid rgba(255,255,255,.34);box-shadow:0 0 0 3px rgba(29,191,115,.12),0 0 10px rgba(29,191,115,.28)!important}
+html.dark .account-color-dot{border-color:rgba(255,255,255,.42);box-shadow:0 0 0 3px rgba(255,255,255,.06),0 0 12px rgba(29,191,115,.32)!important}
+.planning-native,.recurring-native,.settings-native,.rates-native{width:100%;max-width:42rem;margin-left:auto;margin-right:auto}
+html.dark .recurring-hero{background:linear-gradient(145deg,#222225,#1c2b24)!important;border-color:rgba(255,255,255,.08)!important}
+html.dark .recurring-card,html.dark .recurring-next,html.dark .recurring-editor,html.dark .recurring-empty{background:#222225!important;border-color:rgba(255,255,255,.09)!important;color:#f2f2f7}
+html.dark .recurring-card-main p,html.dark .recurring-next-item span,html.dark .recurring-section-head span{color:#a1a1aa}
+html.dark .recurring-editor input,html.dark .recurring-editor select{background:#151517!important;color:#f4f4f5!important;border-color:#3f3f46!important}
+html.dark .recurring-type-toggle{background:#151517!important}
+.gold-performance-panel{border-top:1px solid rgba(212,175,55,.18)!important}.gold-kicker{color:#b48b19!important}.gold-positive{color:#a9821f!important}.gold-negative{color:#c04a42!important}.gold-performance-chart{width:100%;overflow:hidden;margin-top:4px}.gold-performance-chart svg{display:block;width:100%;height:auto;min-height:150px}.gold-performance-labels{display:flex;gap:8px;justify-content:space-between;margin-top:6px;color:#8e8e93;font-size:8px;white-space:nowrap}.gold-performance-labels span{max-width:25%;overflow:hidden;text-overflow:ellipsis}.gold-performance-note{font-size:9px;color:#8e8e93;margin-top:10px}
+.rates-native{display:flex;flex-direction:column;gap:15px}.rates-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px;border-radius:22px;border:1px solid rgba(60,60,67,.10);background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(244,250,247,.90));box-shadow:0 12px 30px rgba(15,23,42,.045)}.rates-hero.is-dark{background:linear-gradient(145deg,#222225,#1c2b24);border-color:rgba(255,255,255,.08)}.rates-hero-actions{display:flex;flex-direction:column;align-items:stretch;gap:6px}.rates-auto{min-height:30px;border:0;border-radius:10px;background:rgba(118,118,128,.08);color:#71717a;font-size:8px;font-weight:850}.rates-auto.is-off{opacity:.65}.rates-sync{min-height:40px;padding:0 12px;border-radius:13px;border:1px solid rgba(29,191,115,.24);background:rgba(29,191,115,.12);color:#168b56;font-size:10px;font-weight:850;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.rates-sync.is-syncing{opacity:.65}.rates-message{font-size:9px;color:#8e8e93;margin:-7px 2px 0}.rates-card{border:1px solid rgba(60,60,67,.10);background:rgba(255,255,255,.84);border-radius:19px;padding:14px;box-shadow:0 10px 30px rgba(15,23,42,.035)}.rates-card.is-dark{background:#222225;border-color:rgba(255,255,255,.09);color:#f2f2f7}.rates-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.rates-card-head span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-weight:850;color:#8e8e93}.rates-card-head strong{display:block;margin-top:2px;font-size:13px}.rates-base-pill{padding:5px 8px;border-radius:999px;background:rgba(118,118,128,.08);font-size:8px!important;letter-spacing:0!important;text-transform:none!important;white-space:nowrap}.rates-convert-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px}.rates-convert-grid label,.rates-list label{display:block}.rates-convert-grid label>span,.rates-list label>span{display:block;font-size:8px;font-weight:800;color:#8e8e93;margin-bottom:4px}.rates-result{margin-top:12px;padding:14px;border-radius:15px;background:rgba(29,191,115,.07);border:1px solid rgba(29,191,115,.12)}.rates-result span,.rates-result small{display:block;color:#8e8e93;font-size:8px}.rates-result strong{display:block;margin:3px 0;font-size:20px;letter-spacing:-.035em}.rates-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.rates-list small{display:block;color:#8e8e93;font-size:7px;margin-top:3px}.rates-save{grid-column:1/-1;min-height:38px;border:0;border-radius:12px;color:#fff;font-size:10px;font-weight:850}@media(max-width:520px){.rates-hero{padding:15px}.rates-convert-grid{grid-template-columns:1fr 1fr}.rates-convert-grid label:first-child{grid-column:1/-1}.rates-list{grid-template-columns:1fr}.rates-save{grid-column:auto}.gold-performance-labels{font-size:7px}}
+/* iOS-style Settings presentation: Settings enters from the opposite (right) edge. */
+@keyframes settingsSlideInRight { from { right: -32rem; opacity: .72; transform: translate3d(18px,0,0); } to { right: 0; opacity: 1; transform: translate3d(0,0,0); } }
+.settings-drawer.settings-drawer { left:auto !important; right:0 !important; border-right:0 !important; border-left:1px solid rgba(60,60,67,.12) !important; border-radius:24px 0 0 24px !important; animation:settingsSlideInRight .30s cubic-bezier(.22,.8,.24,1) both; box-shadow:-18px 0 48px rgba(0,0,0,.22); }
+html.dark .settings-drawer.settings-drawer { border-left-color:rgba(255,255,255,.08) !important; }
+@media(max-width:767px){.settings-drawer.settings-drawer{width:min(94vw,30rem)!important;border-radius:22px 0 0 22px!important;}}
+.unified-planning .planning-recurring-section{margin-top:2px}.planning-recurring-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 12px}.planning-recurring-stat{padding:12px;border:1px solid rgba(60,60,67,.10);border-radius:15px;background:rgba(255,255,255,.78)}.planning-recurring-stat span{display:block;font-size:8px;color:#8e8e93;font-weight:800}.planning-recurring-stat strong{display:block;margin-top:3px;font-size:14px}.recurring-editor.is-dark{background:#222225;border-color:rgba(255,255,255,.08)}.gold-performance-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.gold-performance-meta span{font-size:8px;color:#8e8e93;padding:5px 8px;border-radius:999px;background:rgba(118,118,128,.08)}
+@media(max-width:560px){.planning-recurring-flow{grid-template-columns:1fr}.settings-drawer.settings-drawer{padding-left:14px!important;padding-right:14px!important}}
+
+/* Settings full-screen iOS-style behavior and neutral selection states */
+.settings-selection-active {
+  background: rgba(16,185,129,.072) !important;
+  color: #438f75 !important;
+  border-color: rgba(16,185,129,.17) !important;
+}
+html.dark .settings-selection-active {
+  background: rgba(52,199,89,.16) !important;
+  color: #7ee59a !important;
+  border-color: rgba(52,199,89,.24) !important;
+}
+.settings-nav-active { color:#438f75 !important; }
+.settings-nav-active-icon { background:rgba(16,185,129,.072) !important; color:#438f75 !important; }
+html.dark .settings-nav-active { color:#7ee59a !important; }
+html.dark .settings-nav-active-icon { background:rgba(52,199,89,.16) !important; color:#7ee59a !important; }
+.settings-plain-info { display:flex; flex-direction:column; gap:10px; padding:2px 3px 4px; }
+.settings-plain-info > div { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; min-width:0; }
+.settings-plain-info span { color:#8e8e93; font-size:9px; }
+.settings-plain-info strong { color:#3a3a3c; font-size:10px; font-weight:650; text-align:right; line-height:1.4; }
+html.dark .settings-plain-info strong { color:#f2f2f7; }
+
+/* Requested consistency and compactness refinements */
+.loan-history-panel-persistent{margin-top:10px;padding-top:9px;border-top:1px solid rgba(60,60,67,.08)}
+.loan-history-heading{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:8px;font-weight:850;color:#8e8e93;text-transform:uppercase;letter-spacing:.08em}
+.loan-history-undo{display:inline-flex!important;align-items:center;justify-content:center;gap:3px;min-height:26px!important;padding:0 7px!important;border-radius:8px!important;background:rgba(16,185,129,.072)!important;color:#438f75!important;border:1px solid rgba(16,185,129,.17)!important}
+html.dark .loan-history-undo{background:rgba(52,199,89,.16)!important;color:#7ee59a!important;border-color:rgba(52,199,89,.24)!important}
+.recurring-action-primary,.rates-save{background:rgba(16,185,129,.072)!important;color:#438f75!important;border-color:rgba(16,185,129,.17)!important;box-shadow:none!important}
+html.dark .recurring-action-primary,html.dark .rates-save{background:rgba(52,199,89,.16)!important;color:#7ee59a!important;border-color:rgba(52,199,89,.24)!important}
+.rates-reference-card{padding:12px}.rates-reference-card .rates-card-head{margin-bottom:9px}.rates-reference-card .rates-list{grid-template-columns:repeat(4,1fr);gap:7px}.rates-reference-card .rates-list label{padding:7px 8px;border-radius:11px;background:rgba(118,118,128,.045)}.rates-reference-card .rates-list label>span{margin-bottom:2px}.rates-reference-card .rates-list small{margin-top:2px}.rates-reference-card .rates-list input{min-height:31px!important}.rates-reference-card .rates-save{margin-top:1px}
+@media(max-width:700px){.rates-reference-card .rates-list{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.rates-reference-card .rates-list{grid-template-columns:repeat(2,1fr);gap:6px}.rates-reference-card .rates-list label{padding:6px}.rates-reference-card .rates-list input{min-height:30px!important}}
+
+.insight-summary-stack{grid-template-columns:1fr!important}.insight-summary-stack > .gold-performance-panel,.insight-summary-stack > .insight-ai-panel{grid-column:1/-1}
+
+.insight-dark .insight-buffer-value{color:#F2F2F7 !important;opacity:1 !important}.insight-dark .insight-kpi small{color:#A1A1AA}
+
+/* Requested fix: ensure the runway value remains visible in dark mode. */
+html.dark .insight-buffer-value{color:#F2F2F7!important;opacity:1!important;visibility:visible!important;}
+
+.rates-reference-editor{grid-template-columns:1.2fr .8fr!important;align-items:end}.rates-reference-editor .rates-reference-select,.rates-reference-editor .rates-reference-value{background:rgba(118,118,128,.045);padding:8px;border-radius:11px}.rates-reference-editor .rates-reference-select select{width:100%}.rates-reference-editor .rates-save{grid-column:1/-1}@media(max-width:520px){.rates-reference-editor{grid-template-columns:1fr!important}.rates-reference-editor .rates-save{grid-column:auto}}
+
+.rates-base-select-wrap{display:block;position:relative}.rates-base-select{appearance:auto;border:1px solid rgba(118,118,128,.12);padding:5px 8px;border-radius:999px;background:rgba(118,118,128,.08);color:inherit;font-size:8px;font-weight:800;white-space:nowrap;min-height:26px;outline:none}.rates-card.is-dark .rates-base-select{background:rgba(118,118,128,.12);border-color:rgba(255,255,255,.08);color:#f2f2f7}
+
+/* Experimental iOS-native bottom sheet: frosted glass, spring entrance, and swipe-to-dismiss. */
+.ios-sheet-backdrop{background:rgba(0,0,0,.34);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%);animation:iosSheetBackdropIn .32s ease both;touch-action:none}
+.ios-sheet-backdrop.is-closing{animation:iosSheetBackdropOut .24s ease both}
+.ios-bottom-sheet{--sheet-offset:0px;position:relative;transform:translate3d(0,var(--sheet-offset),0);border:1px solid rgba(255,255,255,.18);border-bottom:0;border-radius:30px 30px 0 0;background:rgba(248,248,250,.78);color:#1c1c1e;box-shadow:0 -18px 60px rgba(0,0,0,.22),0 -1px 0 rgba(255,255,255,.34) inset;backdrop-filter:blur(34px) saturate(180%);-webkit-backdrop-filter:blur(34px) saturate(180%);animation:iosSheetIn .38s cubic-bezier(.22,1,.36,1) both;transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.ios-bottom-sheet.is-dark{background:rgba(35,35,38,.76);color:#f2f2f7;border-color:rgba(255,255,255,.12);box-shadow:0 -20px 65px rgba(0,0,0,.48),0 1px 0 rgba(255,255,255,.04) inset}
+.ios-bottom-sheet.is-closing{animation:iosSheetOut .24s cubic-bezier(.32,.72,0,1) both;pointer-events:none}
+.ios-bottom-sheet.is-dragging{transition:none}
+.ios-sheet-handle{width:38px;height:5px;margin:1px auto 10px;border-radius:999px;background:rgba(60,60,67,.28)}
+.ios-bottom-sheet.is-dark .ios-sheet-handle{background:rgba(235,235,245,.30)}
+@keyframes iosSheetIn{from{transform:translate3d(0,100%,0);opacity:.65}to{transform:translate3d(0,var(--sheet-offset),0);opacity:1}}
+@keyframes iosSheetOut{from{transform:translate3d(0,var(--sheet-offset),0);opacity:1}to{transform:translate3d(0,105%,0);opacity:.7}}
+@keyframes iosSheetBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes iosSheetBackdropOut{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.ios-sheet-backdrop,.ios-bottom-sheet{animation:none!important;transition:none!important}}
+
+/* iOS native-style form bottom sheet experiment */
+.ios-form-sheet-backdrop{background:rgba(0,0,0,.38);backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);animation:iosFormBackdropIn .30s ease both;touch-action:none}
+.ios-form-sheet-backdrop.is-closing{animation:iosFormBackdropOut .28s ease both}
+.ios-form-bottom-sheet{--sheet-offset:0px;position:relative;transform:translate3d(0,var(--sheet-offset),0);background:rgba(248,248,250,.82);color:#1c1c1e;border-color:rgba(255,255,255,.20);box-shadow:0 -18px 60px rgba(0,0,0,.25),0 -1px 0 rgba(255,255,255,.38) inset;backdrop-filter:blur(34px) saturate(180%);-webkit-backdrop-filter:blur(34px) saturate(180%);animation:iosFormSheetIn .38s cubic-bezier(.22,1,.36,1) both;transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.ios-form-bottom-sheet.is-dark{background:rgba(35,35,38,.80);color:#f2f2f7;border-color:rgba(255,255,255,.13);box-shadow:0 -20px 65px rgba(0,0,0,.50),0 1px 0 rgba(255,255,255,.05) inset}
+.ios-form-bottom-sheet.is-closing{animation:iosFormSheetOut .28s cubic-bezier(.32,.72,0,1) both;pointer-events:none}
+.ios-form-bottom-sheet.is-dragging{transition:none}
+.ios-form-sheet-handle{width:38px;height:5px;margin:-2px auto 12px;border-radius:999px;background:rgba(60,60,67,.28)}
+.ios-form-bottom-sheet.is-dark .ios-form-sheet-handle{background:rgba(235,235,245,.30)}
+@keyframes iosFormSheetIn{from{transform:translate3d(0,100%,0);opacity:.96}to{transform:translate3d(0,var(--sheet-offset),0);opacity:1}}
+@keyframes iosFormSheetOut{from{transform:translate3d(0,var(--sheet-offset),0);opacity:1}to{transform:translate3d(0,105%,0);opacity:.96}}
+@keyframes iosFormBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes iosFormBackdropOut{from{opacity:1}to{opacity:0}}
+@media(min-width:768px){.ios-form-sheet-backdrop{background:rgba(0,0,0,.52);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:iosFormBackdropIn .22s ease both}.ios-form-bottom-sheet{background:#18181b;color:#f4f4f5;border-color:#27272a;backdrop-filter:none;-webkit-backdrop-filter:none;animation:iosDesktopFormIn .24s cubic-bezier(.22,1,.36,1) both;transition:opacity .18s ease,transform .24s cubic-bezier(.22,1,.36,1);transform:translateY(0) scale(1);box-shadow:0 25px 60px rgba(0,0,0,.28)}.ios-form-bottom-sheet:not(.is-dark){background:#fff;color:#18181b;border-color:#e4e4e7}.ios-form-bottom-sheet.is-closing{animation:iosDesktopFormOut .18s cubic-bezier(.32,.72,0,1) both}.ios-form-sheet-backdrop.is-closing{animation:iosFormBackdropOut .18s ease both}.ios-form-sheet-handle{display:none}}
+@keyframes iosDesktopFormIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes iosDesktopFormOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(8px) scale(.985)}}
+@media(prefers-reduced-motion:reduce){.ios-form-sheet-backdrop,.ios-form-bottom-sheet{animation:none!important;transition:none!important}}
