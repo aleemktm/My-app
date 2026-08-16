@@ -23,7 +23,7 @@
       h("div", { className: "flex gap-2" },
         h("div", { className: `flex-1 flex items-center gap-2 px-3 rounded-xl border ${darkMode ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"}` },
           h(Icons.IconSearch, { className: "w-3.5 h-3.5 text-zinc-400 shrink-0" }),
-          h("input", { type: "text", placeholder: "Search title or category…", value: ledgerSearch, onChange: e => setLedgerSearch(e.target.value), className: "w-full py-2 text-[16px] bg-transparent outline-none" })
+          h("input", { type: "text", placeholder: "Search name, account, title or category…", value: ledgerSearch, onChange: e => setLedgerSearch(e.target.value), className: "w-full py-2 text-[16px] bg-transparent outline-none" })
         ),
         h("label", { className: `icon-select ${darkMode ? "icon-select-dark" : ""}`, title: "Filter transactions", "aria-label": "Filter transactions" },
           h(Icons.IconFilter, { className: "w-4 h-4" }),
@@ -42,7 +42,11 @@
         filteredTransactions.length === 0
           ? h("div", { className: `p-12 text-center rounded-3xl border ${darkMode ? "bg-zinc-900/40 border-zinc-800 text-zinc-400" : "bg-white border-zinc-200 text-zinc-500"}` },
               h("p", { className: "text-xs font-medium" }, transactions.length === 0 ? "No transactions recorded yet." : "No transactions match your search."))
-          : filteredTransactions.map(tx => h(window.SwipeRow, {
+          : filteredTransactions.map(tx => {
+            const meta = getTransactionStatementMeta(tx);
+            const isIn = tx.type === "income" || (tx.type === "transfer" && meta?.toAccount && String(tx.toAccountId) === String(meta.toAccount.id));
+            const balance = meta?.account ? (isIn && meta.toAccount ? meta.toBalance : meta.balance) : 0;
+            return h(window.SwipeRow, {
               key: tx.id,
               onEdit: tx.type === "transfer" ? null : () => openEditModal(tx.type, tx),
               onDelete: () => setDeleteTarget({ type: "transaction", id: tx.id, name: tx.title }),
@@ -57,26 +61,23 @@
                   ),
                   h("h3", { className: "font-bold text-sm mt-1" }, tx.title),
                   (() => {
-                    const meta = getTransactionStatementMeta(tx);
                     if (!meta?.account) return null;
-                    const isIn = tx.type === "income" || (tx.type === "transfer" && String(tx.toAccountId) === String(meta.account.id));
-                    const balance = isIn && meta.toAccount ? meta.toBalance : meta.balance;
                     return h("div", { className: "ledger-statement-meta" },
                       h("div", { className: "ledger-account-balance-row" },
-                        h("span", { className: "ledger-account-chip" }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`),
-                        h("span", { className: "ledger-available-balance" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+                        h("span", { className: `ledger-account-chip ${isIn ? "ledger-account-to" : "ledger-account-from"}` }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`)
                       ),
                       h("p", { className: "ledger-statement-message", title: statementMessageFor(tx) }, statementMessageFor(tx))
                     );
                   })()
                 ),
-                h("div", { className: "flex items-center space-x-2" },
+                h("div", { className: "ledger-amount-stack" },
                   h("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` },
-                    tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount))
+                    tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount)),
+                  meta?.account && h("span", { className: "ledger-available-balance ledger-available-right" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
                 )
               )
-            )
-          )
+            );
+          })
       ),
       statementOpen && h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) setStatementOpen(false); } },
         h("div", { className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}` },
