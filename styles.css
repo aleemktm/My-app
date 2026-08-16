@@ -1306,3 +1306,18 @@ html.dark .ledger-account-from,html.dark .ledger-account-to,.ledger-statement-da
   .ledger-statement-sheet{max-height:min(82dvh,680px)}
   .ledger-statement-sheet .grid{grid-template-columns:1fr;gap:12px}
 }
+
+/* Final ledger refinements: account labels match available-balance typography and statement sheet locks the app. */
+.ledger-account-chip{
+  font-size:9px!important;
+  font-weight:600!important;
+  color:#8e8e93!important;
+  background:transparent!important;
+  border:0!important;
+  padding:0!important;
+  border-radius:0!important;
+}
+html.dark .ledger-account-chip,.ledger-statement-dark .ledger-account-chip{color:#8e8e93!important}
+.ledger-account-from,.ledger-account-to,html.dark .ledger-account-from,html.dark .ledger-account-to,.ledger-statement-dark .ledger-account-from,.ledger-statement-dark .ledger-account-to{color:#8e8e93!important}
+.ledger-statement-overlay{touch-action:none!important;overscroll-behavior:none!important}
+.ledger-statement-sheet{touch-action:pan-y!important;overscroll-behavior:contain!important}
