@@ -2,14 +2,47 @@
 (function () {
   function MoreSheet(props) {
     const { MORE_NAV_ITEMS, accent, activeTab, darkMode, setActiveTab, setMoreSheetOpen } = props;
+    const [closing, setClosing] = React.useState(false);
+    const [offsetY, setOffsetY] = React.useState(0);
+    const startY = React.useRef(0);
+    const dragging = React.useRef(false);
+    const closeTimer = React.useRef(null);
+    const dismiss = () => {
+      if (closing) return;
+      setClosing(true);
+      setOffsetY(0);
+      closeTimer.current = setTimeout(() => setMoreSheetOpen(false), 240);
+    };
+    React.useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+    const onPointerDown = e => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      startY.current = e.clientY;
+      dragging.current = true;
+      if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = e => {
+      if (!dragging.current || closing) return;
+      const dy = e.clientY - startY.current;
+      if (dy <= 0) return;
+      setOffsetY(Math.min(180, dy));
+    };
+    const onPointerUp = e => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      const dy = e.clientY - startY.current;
+      if (dy > 70) { dismiss(); } else { setOffsetY(0); }
+    };
     return /* @__PURE__ */React.createElement("div", {
-    className: "md:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fadeIn",
-    onClick: () => setMoreSheetOpen(false)
+    className: `ios-sheet-backdrop md:hidden fixed inset-0 z-50 flex items-end justify-center ${closing ? "is-closing" : ""}`,
+    onClick: e => { if (e.target === e.currentTarget) dismiss(); }
   }, /* @__PURE__ */React.createElement("div", {
-    className: `w-full max-w-md rounded-t-3xl border-t border-x p-3 pb-6 safe-bottom shadow-2xl space-y-2 ${darkMode ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200"}`,
-    onClick: e => e.stopPropagation()
+    className: `ios-bottom-sheet w-full max-w-md p-3 pb-6 safe-bottom space-y-2 ${darkMode ? "is-dark" : ""} ${closing ? "is-closing" : ""} ${dragging.current ? "is-dragging" : ""}`,
+    style: { "--sheet-offset": `${offsetY}px` },
+    onClick: e => e.stopPropagation(),
+    onPointerDown, onPointerMove, onPointerUp,
+    onPointerCancel: () => { dragging.current = false; setOffsetY(0); }
   }, /* @__PURE__ */React.createElement("div", {
-    className: "w-10 h-1.5 rounded-full bg-zinc-600/40 mx-auto mb-2"
+    className: "ios-sheet-handle"
   }), MORE_NAV_ITEMS.map(tab => {
     const Icon = tab.icon;
     const isActive = activeTab === tab.id;
@@ -17,7 +50,7 @@
       key: tab.id,
       onClick: () => {
         setActiveTab(tab.id);
-        setMoreSheetOpen(false);
+        dismiss();
       },
       className: `w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-colors ${isActive ? accent.activeBg10 : darkMode ? "hover:bg-zinc-800" : "hover:bg-zinc-100"}`
     }, /* @__PURE__ */React.createElement("div", {
@@ -61,78 +94,20 @@
 
   function RatesModal(props) {
     const { accent, darkMode, inputCls, rateForm, rateSyncMsg, saveRates, setRateForm, setRatesModalOpen, syncLiveExchangeRates, syncingRates } = props;
-    return /* @__PURE__ */React.createElement("div", {
-    className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fadeIn"
-  }, /* @__PURE__ */React.createElement("div", {
-    className: `w-full max-w-xs rounded-3xl border p-5 shadow-2xl space-y-3 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
-  }, /* @__PURE__ */React.createElement("div", {
-    className: "flex justify-between items-center"
-  }, /* @__PURE__ */React.createElement("h3", {
-    className: "font-bold text-sm"
-  }, "Exchange Rates"), /* @__PURE__ */React.createElement("button", {
-    onClick: () => setRatesModalOpen(false),
-    className: "p-1 rounded-lg hover:bg-zinc-800 text-zinc-400"
-  }, /* @__PURE__ */React.createElement(Icons.IconClose, {
-    className: "w-3.5 h-3.5"
-  }))), /* @__PURE__ */React.createElement("p", {
-    className: "text-[10px] text-zinc-400"
-  }, "1 unit of currency = this many AED."), /* @__PURE__ */React.createElement("button", {
-    type: "button",
-    onClick: syncLiveExchangeRates,
-    disabled: syncingRates,
-    className: `w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border disabled:opacity-50 ${darkMode ? "border-zinc-800 hover:bg-zinc-800" : "border-zinc-200 hover:bg-zinc-100"}`
-  }, /* @__PURE__ */React.createElement(Icons.IconSync, {
-    className: `w-3.5 h-3.5 ${syncingRates ? "animate-pulse" : ""}`
-  }), " ", syncingRates ? "Syncing\u2026" : "Sync Live Rates"), rateSyncMsg && /* @__PURE__ */React.createElement("p", {
-    className: "text-[10px] text-zinc-400"
-  }, rateSyncMsg), /* @__PURE__ */React.createElement("p", {
-    className: "text-[10px] text-zinc-500"
-  }, "Or enter rates manually below \\u2014 they won't update on their own otherwise."), /* @__PURE__ */React.createElement("form", {
-    onSubmit: saveRates,
-    className: "space-y-3"
-  }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "AED (base)"), /* @__PURE__ */React.createElement("input", {
-    type: "text",
-    disabled: true,
-    value: "1",
-    className: `${inputCls} opacity-50`
-  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "1 USD = ? AED"), /* @__PURE__ */React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    step: "0.0001",
-    required: true,
-    value: rateForm.USD,
-    onChange: e => setRateForm({
-      ...rateForm,
-      USD: e.target.value
-    }),
-    className: inputCls
-  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "1 PKR = ? AED"), /* @__PURE__ */React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    step: "0.0001",
-    required: true,
-    value: rateForm.PKR,
-    onChange: e => setRateForm({
-      ...rateForm,
-      PKR: e.target.value
-    }),
-    className: inputCls
-  })), /* @__PURE__ */React.createElement("div", {
-    className: "pt-2 flex justify-end space-x-2"
-  }, /* @__PURE__ */React.createElement("button", {
-    type: "button",
-    onClick: () => setRatesModalOpen(false),
-    className: `px-3.5 py-2 rounded-xl text-xs font-semibold border ${darkMode ? "border-zinc-800 hover:bg-zinc-800" : "border-zinc-200 hover:bg-zinc-100"}`
-  }, "Cancel"), /* @__PURE__ */React.createElement("button", {
-    type: "submit",
-    className: `px-3.5 py-2 ${accent.solidBtn} text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20`
-  }, "Save Rates")))));
+    const currencies = [["USD","US Dollar"],["EUR","Euro"],["GBP","Pound"],["SAR","Saudi Riyal"],["INR","Indian Rupee"],["PKR","Pakistani Rupee"],["CAD","Canadian Dollar"],["AUD","Australian Dollar"]];
+    return React.createElement("div", { className:"fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fadeIn" },
+      React.createElement("div", { className:`w-full max-w-sm max-h-[88vh] overflow-y-auto rounded-3xl border p-5 shadow-2xl space-y-3 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}` },
+        React.createElement("div", { className:"flex justify-between items-center" }, React.createElement("h3", {className:"font-bold text-sm"},"Exchange Rates"), React.createElement("button",{onClick:()=>setRatesModalOpen(false),className:"p-1 rounded-lg text-zinc-400"},React.createElement(Icons.IconClose,{className:"w-3.5 h-3.5"}))),
+        React.createElement("p", {className:"text-[10px] text-zinc-400"},"1 unit of currency = this many AED. Live rates can refresh automatically."),
+        React.createElement("button", {type:"button",onClick:syncLiveExchangeRates,disabled:syncingRates,className:`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border disabled:opacity-50 ${darkMode?"border-zinc-800":"border-zinc-200"}`},React.createElement(Icons.IconSync,{className:`w-3.5 h-3.5 ${syncingRates?"animate-pulse":""}`}),syncingRates?"Syncing…":"Sync Live Rates"),
+        rateSyncMsg && React.createElement("p",{className:"text-[10px] text-zinc-400"},rateSyncMsg),
+        React.createElement("form",{onSubmit:saveRates,className:"space-y-2.5"},
+          React.createElement("div",{className:"p-3 rounded-xl bg-zinc-500/5 border border-zinc-500/10 text-[10px] text-zinc-500"},"AED is the reference for stored rates. Your selected base currency is used automatically for app totals."),
+          currencies.map(([code,name])=>React.createElement("label",{key:code,className:"block"},React.createElement("span",{className:"block text-[10px] font-semibold mb-1"},`1 ${code} = ? AED · ${name}`),React.createElement("input",{type:"number",inputMode:"decimal",step:"0.0001",required:true,value:rateForm[code]||"",onChange:e=>setRateForm({...rateForm,[code]:e.target.value}),className:inputCls}))),
+          React.createElement("div",{className:"pt-2 flex justify-end gap-2"},React.createElement("button",{type:"button",onClick:()=>setRatesModalOpen(false),className:`px-3.5 py-2 rounded-xl text-xs font-semibold border ${darkMode?"border-zinc-800":"border-zinc-200"}`},"Cancel"),React.createElement("button",{type:"submit",className:`px-3.5 py-2 ${accent.solidBtn} text-white rounded-xl text-xs font-semibold`},"Save Rates"))
+        )
+      )
+    );
   }
 
   function RepaymentModal(props) {
@@ -263,17 +238,52 @@
   }
 
   function MainFormModal(props) {
-    const { accent, accounts, closeModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, numFmt, setFormInput } = props;
+    const { accent, accounts, closeMainFormModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, modalClosing, numFmt, setFormInput, settings } = props;
+    const [offsetY, setOffsetY] = React.useState(0);
+    const [dragging, setDragging] = React.useState(false);
+    const startY = React.useRef(0);
+    const dismissFromSwipe = () => {
+      if (modalClosing) return;
+      setOffsetY(120);
+      setTimeout(() => closeModal(), 0);
+    };
+    const onPointerDown = e => {
+      if (modalClosing) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.target.closest && e.target.closest("input, select, textarea, button")) return;
+      startY.current = e.clientY;
+      setDragging(true);
+      if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = e => {
+      if (!dragging || modalClosing) return;
+      const dy = e.clientY - startY.current;
+      if (dy > 0) setOffsetY(Math.min(220, dy));
+    };
+    const onPointerUp = e => {
+      if (!dragging) return;
+      setDragging(false);
+      const dy = e.clientY - startY.current;
+      if (dy > 70) dismissFromSwipe();
+      else setOffsetY(0);
+    };
     return /* @__PURE__ */React.createElement("div", {
-    className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm"
+    className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${modalClosing ? "is-closing" : ""}`,
+    onClick: e => { if (e.target === e.currentTarget) closeMainFormModal(); }
   }, /* @__PURE__ */React.createElement("div", {
-    className: `w-full max-w-sm rounded-3xl border p-5 shadow-2xl max-h-[90vh] overflow-y-auto ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
+    className: `ios-form-bottom-sheet w-full max-w-md rounded-t-[30px] border border-b-0 p-5 pb-6 shadow-2xl max-h-[92vh] overflow-y-auto md:rounded-3xl md:border-b md:max-h-[90vh] ${darkMode ? "is-dark" : ""} ${modalClosing ? "is-closing" : ""} ${dragging ? "is-dragging" : ""}`,
+    style: { "--sheet-offset": `${offsetY}px` },
+    onClick: e => e.stopPropagation(),
+    onPointerDown, onPointerMove, onPointerUp,
+    onPointerCancel: () => { setDragging(false); setOffsetY(0); }
   }, /* @__PURE__ */React.createElement("div", {
+    className: "ios-form-sheet-handle md:hidden"
+  }), /* @__PURE__ */React.createElement("div", {
     className: "flex justify-between items-center mb-3"
   }, /* @__PURE__ */React.createElement("h3", {
     className: "font-bold text-sm capitalize"
   }, editingId ? "Edit" : "Add", " ", modalType), /* @__PURE__ */React.createElement("button", {
-    onClick: closeModal,
+    onClick: closeMainFormModal,
     className: "p-1 rounded-lg hover:bg-zinc-800 text-zinc-400"
   }, /* @__PURE__ */React.createElement(Icons.IconClose, {
     className: "w-3.5 h-3.5"
@@ -312,12 +322,6 @@
   }, "Credit Card"), /* @__PURE__ */React.createElement("option", {
     value: "Other"
   }, "Other"))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "Account Group"), /* @__PURE__ */React.createElement("select", {
-    value: formInput.accountScope || "local",
-    onChange: e => setFormInput({ ...formInput, accountScope: e.target.value }),
-    className: inputCls
-  }, /* @__PURE__ */React.createElement("option", { value: "local" }, "Local"), /* @__PURE__ */React.createElement("option", { value: "freelance" }, "Freelance"), /* @__PURE__ */React.createElement("option", { value: "other" }, "Other"))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, editingId ? "Balance" : "Initial Balance"), /* @__PURE__ */React.createElement("input", {
     type: "number",
@@ -497,17 +501,18 @@
     className: inputCls
   }))), ["income", "expense"].includes(modalType) && /* @__PURE__ */React.createElement(React.Fragment, null, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
-  }, "Category"), /* @__PURE__ */React.createElement("input", {
-    type: "text",
+  }, "Category"), /* @__PURE__ */React.createElement("select", {
     required: true,
-    placeholder: "e.g. Salary, Groceries, Family",
     value: formInput.category,
     onChange: e => setFormInput({
       ...formInput,
       category: e.target.value
     }),
     className: inputCls
-  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+  }, (((settings && settings.customCategories && settings.customCategories[modalType]) || []).slice ? (settings.customCategories[modalType] || []).slice() : []).concat(formInput.category && !(settings && settings.customCategories && (settings.customCategories[modalType] || []).includes(formInput.category)) ? [formInput.category] : []).map(category => React.createElement("option", {
+    key: category,
+    value: category
+  }, category)))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, "Account"), /* @__PURE__ */React.createElement("select", {
     value: formInput.accountId,
@@ -588,7 +593,7 @@
     className: "pt-2 flex justify-end space-x-2"
   }, /* @__PURE__ */React.createElement("button", {
     type: "button",
-    onClick: closeModal,
+    onClick: closeMainFormModal,
     className: `px-3.5 py-2 rounded-xl text-xs font-semibold border ${darkMode ? "border-zinc-800 hover:bg-zinc-800" : "border-zinc-200 hover:bg-zinc-100"}`
   }, "Cancel"), /* @__PURE__ */React.createElement("button", {
     type: "submit",

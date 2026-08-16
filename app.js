@@ -11,6 +11,7 @@ var {
 } = React;
 var hapticFeedback = function(duration) {
   try {
+    if (window.__aleemFinHapticsEnabled === false) return;
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.hapticFeedback) {
       window.webkit.messageHandlers.hapticFeedback.postMessage({ duration: duration || 10 });
       return;
@@ -18,11 +19,30 @@ var hapticFeedback = function(duration) {
     if (navigator && typeof navigator.vibrate === "function") navigator.vibrate(duration || 10);
   } catch (_) {}
 };
+var actionSound = function(kind) {
+  try {
+    if (window.__aleemFinSoundEnabled !== true) return;
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.actionSound) {
+      window.webkit.messageHandlers.actionSound.postMessage({ kind: kind || "tap" });
+      return;
+    }
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    var ctx = window.__aleemFinAudioCtx || (window.__aleemFinAudioCtx = new AudioCtx());
+    if (ctx.state === "suspended") ctx.resume();
+    var osc = ctx.createOscillator(), gain = ctx.createGain();
+    var now = ctx.currentTime, freq = kind === "delete" ? 180 : kind === "success" ? 720 : 420;
+    osc.type = "sine"; osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now); gain.gain.exponentialRampToValueAtTime(0.035, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+    osc.connect(gain); gain.connect(ctx.destination); osc.start(now); osc.stop(now + 0.06);
+  } catch (_) {}
+};
 if (!window.__aleemFinHapticsInstalled) {
   window.__aleemFinHapticsInstalled = true;
   document.addEventListener("click", function(e) {
     var target = e.target && e.target.closest ? e.target.closest("button, a, [role=button], input[type=checkbox], input[type=radio]") : null;
-    if (target && !target.disabled && target.getAttribute("aria-disabled") !== "true") hapticFeedback(8);
+    if (target && !target.disabled && target.getAttribute("aria-disabled") !== "true") { hapticFeedback(8); actionSound(target.dataset.soundKind || (target.classList.contains("text-rose-500") || target.classList.contains("swipe-action-delete") ? "delete" : "tap")); }
   }, true);
   document.addEventListener("change", function(e) {
     var target = e.target;
@@ -146,7 +166,7 @@ var SwipeRow = ({ children, onEdit, onDelete, editLabel = "Edit", deleteLabel = 
   );
 };
 window.SwipeRow = SwipeRow;
-var ACCOUNT_COLORS = ["from-emerald-500/10 to-teal-500/10 border-emerald-500/20", "from-blue-500/10 to-indigo-500/10 border-blue-500/20", "from-sky-500/10 to-blue-500/10 border-sky-500/20", "from-amber-500/10 to-orange-500/10 border-amber-500/20", "from-violet-500/10 to-purple-500/10 border-violet-500/20", "from-rose-500/10 to-pink-500/10 border-rose-500/20"];
+var ACCOUNT_COLORS = ["#1DBF73", "#3B82F6", "#6366F1", "#F59E0B", "#8B5CF6", "#EF5DA8", "#14B8A6", "#F97316"];
 var toLocalISO = d => {
   const off = d.getTimezoneOffset();
   const local = new Date(d.getTime() - off * 6e4);
@@ -256,9 +276,9 @@ var NAV_ITEMS = [{
   label: "Planning",
   icon: Icons.IconTarget
 }, {
-  id: "recurring",
-  label: "Recurring",
-  icon: Icons.IconCalendar
+  id: "rates",
+  label: "FX & Convert",
+  icon: Icons.IconRates
 }, {
   id: "settings",
   label: "Settings",
@@ -274,6 +294,8 @@ const DEFAULT_SETTINGS = {
   dashboardCards: ["accounts", "vault", "loans", "analytics"],
   hiddenDashboardCards: [],
   liveRateSync: true,
+  soundEnabled: false,
+  hapticsEnabled: true,
   showGreeting: true,
   primaryNavIds: ["overview", "transactions", "accounts", "loans"],
   defaultCurrency: "AED",
@@ -310,8 +332,11 @@ const updateSettings = partial => {
     return next;
   });
 };
+window.__aleemFinSoundEnabled = settings.soundEnabled === true;
+window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
 const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
-const primaryNavIds = settings.primaryNavIds && settings.primaryNavIds.length === 4 ? settings.primaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
+const cleanedPrimaryNavIds = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.filter(id => id !== "recurring") : DEFAULT_SETTINGS.primaryNavIds;
+const primaryNavIds = cleanedPrimaryNavIds.length === 4 ? cleanedPrimaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
 const MORE_NAV_ITEMS = NAV_ITEMS.filter(t => !primaryNavIds.includes(t.id));
 const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(t => t.id !== "settings");
@@ -342,7 +367,9 @@ useEffect(() => {
     return () => mq.removeEventListener("change", listener);
   }
 }, [settings.theme]);
-const [activeTab, setActiveTab] = useState("overview");
+const [activeTab, setActiveTab] = useState(() => { try { return localStorage.getItem("aleemfin_active_tab") === "recurring" ? "planning" : "overview"; } catch (_) { return "overview"; } });
+const lastNonSettingsTabRef = useRef("overview");
+useEffect(() => { try { localStorage.setItem("aleemfin_active_tab", activeTab); } catch (_) {} }, [activeTab]);
 useEffect(() => { if (selectedKeys.size) { selectedKeys.clear(); setSelectionVersion(v => v + 1); } }, [activeTab]);
 const [insightTrendPeriod, setInsightTrendPeriod] = useState("monthly");
 const [insightTrendStyle, setInsightTrendStyle] = useState("line");
@@ -361,9 +388,7 @@ const loadStoredData = (key, fallback) => {
   return fallback;
 };
 const [exchangeRates, setExchangeRates] = useState(() => loadStoredData("rates", {
-  AED: 1,
-  USD: 3.67,
-  PKR: 0.013
+  AED: 1, USD: 3.67, EUR: 4.28, GBP: 4.96, SAR: 0.98, INR: 0.044, PKR: 0.013, CAD: 2.68, AUD: 2.39
 }));
 const convertToAED = (amt, curr) => amt * (exchangeRates[curr] || 1);
 const convertFromAED = (amtAED, targetCurr) => amtAED / (exchangeRates[targetCurr] || 1);
@@ -487,30 +512,16 @@ const persistAllData = (newAccs, newAsts, newLoans, newTxns, newRates, newBudget
   }
 };
 const [ratesModalOpen, setRatesModalOpen] = useState(false);
-const [rateForm, setRateForm] = useState({
-  USD: String(exchangeRates.USD),
-  PKR: String(exchangeRates.PKR)
-});
+const [rateForm, setRateForm] = useState(() => Object.fromEntries(["USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"].map(k => [k, String(exchangeRates[k] || "")] )));
 const openRatesModal = () => {
-  setRateForm({
-    USD: String(exchangeRates.USD),
-    PKR: String(exchangeRates.PKR)
-  });
+  setRateForm(Object.fromEntries(["USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"].map(k => [k, String(exchangeRates[k] || "")] )));
   setRatesModalOpen(true);
 };
 const saveRates = e => {
   e.preventDefault();
-  const usd = Number(rateForm.USD);
-  const pkr = Number(rateForm.PKR);
-  if (!usd || usd <= 0 || !pkr || pkr <= 0) {
-    alert("Please enter valid positive rates.");
-    return;
-  }
-  const newRates = {
-    AED: 1,
-    USD: usd,
-    PKR: pkr
-  };
+  const supported = ["USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"];
+  const newRates = { AED: 1 };
+  for (const code of supported) { const value = Number(rateForm[code]); if (!value || value <= 0) { alert(`Please enter a valid ${code} rate.`); return; } newRates[code] = value; }
   flashHeroForRateUpdate(newRates);
   setExchangeRates(newRates);
   persistAllData(accounts, assets, loans, transactions, newRates);
@@ -532,7 +543,6 @@ const saveStateToHistory = () => {
 };
 const handleUndo = () => {
   if (history.length === 0) return;
-  setUndoNotice(null);
   const previousState = history[history.length - 1];
   setRedoStack(prev => [{
     accounts,
@@ -563,31 +573,65 @@ const handleRedo = () => {
   setTransactions(nextState.transactions);
   persistAllData(nextState.accounts, nextState.assets, nextState.loans, nextState.transactions);
 };
-const undoRepayment = (loanId, movementId) => {
+const undoLoanMovement = (loanId, movementId, legacyTransactionId) => {
   const loan = loans.find(l => l.id === loanId);
   if (!loan) return;
-  const movement = (loan.movements || []).find(m => m.id === movementId && m.kind === "repayment");
+  let movement = (loan.movements || []).find(m => m.id === movementId);
+  let linkedTx = legacyTransactionId
+    ? transactions.find(t => t.id === legacyTransactionId && t.loanId === loanId)
+    : transactions.find(t => t.loanId === loanId && t.movementId === movementId);
+
+  if (!movement && linkedTx) {
+    movement = {
+      id: linkedTx.movementId || linkedTx.id,
+      kind: linkedTx.category === "Loan Repayment" ? "repayment" : "principal",
+      amount: Number(linkedTx.accountAmount != null ? linkedTx.accountAmount : linkedTx.amount) || 0,
+      accountId: linkedTx.accountId,
+      date: linkedTx.date
+    };
+  }
   if (!movement) return;
+
   saveStateToHistory();
-  const updatedLoans = loans.map(l => l.id === loanId ? { ...l, repaid: Math.max(0, (l.repaid || 0) - Number(movement.amount || 0)), movements: (l.movements || []).filter(m => m.id !== movementId) } : l);
-  const linkedTx = transactions.find(t => t.loanId === loanId && t.movementId === movementId);
+
+  const movementAmount = Number(movement.amount || 0);
+  const updatedLoans = loans.map(l => {
+    if (l.id !== loanId) return l;
+    if (movement.kind === "repayment") {
+      return {
+        ...l,
+        repaid: Math.max(0, (l.repaid || 0) - movementAmount),
+        movements: (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id)
+      };
+    }
+    return {
+      ...l,
+      amount: Math.max(0, (l.amount || 0) - movementAmount),
+      repaid: Math.min(l.repaid || 0, Math.max(0, (l.amount || 0) - movementAmount)),
+      movements: (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id)
+    };
+  });
+
   let updatedAccs = accounts;
   let updatedTxns = transactions;
   if (linkedTx) {
-    const delta = linkedTx.type === "income" ? -Number(linkedTx.accountAmount ?? linkedTx.amount ?? 0) : Number(linkedTx.accountAmount ?? linkedTx.amount ?? 0);
-    updatedAccs = accounts.map(a => a.id === linkedTx.accountId ? { ...a, balance: a.balance + delta } : a);
+    const delta = linkedTx.type === "income"
+      ? -Number(linkedTx.accountAmount ?? linkedTx.amount ?? 0)
+      : Number(linkedTx.accountAmount ?? linkedTx.amount ?? 0);
+    updatedAccs = accounts.map(a => a.id === linkedTx.accountId
+      ? { ...a, balance: a.balance + delta }
+      : a);
     updatedTxns = transactions.filter(t => t.id !== linkedTx.id);
   }
-  setLoans(updatedLoans); setAccounts(updatedAccs); setTransactions(updatedTxns);
+
+  setLoans(updatedLoans);
+  setAccounts(updatedAccs);
+  setTransactions(updatedTxns);
   persistAllData(updatedAccs, assets, updatedLoans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
-  setUndoNotice("Payment removed · balance restored");
-  window.clearTimeout(window.__aleemUndoTimer);
-  window.__aleemUndoTimer = window.setTimeout(() => setUndoNotice(null), 4500);
 };
-const [smsOpen, setSmsOpen] = useState(false);
-const [smsText, setSmsText] = useState("");
-const [smsParsed, setSmsParsed] = useState(null);
 const [modalOpen, setModalOpen] = useState(false);
+const [modalClosing, setModalClosing] = useState(false);
+const modalCloseTimerRef = useRef(null);
 const [modalType, setModalType] = useState("income");
 const [editingId, setEditingId] = useState(null);
 const [repaymentModalLoan, setRepaymentModalLoan] = useState(null);
@@ -602,7 +646,6 @@ const [expandedLoanHistory, setExpandedLoanHistory] = useState({});
 const [ledgerSort, setLedgerSort] = useState("date_desc");
 const [loanSort, setLoanSort] = useState("date_desc");
 const [loanFilter, setLoanFilter] = useState("all");
-const [undoNotice, setUndoNotice] = useState(null);
 const [deleteTarget, setDeleteTarget] = useState(null);
 const [selectionVersion, setSelectionVersion] = useState(0);
 const selectedKeys = window.__aleemSelection;
@@ -623,8 +666,7 @@ const currentSelectableKeys = () => {
   if (activeTab === "vault") return assets.map(x => selectionKey("asset", x.id));
   if (activeTab === "loans") return sortedLoans.map(x => selectionKey("loan", x.id));
   if (activeTab === "planning") return [...budgets.map(x => selectionKey("budget", x.id)), ...goals.map(x => selectionKey("goal", x.id))];
-  if (activeTab === "recurring") return recurringItems.map(x => selectionKey("recurring", x.id));
-  return [];
+    return [];
 };
 const selectedCount = selectedKeys.size;
 const selectAllCurrent = () => window.dispatchEvent(new CustomEvent("aleem-select-all", { detail: { keys: currentSelectableKeys() } }));
@@ -672,7 +714,6 @@ const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 const [categoryType, setCategoryType] = useState("expense");
 const [categoryName, setCategoryName] = useState("");
 const [dangerAction, setDangerAction] = useState(null);
-const [dangerPhrase, setDangerPhrase] = useState("");
 const [planningEditor, setPlanningEditor] = useState(null);
 const [budgetForm, setBudgetForm] = useState({
   id: null,
@@ -705,6 +746,9 @@ const [rateSyncMsg, setRateSyncMsg] = useState("");
 const [syncingGold, setSyncingGold] = useState(false);
 const [goldSyncMsg, setGoldSyncMsg] = useState("");
 const [liveGoldAEDPerGram, setLiveGoldAEDPerGram] = useState(null);
+const GOLD_HISTORY_KEY = "aleemfin_gold_history_v1";
+const [goldHistory, setGoldHistory] = useState(() => { try { const saved = localStorage.getItem(GOLD_HISTORY_KEY); return Array.isArray(JSON.parse(saved)) ? JSON.parse(saved) : []; } catch (_) { return []; } });
+const persistGoldHistory = next => { setGoldHistory(next); try { localStorage.setItem(GOLD_HISTORY_KEY, JSON.stringify(next)); } catch (_) {} };
 const netWorthWithRates = rates => {
   const liquid = accounts.reduce((sum, account) => sum + account.balance * (rates[account.currency] || 1), 0);
   const fixedAssets = assets.reduce((sum, asset) => sum + (asset.currentPriceAED || 0) * (rates[asset.currency || "AED"] || 1), 0);
@@ -724,18 +768,14 @@ const syncLiveExchangeRates = async () => {
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/AED");
     const json = await res.json();
-    if (!json || !json.rates || !json.rates.USD || !json.rates.PKR) throw new Error("bad response");
-    const newRates = {
-      AED: 1,
-      USD: 1 / json.rates.USD,
-      PKR: 1 / json.rates.PKR
-    };
+    if (!json || !json.rates) throw new Error("bad response");
+    const codes = ["USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"];
+    const newRates = { AED: 1 };
+    codes.forEach(code => { if (json.rates[code]) newRates[code] = 1 / json.rates[code]; });
+    if (!newRates.USD || !newRates.EUR) throw new Error("missing rates");
     flashHeroForRateUpdate(newRates);
     setExchangeRates(newRates);
-    setRateForm({
-      USD: newRates.USD.toFixed(4),
-      PKR: newRates.PKR.toFixed(4)
-    });
+    setRateForm(Object.fromEntries(Object.keys(newRates).filter(k => k !== "AED").map(k => [k, Number(newRates[k]).toFixed(4)])));
     persistAllData(accounts, assets, loans, transactions, newRates);
     setRateSyncMsg("Synced live rates just now.");
     return newRates;
@@ -758,6 +798,12 @@ const syncLiveGoldRate = async (rates = exchangeRates) => {
     const aedPerGram = pricePerOzUSD * aedPerUsd / 31.1034768;
     flashHeroForGoldRate(aedPerGram);
     setLiveGoldAEDPerGram(aedPerGram);
+    const goldDate = todayISO();
+    const priorGold = (goldHistory || []).find(item => item.date === goldDate);
+    const samples = priorGold ? Number(priorGold.samples || 1) : 0;
+    const averageRate = ((priorGold ? Number(priorGold.rateAEDPerGram || 0) * samples : 0) + aedPerGram) / (samples + 1);
+    const nextGoldHistory = [...(goldHistory || []).filter(item => item.date !== goldDate), { date: goldDate, rateAEDPerGram: Number(averageRate.toFixed(4)), samples: samples + 1 }].sort((a,b) => a.date.localeCompare(b.date)).slice(-180);
+    persistGoldHistory(nextGoldHistory);
     setGoldSyncMsg(`Live 24k spot rate: AED ${aedPerGram.toFixed(2)} / gram`);
   } catch (err) {
     setLiveGoldAEDPerGram(null);
@@ -802,12 +848,13 @@ const getDefaultFormInput = (overrides = {}) => ({
   whatsapp: "",
   dueDate: "",
   accType: "Bank",
-  accountScope: "local",
   date: todayISO(),
   ...overrides
 });
 const [formInput, setFormInput] = useState(() => getDefaultFormInput());
 const openAddModal = (type, overrides = {}) => {
+  if (modalCloseTimerRef.current) clearTimeout(modalCloseTimerRef.current);
+  setModalClosing(false);
   if (["income", "expense", "transfer"].includes(type) && accounts.length === 0) {
     alert("Add an account first before recording transactions.");
     setActiveTab("accounts");
@@ -824,6 +871,8 @@ const openAddModal = (type, overrides = {}) => {
   setModalOpen(true);
 };
 const openEditModal = (type, item) => {
+  if (modalCloseTimerRef.current) clearTimeout(modalCloseTimerRef.current);
+  setModalClosing(false);
   setEditingId(item.id);
   setModalType(type);
   const base = getDefaultFormInput();
@@ -833,8 +882,7 @@ const openEditModal = (type, item) => {
       title: item.name,
       amount: String(item.balance),
       currency: item.currency,
-      accType: item.type || "Bank",
-      accountScope: item.scope || ((/fiverr|paypal/i.test(item.name || "")) ? "freelance" : "local")
+      accType: item.type || "Bank"
     });
   } else if (type === "asset") {
     setFormInput({
@@ -882,6 +930,22 @@ const closeModal = () => {
   setEditingId(null);
   setFormInput(getDefaultFormInput());
 };
+const closeMainFormModal = () => {
+  if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(min-width: 768px)").matches) {
+    closeModal();
+    return;
+  }
+  if (modalClosing) return;
+  setModalClosing(true);
+  if (modalCloseTimerRef.current) clearTimeout(modalCloseTimerRef.current);
+  modalCloseTimerRef.current = setTimeout(() => {
+    setModalOpen(false);
+    setModalClosing(false);
+    setEditingId(null);
+    setFormInput(getDefaultFormInput());
+    modalCloseTimerRef.current = null;
+  }, 280);
+};
 const totalLiquidAED = accounts.reduce((acc, item) => acc + convertToAED(item.balance, item.currency), 0);
 const totalPhysicalAED = assets.reduce((acc, item) => acc + convertToAED(item.currentPriceAED || 0, item.currency || "AED"), 0);
 const goldAssets = assets.filter(item => item.category === "Gold");
@@ -889,6 +953,7 @@ const goldPurchaseAED = goldAssets.reduce((acc, item) => acc + convertToAED(item
 const goldCurrentAED = goldAssets.reduce((acc, item) => acc + convertToAED(item.currentPriceAED || 0, item.currency || "AED"), 0);
 const goldChangeAED = goldCurrentAED - goldPurchaseAED;
 const goldChangePct = goldPurchaseAED > 0 ? goldChangeAED / goldPurchaseAED * 100 : null;
+const goldAssetsForInsights = goldAssets.map(asset => ({ ...asset, purchaseValueBase: convertToBaseCurrency(asset.purchasePriceAED || 0, asset.currency || "AED"), currentValueBase: convertToBaseCurrency(asset.currentPriceAED || 0, asset.currency || "AED") }));
 const totalLoansLentAED = loans.filter(l => l.type === "lent").reduce((acc, l) => acc + convertToAED(l.amount - (l.repaid || 0), l.currency), 0);
 const totalLoansBorrowedAED = loans.filter(l => l.type === "borrowed").reduce((acc, l) => acc + convertToAED(l.amount - (l.repaid || 0), l.currency), 0);
 const sortedLoans = useMemo(() => {
@@ -1042,64 +1107,6 @@ const filteredTransactions = useMemo(() => {
   if (ledgerSort === "date_asc") sorted.sort((a, b) => (a.date || "").localeCompare(b.date || ""));else if (ledgerSort === "date_desc") sorted.sort((a, b) => (b.date || "").localeCompare(a.date || ""));else if (ledgerSort === "amount_desc") sorted.sort((a, b) => (b.amount || 0) - (a.amount || 0));else if (ledgerSort === "amount_asc") sorted.sort((a, b) => (a.amount || 0) - (b.amount || 0));
   return sorted;
 }, [transactions, ledgerSearch, ledgerFilter, ledgerSort]);
-const parseBankTransactionSMS = sms => {
-  const text = String(sms || "").replace(/\s+/g, " ").trim();
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  const amountMatch = text.match(/(?:aed|dhs?|dirhams?|usd|\$|pkr|rs\.?|inr|sar|qar)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i) || text.match(/(?:amount|amt|for|of|debited|credited|spent|paid|received)\s*(?:is|:|-)?\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i);
-  if (!amountMatch) return null;
-  const amount = Number(amountMatch[1].replace(/,/g, ""));
-  if (!(amount > 0)) return null;
-  const currencyMatch = text.match(/\b(AED|DHS?|USD|PKR|INR|SAR|QAR)\b|\$/i);
-  const rawCurrency = currencyMatch ? currencyMatch[0].toUpperCase() : null;
-  const currency = rawCurrency === "DHS" || rawCurrency === "DHS?" ? "AED" : rawCurrency === "$" ? "USD" : ["AED","USD","PKR"].includes(rawCurrency) ? rawCurrency : (accounts[0]?.currency || "AED");
-  const isTransfer = /transfer|transferred|funds transfer|internal transfer|iban transfer/i.test(lower);
-  const isCredit = /salary|payroll|wage|credited|credit(ed)?|received|deposit|cash deposit|inward/i.test(lower);
-  const isDebit = /debit(ed)?|purchase|spent|payment|withdraw|paid/i.test(lower);
-  const type = isTransfer ? (isCredit && !isDebit ? "income" : "expense") : isCredit && !isDebit ? "income" : "expense";
-  let category = type === "income" ? (/salary|payroll|wage/i.test(lower) ? "Salary" : isTransfer ? "Transfer" : "Other") : isTransfer ? "Transfer" : "Other";
-  if (type === "expense") {
-    if (/grocery|supermarket|lulu|carrefour|spinneys|union coop/i.test(lower)) category = "Groceries";
-    else if (/rent|property|housing/i.test(lower)) category = "Rent";
-    else if (/restaurant|cafe|coffee|dining|talabat|deliveroo/i.test(lower)) category = "Dining";
-    else if (/fuel|petrol|salik|taxi|uber|careem|transport/i.test(lower)) category = "Transport";
-    else if (/shopping|mall|amazon|noon/i.test(lower)) category = "Shopping";
-    else if (/utility|dewa|etisalat|du\b|internet|electric/i.test(lower)) category = "Utilities";
-    else if (/family|wife|allowance/i.test(lower)) category = "Family";
-  }
-  const dateMatch = text.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
-  const date = dateMatch ? `${String(dateMatch[3]).length === 2 ? `20${dateMatch[3]}` : dateMatch[3]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[1]).padStart(2,"0")}` : todayISO();
-  const accountHint = text.match(/(?:card|a\/c|account|acct|ending|xx|\*{2,})[^0-9]{0,8}(\d{3,6})/i)?.[1] || text.match(/\b(\d{4})\b/)?.[1] || "";
-  let account = accountHint ? accounts.find(a => String(a.name).toLowerCase().includes(lower.match(/[a-z]{2,}/)?.[0] || "never") || String(a.id).endsWith(accountHint) || String(a.name).toLowerCase().includes(accountHint)) : null;
-  if (!account && accounts.length === 1) account = accounts[0];
-  if (!account) account = accounts.find(a => a.currency === currency) || accounts[0] || null;
-  let title = type === "income" ? (category === "Salary" ? "Salary" : isTransfer ? "Bank transfer" : "Bank income") : isTransfer ? "Bank transfer" : "Bank transaction";
-  const merchantMatch = text.match(/(?:at|to|from|merchant|pos|purchase|payment)\s*[:\-]?\s*([A-Za-z][A-Za-z0-9 &'._-]{2,40})/i);
-  if (merchantMatch) title = merchantMatch[1].trim().replace(/[.,;:]+$/, "");
-  return { type, category, amount, currency, accountId: account?.id || "", accountName: account?.name || "Select account", date, title, source: text };
-};
-const importBankTransactionFromSMS = parsed => {
-  if (!parsed || !parsed.accountId) {
-    alert("I couldn't confidently match this SMS to an account. Please add/select the bank account first.");
-    return false;
-  }
-  const targetAcc = accounts.find(a => a.id === parsed.accountId);
-  if (!targetAcc) return false;
-  const amount = Number(parsed.amount);
-  if (!(amount > 0)) return false;
-  saveStateToHistory();
-  const accountAmt = convertFromAED(convertToAED(amount, parsed.currency), targetAcc.currency);
-  const tx = {
-    id: makeId(), title: parsed.title || "Bank transaction", type: parsed.type, category: parsed.category || "Other",
-    amount, currency: parsed.currency, rateToAED: exchangeRates[parsed.currency] || 1, accountAmount: accountAmt,
-    accountId: targetAcc.id, date: parsed.date || todayISO(), source: "bank-sms"
-  };
-  const updatedAccs = accounts.map(a => a.id === targetAcc.id ? { ...a, balance: a.balance + (parsed.type === "income" ? accountAmt : parsed.type === "expense" ? -accountAmt : 0) } : a);
-  const updatedTxns = [tx, ...transactions];
-  setAccounts(updatedAccs); setTransactions(updatedTxns);
-  persistAllData(updatedAccs, assets, loans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
-  return true;
-};
 const handleFormSubmit = e => {
   e.preventDefault();
   const amt = Number(formInput.amount);
@@ -1141,7 +1148,7 @@ const handleFormSubmit = e => {
         ...acc,
         name: formInput.title,
         type: formInput.accType,
-        scope: formInput.accountScope || "local",
+        color: prevAcc.color || ACCOUNT_COLORS[accounts.findIndex(a => a.id === editingId) % ACCOUNT_COLORS.length],
         balance: amt,
         currency: formInput.currency
       } : acc);
@@ -1355,7 +1362,7 @@ const handleFormSubmit = e => {
     setTransactions(updatedTxns);
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
-  closeModal();
+  closeMainFormModal();
 };
 const handleRepaymentSubmit = e => {
   e.preventDefault();
@@ -1419,9 +1426,6 @@ const handleRepaymentSubmit = e => {
   setRepaymentModalLoan(null);
   setRepayAmount("");
   setRepayAccountId("");
-  setUndoNotice("Payment recorded");
-  window.clearTimeout(window.__aleemUndoTimer);
-  window.__aleemUndoTimer = window.setTimeout(() => setUndoNotice(null), 6500);
 };
 const handleAddMoreSubmit = e => {
   e.preventDefault();
@@ -1574,6 +1578,7 @@ const exportBackup = () => {
     budgets,
     goals,
     recurringItems,
+    goldHistory,
     settings
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -1623,6 +1628,7 @@ const importBackup = e => {
       setBudgets(Array.isArray(parsed.budgets) ? parsed.budgets : []);
       setGoals(Array.isArray(parsed.goals) ? parsed.goals : []);
       setRecurringItems(Array.isArray(parsed.recurringItems) ? parsed.recurringItems : []);
+      if (Array.isArray(parsed.goldHistory)) persistGoldHistory(parsed.goldHistory);
       if (parsed.settings) updateSettings({
         ...parsed.settings,
         customCategories: {
@@ -1752,7 +1758,7 @@ const openRecurringEditor = (item = null) => {
     type: item.type,
     title: item.title,
     amount: String(item.amount),
-    currency: item.currency,
+    currency: (accounts.find(a => a.id === item.accountId) || {}).currency || item.currency || currency,
     accountId: item.accountId,
     category: item.category,
     frequency: item.frequency,
@@ -1762,7 +1768,7 @@ const openRecurringEditor = (item = null) => {
     type: "expense",
     title: "",
     amount: "",
-    currency,
+    currency: ((accounts[0] || {}).currency || currency),
     accountId: (accounts[0] || {}).id || "",
     category: (settings.customCategories.expense || ["Groceries"])[0] || "Groceries",
     frequency: "monthly",
@@ -1778,12 +1784,14 @@ const saveRecurringItem = e => {
     return;
   }
   const existing = recurringItems.find(item => item.id === recurringForm.id);
+  const linkedAccount = accounts.find(a => a.id === recurringForm.accountId);
+  const linkedCurrency = linkedAccount && linkedAccount.currency ? linkedAccount.currency : (recurringForm.currency || currency);
   const item = {
     id: recurringForm.id || makeId("recurring_"),
     type: recurringForm.type,
     title: recurringForm.title.trim(),
     amount,
-    currency: recurringForm.currency,
+    currency: linkedCurrency,
     accountId: recurringForm.accountId,
     category: recurringForm.category.trim(),
     frequency: recurringForm.frequency,
@@ -1887,12 +1895,11 @@ const removeCategory = (type, name) => {
     }
   });
 };
-const openDangerAction = action => {
-  setDangerAction(action);
-  setDangerPhrase("");
+const openDangerAction = () => {
+  setDangerAction(true);
 };
 const confirmDangerAction = () => {
-  if (!dangerAction || dangerPhrase !== (dangerAction === "reset" ? "RESET" : "CLEAR")) return;
+  if (!dangerAction) return;
   const emptyData = {
     accounts: [],
     assets: [],
@@ -1917,16 +1924,13 @@ const confirmDangerAction = () => {
   setRecurringItems(emptyData.recurringItems);
   setHistory([]);
   setRedoStack([]);
-  if (dangerAction === "clear") {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SETTINGS_KEY);
-    setSettings(DEFAULT_SETTINGS);
-    setCurrency(DEFAULT_SETTINGS.defaultCurrency);
-  } else {
-    persistAllData(emptyData.accounts, emptyData.assets, emptyData.loans, emptyData.transactions, emptyData.rates, emptyData.budgets, emptyData.goals, emptyData.recurringItems);
-  }
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
+  localStorage.removeItem(GOLD_HISTORY_KEY);
+  setSettings(DEFAULT_SETTINGS);
+  setCurrency(DEFAULT_SETTINGS.defaultCurrency);
+  persistGoldHistory([]);
   setDangerAction(null);
-  setDangerPhrase("");
   setActiveTab("overview");
 };
 const inputCls = `w-full px-3 py-2 rounded-xl text-[16px] border outline-none ${darkMode ? "bg-zinc-950 border-zinc-800 text-zinc-100" : "bg-zinc-50 border-zinc-200 text-zinc-900"}`;
@@ -2004,7 +2008,7 @@ const DashCard = ({
     sub: `${budgets.length} budget${budgets.length === 1 ? "" : "s"} · ${goals.length} goal${goals.length === 1 ? "" : "s"}`
   }), selected.includes("recurring") && /* @__PURE__ */React.createElement(DashCard, {
     cardId: "recurring",
-    tabId: "recurring",
+    tabId: "planning",
     icon: Icons.IconCalendar,
     iconWrapCls: "bg-blue-500/20 text-blue-600",
     tintCls: "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/15 text-current",
@@ -2024,14 +2028,14 @@ const DashCard = ({
     sub: liveGoldAEDPerGram ? "Today's live market benchmark" : "Tap to refresh from Assets"
   }), selected.includes("rates") && /* @__PURE__ */React.createElement(DashCard, {
     cardId: "rates",
-    tabId: "settings",
+    tabId: "rates",
     icon: Icons.IconRates,
     iconWrapCls: "bg-sky-500/20 text-sky-600",
     tintCls: "bg-sky-500/10 border-sky-500/20 hover:bg-sky-500/15 text-current",
     label: "FX · AED / PKR",
-    big: `1 AED = ${(1 / exchangeRates.PKR).toFixed(2)} PKR`,
+    big: `1 AED = ${(1 / (exchangeRates.PKR || 0.013)).toFixed(2)} PKR`,
     bigCls: "text-sky-600",
-    sub: `1 USD = AED ${exchangeRates.USD.toFixed(2)}`
+    sub: `1 USD = AED ${(exchangeRates.USD || 3.67).toFixed(2)}`
   }), selected.includes("gold-performance") && /* @__PURE__ */React.createElement(DashCard, {
     cardId: "gold-performance",
     tabId: "vault",
@@ -2183,52 +2187,39 @@ useEffect(() => {
 }, [activeTab]);
 
 useEffect(() => {
-  document.querySelectorAll("[data-settings-scrim]").forEach(node => node.remove());
-  if (activeTab !== "settings") return;
-  const heading = [...document.querySelectorAll("main h2")].find(node => node.textContent === "Settings");
-  const headingWrap = heading && heading.parentElement;
-  const panel = headingWrap && headingWrap.parentElement;
-  if (!headingWrap || !panel) return;
-  const scrim = document.createElement("div");
-  scrim.dataset.settingsScrim = "true";
-  scrim.className = "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-fadeIn";
-  scrim.onclick = () => setActiveTab("overview");
-  document.getElementById("root").append(scrim);
-  panel.classList.add("settings-drawer");
-  Object.assign(panel.style, {
-    position: "fixed",
-    left: "0",
-    top: "0",
-    zIndex: "50",
-    width: "min(92vw, 30rem)",
-    maxWidth: "30rem",
-    height: "100dvh",
-    overflowY: "auto",
-    margin: "0",
-    padding: "calc(1.25rem + env(safe-area-inset-top)) 1rem calc(2rem + env(safe-area-inset-bottom))",
-    background: darkMode ? "rgb(9,9,11)" : "rgb(250,250,250)",
-    borderRight: darkMode ? "1px solid rgb(39,39,42)" : "1px solid rgb(228,228,231)"
-  });
-  headingWrap.style.display = "flex";
-  headingWrap.style.alignItems = "flex-start";
-  headingWrap.style.justifyContent = "space-between";
-  headingWrap.style.gap = "0.75rem";
-  const close = document.createElement("button");
-  close.type = "button";
-  close.title = "Close Settings";
-  close.setAttribute("aria-label", "Close Settings");
-  close.className = `p-2 -m-1 rounded-xl border shrink-0 ${darkMode ? "border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "border-zinc-200 text-zinc-600 hover:bg-zinc-100"}`;
-  close.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
-  close.onclick = () => setActiveTab("overview");
-  headingWrap.append(close);
-  return () => {
-    scrim.remove();
-    close.remove();
-    panel.classList.remove("settings-drawer");
-    panel.removeAttribute("style");
-    headingWrap.removeAttribute("style");
+  if (activeTab !== "settings") {
+    if (activeTab) lastNonSettingsTabRef.current = activeTab;
+    return;
+  }
+  const main = document.querySelector("main");
+  if (!main) return;
+  let startX = 0;
+  let startY = 0;
+  let tracking = false;
+  const onPointerDown = e => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    startX = e.clientX;
+    startY = e.clientY;
+    tracking = true;
   };
-}, [activeTab, darkMode]);
+  const onPointerUp = e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+      hapticFeedback(9);
+      setActiveTab(lastNonSettingsTabRef.current || "overview");
+    }
+  };
+  main.addEventListener("pointerdown", onPointerDown, { passive: true });
+  main.addEventListener("pointerup", onPointerUp, { passive: true });
+  main.addEventListener("pointercancel", () => { tracking = false; }, { passive: true });
+  return () => {
+    main.removeEventListener("pointerdown", onPointerDown);
+    main.removeEventListener("pointerup", onPointerUp);
+  };
+}, [activeTab]);
 
     const selectionToolbar = selectedCount > 0 ? React.createElement("div", { className: "selection-toolbar safe-x", role: "toolbar", "aria-label": "Selection actions" },
   React.createElement("div", { className: "selection-toolbar-inner max-w-5xl mx-auto" },
@@ -2239,7 +2230,7 @@ useEffect(() => {
     React.createElement("button", { onClick: bulkDeleteSelected, className: "selection-toolbar-button selection-toolbar-delete", "aria-label": "Delete selected" }, React.createElement(Icons.IconTrash, { className: "w-4 h-4" }))
   )
 ) : null;
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, dangerPhrase, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, undoRepayment, importBackup, importBankTransactionFromSMS, parseBankTransactionSMS, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, smsOpen, setSmsOpen, smsText, setSmsText, smsParsed, setSmsParsed, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2325,10 +2316,10 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
       className: "w-4 h-4"
     }))))), storageError && /* @__PURE__ */React.createElement("div", {
       className: "bg-rose-600 text-white text-xs font-semibold text-center py-2 px-4 safe-x"
-    }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), undoNotice && React.createElement("div", { className: "undo-toast", role: "status", "aria-live": "polite" }, React.createElement("span", null, undoNotice), React.createElement("button", { type: "button", onClick: handleUndo, disabled: history.length === 0 }, "Undo")), activeTab !== "overview" && selectionToolbar,
+    }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), activeTab !== "overview" && selectionToolbar,
     React.createElement("main", {
       className: "max-w-5xl mx-auto px-4 py-5 sm:py-6 space-y-5 sm:space-y-6 flex-1 w-full safe-x"
-    }, activeTab === "overview" && Tabs.Overview(tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && Tabs.Accounts(tabProps), activeTab === "vault" && Tabs.Vault(tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "analytics" && Tabs.Analytics(tabProps)), activeTab === "analytics" && Tabs.AnalyticsSummary(tabProps), activeTab === "planning" && Tabs.Planning(tabProps), activeTab === "recurring" && Tabs.Recurring(tabProps), activeTab === "settings" && Tabs.Settings(tabProps), /* @__PURE__ */React.createElement("nav", {
+    }, activeTab === "overview" && Tabs.Overview(tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && Tabs.Accounts(tabProps), activeTab === "vault" && Tabs.Vault(tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "analytics" && Tabs.Analytics(tabProps), activeTab === "analytics" && Tabs.AnalyticsSummary(tabProps), activeTab === "planning" && Tabs.Planning(tabProps), activeTab === "rates" && React.createElement(Tabs.Rates, tabProps), activeTab === "settings" && Tabs.Settings(tabProps)), /* @__PURE__ */React.createElement("nav", {
       className: "md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t safe-bottom bg-zinc-900/95 border-zinc-800",
       style: {
         position: "fixed"
@@ -2370,9 +2361,9 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         "data-mobile-nav-tab": "settings",
         "aria-label": "Settings",
         title: "Settings",
-        className: `mobile-nav-tab mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? `${accent.text400} font-bold` : "text-zinc-400 hover:text-zinc-200"}`
+        className: `mobile-nav-tab mobile-settings-tab flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 ${isActive ? "settings-nav-active font-bold" : "text-zinc-400 hover:text-zinc-200"}`
       }, /* @__PURE__ */React.createElement("div", {
-        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? accent.activeBg : ""}`
+        className: `flex items-center justify-center w-9 h-9 rounded-xl mb-1 ${isActive ? "settings-nav-active-icon" : ""}`
       }, /* @__PURE__ */React.createElement(Icon, {
         className: "w-5 h-5"
       })), /* @__PURE__ */React.createElement("span", {
