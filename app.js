@@ -644,6 +644,10 @@ const [addMoreAccountId, setAddMoreAccountId] = useState("");
 const [addMoreDate, setAddMoreDate] = useState(() => todayISO());
 const [expandedLoanHistory, setExpandedLoanHistory] = useState({});
 const [ledgerSort, setLedgerSort] = useState("date_desc");
+const [statementOpen, setStatementOpen] = useState(false);
+const [statementAccountId, setStatementAccountId] = useState("all");
+const [statementFromDate, setStatementFromDate] = useState("");
+const [statementToDate, setStatementToDate] = useState("");
 const [loanSort, setLoanSort] = useState("date_desc");
 const [loanFilter, setLoanFilter] = useState("all");
 const [deleteTarget, setDeleteTarget] = useState(null);
@@ -710,6 +714,7 @@ const [loanView, setLoanView] = useState("lent");
 const [ledgerSearch, setLedgerSearch] = useState("");
 const [ledgerFilter, setLedgerFilter] = useState("all");
 const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+const [dashboardCardsSheetOpen, setDashboardCardsSheetOpen] = useState(false);
 const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 const [categoryType, setCategoryType] = useState("expense");
 const [categoryName, setCategoryName] = useState("");
@@ -1096,6 +1101,127 @@ const biggestExpenseThisMonth = monthlyTransactions.filter(t => t.type === "expe
     aed
   } : biggest;
 }, null);
+
+const statementDateTime = tx => {
+  const raw = tx?.recordedAt || tx?.date || "";
+  const d = raw ? new Date(raw) : null;
+  if (d && !Number.isNaN(d.getTime()) && tx?.recordedAt) {
+    const day = String(d.getDate()).padStart(2, "0");
+    const mon = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
+    const year = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${day}-${mon}-${year} ${hh}:${mm}`;
+  }
+  if (tx?.date) {
+    const [y,m,d2] = String(tx.date).slice(0,10).split("-");
+    if (y && m && d2) {
+      const month = new Date(Number(y), Number(m)-1, Number(d2)).toLocaleString("en-US", { month: "short" }).toUpperCase();
+      return `${d2}-${month}-${y}`;
+    }
+  }
+  return raw;
+};
+const statementSortKey = tx => tx?.recordedAt || tx?.date || "";
+const accountTransactionDelta = (tx, accountId) => {
+  if (!tx || !accountId) return 0;
+  const aid = String(accountId);
+  if (tx.type === "transfer") {
+    if (String(tx.accountId) === aid) return -Number(tx.accountAmount ?? tx.amount ?? 0);
+    if (String(tx.toAccountId) === aid) return Number(tx.toAmount ?? tx.amount ?? 0);
+    return 0;
+  }
+  if (String(tx.accountId) !== aid) return 0;
+  const amt = Number(tx.accountAmount ?? tx.amount ?? 0);
+  return tx.type === "income" ? amt : tx.type === "expense" ? -amt : 0;
+};
+const statementBalanceMap = useMemo(() => {
+  const map = {};
+  accounts.forEach(acc => {
+    const relevant = transactions.filter(tx => String(tx.accountId) === String(acc.id) || String(tx.toAccountId) === String(acc.id))
+      .slice().sort((a,b) => {
+        const byTime = statementSortKey(a).localeCompare(statementSortKey(b));
+        return byTime || String(a.id).localeCompare(String(b.id));
+      });
+    let afterLater = 0;
+    const balances = {};
+    for (let i = relevant.length - 1; i >= 0; i--) {
+      const tx = relevant[i];
+      const delta = accountTransactionDelta(tx, acc.id);
+      const balanceAfter = Number(acc.balance || 0) - afterLater;
+      balances[String(tx.id)] = balanceAfter;
+      afterLater += delta;
+    }
+    map[String(acc.id)] = balances;
+  });
+  return map;
+}, [accounts, transactions]);
+const getTransactionStatementMeta = tx => {
+  if (!tx) return null;
+  const account = accounts.find(a => String(a.id) === String(tx.accountId));
+  const toAccount = tx.type === "transfer" ? accounts.find(a => String(a.id) === String(tx.toAccountId)) : null;
+  const balance = account ? (statementBalanceMap[String(account.id)]?.[String(tx.id)] ?? account.balance) : null;
+  const toBalance = toAccount ? (statementBalanceMap[String(toAccount.id)]?.[String(tx.id)] ?? toAccount.balance) : null;
+  return { account, toAccount, balance, toBalance, dateTime: statementDateTime(tx) };
+};
+const statementMessageFor = (tx, accountOverride) => {
+  const meta = getTransactionStatementMeta(tx);
+  const account = accountOverride || meta?.account;
+  if (!account) return "";
+  const amount = tx.type === "transfer" && String(tx.toAccountId) === String(account.id) ? Number(tx.toAmount ?? tx.amount ?? 0) : Number(tx.accountAmount ?? tx.amount ?? 0);
+  const direction = tx.type === "income" || (tx.type === "transfer" && String(tx.toAccountId) === String(account.id)) ? "to a/c" : "from a/c";
+  const fromText = tx.type === "transfer" && String(tx.toAccountId) === String(account.id) && meta.account ? ` from ${meta.account.name}` : ` from ${tx.title || "Transaction"}`;
+  const balance = tx.type === "transfer" && String(tx.toAccountId) === String(account.id) ? meta.toBalance : meta.balance;
+  const category = tx.category || "Transaction";
+  return `${category} ${account.currency} ${numFmt(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${direction} ${account.name} on ${meta.dateTime}${fromText}. Available balance is ${account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+const exportStatement = () => {
+  const from = statementFromDate || "";
+  const to = statementToDate || "";
+  if (from && to && from > to) {
+    alert("From date must be before or equal to the To date.");
+    return;
+  }
+  const selectedAccounts = statementAccountId === "all" ? accounts : accounts.filter(a => String(a.id) === String(statementAccountId));
+  if (!selectedAccounts.length) {
+    alert("Please select a valid bank account.");
+    return;
+  }
+  const selectedIds = new Set(selectedAccounts.map(a => String(a.id)));
+  const rows = [];
+  transactions
+    .slice()
+    .sort((a,b) => {
+      const byTime = statementSortKey(a).localeCompare(statementSortKey(b));
+      return byTime || String(a.id).localeCompare(String(b.id));
+    })
+    .forEach(tx => {
+      const txDate = String(tx.date || "").slice(0,10);
+      if (from && txDate < from || to && txDate > to) return;
+      const touched = selectedAccounts.filter(a => String(a.id) === String(tx.accountId) || String(a.id) === String(tx.toAccountId));
+      touched.forEach(account => {
+        const meta = getTransactionStatementMeta(tx);
+        const balance = String(account.id) === String(tx.toAccountId) ? meta.toBalance : meta.balance;
+        const amount = String(account.id) === String(tx.toAccountId) ? Number(tx.toAmount ?? tx.amount ?? 0) : Number(tx.accountAmount ?? tx.amount ?? 0);
+        const direction = tx.type === "income" || String(account.id) === String(tx.toAccountId) ? "Credit" : "Debit";
+        rows.push([
+          statementDateTime(tx), tx.category || "", tx.title || "", direction,
+          amount.toFixed(2), account.currency, account.name,
+          Number(balance ?? 0).toFixed(2), statementMessageFor(tx, account)
+        ]);
+      });
+    });
+  const header = ["Date", "Category", "Description", "Type", "Amount", "Currency", "Account", "Available Balance", "Statement Message"];
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `aleemfin_statement_${statementAccountId === "all" ? "all-accounts" : (selectedAccounts[0]?.name || "account").replace(/[^a-z0-9]+/gi,"-").toLowerCase()}_${from || "all"}_to_${to || "all"}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setStatementOpen(false);
+};
 const filteredTransactions = useMemo(() => {
   const q = ledgerSearch.trim().toLowerCase();
   const list = transactions.filter(t => {
@@ -1164,7 +1290,8 @@ const handleFormSubmit = e => {
           rateToAED: exchangeRates[formInput.currency] || 1,
           accountAmount: Math.abs(delta),
           accountId: editingId,
-          date: todayISO()
+          date: todayISO(),
+          recordedAt: new Date().toISOString()
         };
         updatedTxns = [adjTx, ...transactions];
         setTransactions(updatedTxns);
@@ -1247,6 +1374,7 @@ const handleFormSubmit = e => {
           accountAmount: accAmt,
           accountId: loanAcc.id,
           date: formInput.date,
+          recordedAt: new Date().toISOString(),
           loanId: newLoanId
         };
         updatedTxns = [loanTx, ...transactions];
@@ -1311,7 +1439,8 @@ const handleFormSubmit = e => {
       toAmount: convertedAmt,
       toCurrency: toAcc.currency,
       toAccountId: toAcc.id,
-      date: formInput.date
+      date: formInput.date,
+      recordedAt: editingId ? (transactions.find(t => t.id === editingId)?.recordedAt || new Date().toISOString()) : new Date().toISOString()
     };
     updatedTxns = editingId ? transactions.map(t => t.id === editingId ? txPayload : t) : [txPayload, ...transactions];
     setTransactions(updatedTxns);
@@ -1345,7 +1474,8 @@ const handleFormSubmit = e => {
       rateToAED: exchangeRates[formInput.currency] || 1,
       accountAmount: accountAmt,
       accountId: formInput.accountId,
-      date: formInput.date
+      date: formInput.date,
+      recordedAt: editingId ? (transactions.find(t => t.id === editingId)?.recordedAt || new Date().toISOString()) : new Date().toISOString()
     };
     updatedAccs = accsWorking.map(acc => {
       if (acc.id === targetAcc.id) {
@@ -1413,6 +1543,7 @@ const handleRepaymentSubmit = e => {
         rateToAED: exchangeRates[acc.currency] || 1,
         accountId: acc.id,
         date: repayDateVal,
+        recordedAt: new Date().toISOString(),
         loanId: loan.id,
         movementId: repaymentMovementId
       };
@@ -1471,6 +1602,7 @@ const handleAddMoreSubmit = e => {
         rateToAED: exchangeRates[acc.currency] || 1,
         accountId: acc.id,
         date: addDateVal,
+        recordedAt: new Date().toISOString(),
         loanId: loan.id,
         movementId: addMoreMovementId
       };
@@ -1855,6 +1987,7 @@ const recordRecurringOccurrence = item => {
     accountAmount,
     accountId: account.id,
     date,
+    recordedAt: new Date().toISOString(),
     recurringId: item.id,
     recurringDate: date
   };
@@ -2230,7 +2363,20 @@ useEffect(() => {
     React.createElement("button", { onClick: bulkDeleteSelected, className: "selection-toolbar-button selection-toolbar-delete", "aria-label": "Delete selected" }, React.createElement(Icons.IconTrash, { className: "w-4 h-4" }))
   )
 ) : null;
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+const dashboardCardOptions = [
+  { id: "accounts", label: "Accounts" }, { id: "vault", label: "Assets" },
+  { id: "loans", label: "Lent" }, { id: "analytics", label: "Month Snapshot" },
+  { id: "planning", label: "Plans" }, { id: "recurring", label: "Upcoming" },
+  { id: "gold", label: "24k Gold Rate" }, { id: "rates", label: "FX Rates" },
+  { id: "gold-performance", label: "Gold Performance" }, { id: "runway", label: "Cash Buffer" },
+  { id: "spending", label: "Spending Pace" }
+];
+const selectedDashboardCardsForSheet = Array.isArray(settings.dashboardCards) && settings.dashboardCards.length <= 4 ? settings.dashboardCards : DEFAULT_SETTINGS.dashboardCards;
+const toggleDashboardCardForSheet = id => {
+  if (selectedDashboardCardsForSheet.includes(id)) updateSettings({ dashboardCards: selectedDashboardCardsForSheet.filter(cardId => cardId !== id) });
+  else if (selectedDashboardCardsForSheet.length < 4) updateSettings({ dashboardCards: [...selectedDashboardCardsForSheet, id] });
+};
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2370,7 +2516,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         className: "text-[10px] leading-none"
       }, "Settings"));
     })()))),
-moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps))
+moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps))
     );
   }
 

@@ -65,6 +65,127 @@
   })));
   }
 
+
+  function DashboardCardsSheet(props) {
+    const { accent, darkMode, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, setDashboardCardsSheetOpen } = props;
+    const dashboardOptions = dashboardCardOptions || [];
+    const selectedDashboardCards = Array.isArray(selectedDashboardCardsForSheet) ? selectedDashboardCardsForSheet : [];
+    const [closing, setClosing] = React.useState(false);
+    const [offsetY, setOffsetY] = React.useState(0);
+    const startY = React.useRef(0);
+    const startX = React.useRef(0);
+    const dragging = React.useRef(false);
+    const dragActive = React.useRef(false);
+    const closeTimer = React.useRef(null);
+
+    const dismiss = React.useCallback(() => {
+      if (closing) return;
+      setClosing(true);
+      setOffsetY(0);
+      closeTimer.current = setTimeout(() => setDashboardCardsSheetOpen(false), 320);
+    }, [closing, setDashboardCardsSheetOpen]);
+
+    React.useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
+    const onPointerDown = e => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      startY.current = e.clientY;
+      startX.current = e.clientX;
+      dragging.current = true;
+      dragActive.current = false;
+    };
+    const onPointerMove = e => {
+      if (!dragging.current || closing) return;
+      const dy = e.clientY - startY.current;
+      const dx = e.clientX - startX.current;
+      if (!dragActive.current) {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+          dragging.current = false;
+          return;
+        }
+        if (dy < 10) return;
+        dragActive.current = true;
+      }
+      if (dy <= 0) {
+        setOffsetY(0);
+        return;
+      }
+      setOffsetY(Math.min(260, dy));
+      if (e.cancelable) e.preventDefault();
+      if (e.currentTarget.setPointerCapture && e.pointerId != null) {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+    };
+    const onPointerUp = e => {
+      if (!dragging.current) return;
+      const dy = e.clientY - startY.current;
+      const wasDragging = dragActive.current;
+      dragging.current = false;
+      dragActive.current = false;
+      if (wasDragging && dy > 82) dismiss();
+      else if (wasDragging) setOffsetY(0);
+    };
+    const onPointerCancel = () => {
+      dragging.current = false;
+      dragActive.current = false;
+      setOffsetY(0);
+    };
+
+    return React.createElement("div", {
+      className: `ios-sheet-backdrop ios-dashboard-cards-backdrop fixed inset-0 flex items-end justify-center ${closing ? "is-closing" : ""}`,
+      onClick: e => { if (e.target === e.currentTarget) dismiss(); },
+      style: { zIndex: 1000, touchAction: "none" }
+    },
+      React.createElement("div", {
+        className: `ios-dashboard-cards-sheet ${closing ? "is-closing" : ""}`,
+        style: { "--sheet-offset": `${offsetY}px`, touchAction: "pan-y", overscrollBehavior: "contain", zIndex: 1001 },
+        onClick: e => e.stopPropagation(),
+        onPointerDown,
+        onPointerMove,
+        onPointerUp,
+        onPointerCancel
+      },
+        React.createElement("div", {
+          className: `ios-dashboard-cards-panel w-full border shadow-2xl ${darkMode ? "bg-zinc-900/96 border-zinc-800 text-zinc-100" : "bg-white/96 border-zinc-200 text-zinc-900"}`
+        },
+          React.createElement("div", { className: "ios-dashboard-cards-header", onPointerDown },
+            React.createElement("div", { className: "mx-auto mb-3 h-1.5 w-11 rounded-full bg-zinc-400/45" }),
+            React.createElement("div", { className: "flex items-start justify-between gap-3" },
+              React.createElement("div", { className: "min-w-0" },
+                React.createElement("h3", { className: "text-sm font-bold" }, "Choose four cards"),
+                React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1 leading-relaxed" }, `${selectedDashboardCards.length}/4 selected · Choose the cards shown on your Home dashboard.`)
+              ),
+              React.createElement("button", {
+                type: "button", onClick: dismiss, "aria-label": "Close",
+                className: `shrink-0 w-9 h-9 flex items-center justify-center rounded-full ${darkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`
+              }, React.createElement(Icons.IconClose, { className: "w-4 h-4" }))
+            )
+          ),
+          React.createElement("div", { className: "ios-dashboard-cards-list" },
+            React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+              dashboardOptions.map(option => {
+                const selected = selectedDashboardCards.includes(option.id);
+                const unavailable = !selected && selectedDashboardCards.length >= 4;
+                return React.createElement("button", {
+                  key: option.id, type: "button",
+                  onClick: e => { e.stopPropagation(); toggleDashboardCardForSheet(option.id); },
+                  disabled: unavailable,
+                  "aria-pressed": selected,
+                  className: `dashboard-card-choice min-h-[68px] w-full px-3.5 py-3 rounded-2xl border text-left transition-all active:scale-[0.98] disabled:opacity-35 ${selected ? "settings-selection-active" : darkMode ? "bg-zinc-950 border-zinc-800 text-zinc-300" : "bg-zinc-50 border-zinc-200 text-zinc-600"}`
+                },
+                  React.createElement("span", { className: "flex items-center gap-3" },
+                    React.createElement("span", { className: `w-9 h-9 shrink-0 rounded-xl flex items-center justify-center font-bold ${selected ? `${accent.activeBg20} ${accent.text}` : darkMode ? "bg-zinc-800 text-zinc-400" : "bg-zinc-200 text-zinc-500"}` }, selected ? "✓" : "＋"),
+                    React.createElement("span", { className: "min-w-0 text-xs font-bold leading-snug" }, option.label)
+                  )
+                );
+              })
+            )
+          )
+        )
+      )
+    );
+  }
+
   function DeleteConfirm(props) {
     const { confirmDelete, darkMode, deleteTarget, setDeleteTarget } = props;
     return /* @__PURE__ */React.createElement("div", {
@@ -648,6 +769,7 @@
 
   window.Modals = window.Modals || {};
   window.Modals.MoreSheet = MoreSheet;
+  window.Modals.DashboardCardsSheet = DashboardCardsSheet;
   window.Modals.DeleteConfirm = DeleteConfirm;
   window.Modals.RatesModal = RatesModal;
   window.Modals.RepaymentModal = RepaymentModal;
