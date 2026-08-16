@@ -10,8 +10,7 @@
       setStatementFromDate, statementToDate, setStatementToDate, exportStatement, accounts
     } = props;
     const h = React.createElement;
-    const statementSheetRef = React.useRef(null);
-    const statementTouchRef = React.useRef({});
+    const statementTouchRef = { current: {} };
     const lockStatementPage = () => {
       document.body.dataset.ledgerStatementLock = "1";
       document.body.style.overflow = "hidden";
@@ -25,7 +24,7 @@
       document.documentElement.style.overscrollBehavior = "";
     };
     const closeStatementAfterSwipe = () => {
-      const sheet = statementSheetRef.current;
+      const sheet = document.querySelector(".ledger-statement-sheet");
       if (sheet) {
         sheet.style.transition = "transform .34s cubic-bezier(.22,1,.36,1), opacity .26s ease";
         sheet.style.transform = "translate3d(0,100%,0)";
@@ -37,13 +36,13 @@
       const t = e.touches && e.touches[0];
       if (!t) return;
       statementTouchRef.current = { x: t.clientX, y: t.clientY, lastY: t.clientY, active: true, vertical: null };
-      const sheet = statementSheetRef.current;
+      const sheet = document.querySelector(".ledger-statement-sheet");
       if (sheet) sheet.style.transition = "none";
     };
     const onStatementTouchMove = e => {
       const state = statementTouchRef.current;
       const t = e.touches && e.touches[0];
-      const sheet = statementSheetRef.current;
+      const sheet = document.querySelector(".ledger-statement-sheet");
       if (!state.active || !t || !sheet) return;
       const dx = t.clientX - state.x;
       const dy = t.clientY - state.y;
@@ -60,7 +59,7 @@
     };
     const onStatementTouchEnd = e => {
       const state = statementTouchRef.current;
-      const sheet = statementSheetRef.current;
+      const sheet = document.querySelector(".ledger-statement-sheet");
       if (!state.active || !sheet) return;
       const t = e.changedTouches && e.changedTouches[0];
       const dy = t ? t.clientY - state.y : 0;
@@ -143,7 +142,7 @@
       ),
       statementOpen && ReactDOM.createPortal(
         h("div", { className: "ledger-statement-overlay", onClick: e => { if (e.target === e.currentTarget) { unlockStatementPage(); setStatementOpen(false); } } },
-          h("div", { ref: statementSheetRef, className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}`, onTouchStart: onStatementTouchStart, onTouchMove: onStatementTouchMove, onTouchEnd: onStatementTouchEnd, onTouchCancel: onStatementTouchEnd },
+          h("div", { className: `ledger-statement-sheet ${darkMode ? "ledger-statement-dark" : ""}`, onTouchStart: onStatementTouchStart, onTouchMove: onStatementTouchMove, onTouchEnd: onStatementTouchEnd, onTouchCancel: onStatementTouchEnd },
           h("div", { className: "ledger-statement-handle" }),
           h("div", { className: "flex items-center justify-between gap-3 mb-4" },
             h("div", null, h("h3", { className: "text-sm font-bold" }, "Export statement"), h("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Bank-style records with available balance after each transaction.")),
