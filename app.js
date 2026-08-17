@@ -340,6 +340,16 @@ const getNativePlugin = name => {
   } catch (e) {}
   return null;
 };
+const isNativeAleemFin = () => {
+  try {
+    return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
+  } catch (e) { return false; }
+};
+const isStandalonePWA = () => {
+  try {
+    return window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  } catch (e) { return false; }
+};
 const authenticateBiometric = async () => {
   try {
     const plugin = getNativePlugin("BiometricAuth");
@@ -366,15 +376,21 @@ const authenticateBiometric = async () => {
 const requestNotificationPermission = async () => {
   try {
     const plugin = getNativePlugin("LocalNotifications");
-    if (plugin && typeof plugin.requestPermissions === "function") {
+    if (isNativeAleemFin() && plugin && typeof plugin.requestPermissions === "function") {
       const result = await plugin.requestPermissions();
       const granted = result && (result.display === "granted" || result.display === "provisional");
-      if (granted) return true;
+      if (granted) return { ok: true, mode: "native" };
     }
+    // iOS web notifications are supported for Home Screen web apps, not normal Safari tabs.
+    if (typeof Notification !== "undefined" && isStandalonePWA()) {
+      const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+      return { ok: permission === "granted", mode: "web", permission };
+    }
+    return { ok: false, mode: "web", reason: "standalone-required" };
   } catch (e) {
     console.warn("AleemFin notification permission request failed", e);
+    return { ok: false, mode: isNativeAleemFin() ? "native" : "web", reason: "error" };
   }
-  return false;
 };
 window.__aleemFinAuthenticateBiometric = authenticateBiometric;
 window.__aleemFinRequestNotificationPermission = requestNotificationPermission;
