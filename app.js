@@ -285,6 +285,9 @@ const DEFAULT_SETTINGS = {
   soundEnabled: false,
   hapticsEnabled: true,
   biometricEnabled: false,
+  notificationsEnabled: false,
+  loanRemindersEnabled: true,
+  recurringRemindersEnabled: true,
   pinLockEnabled: false,
   pinHash: "",
   showGreeting: true,
@@ -328,13 +331,27 @@ const updateSettings = partial => {
     return next;
   });
 };
+const getNativePlugin = name => {
+  try {
+    const cap = window.Capacitor;
+    if (!cap) return null;
+    if (cap.Plugins && cap.Plugins[name]) return cap.Plugins[name];
+    if (typeof cap.registerPlugin === "function") return cap.registerPlugin(name);
+  } catch (e) {}
+  return null;
+};
 const authenticateBiometric = async () => {
   try {
-    // Capacitor plugin path (native iOS/Android).
-    const plugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BiometricAuth;
-    if (plugin && typeof plugin.authenticate === "function") {
-      await plugin.authenticate({ reason: "Unlock AleemFin securely." });
-      return true;
+    const plugin = getNativePlugin("BiometricAuth");
+    if (plugin) {
+      if (typeof plugin.checkBiometry === "function") {
+        const availability = await plugin.checkBiometry();
+        if (availability && availability.isAvailable === false) return false;
+      }
+      if (typeof plugin.authenticate === "function") {
+        await plugin.authenticate({ reason: "Unlock AleemFin securely." });
+        return true;
+      }
     }
     // Optional native WebKit bridge for the iOS host app.
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.biometricAuth) {
@@ -342,11 +359,25 @@ const authenticateBiometric = async () => {
       return true;
     }
   } catch (e) {
-    return false;
+    console.warn("AleemFin biometric authentication failed", e);
+  }
+  return false;
+};
+const requestNotificationPermission = async () => {
+  try {
+    const plugin = getNativePlugin("LocalNotifications");
+    if (plugin && typeof plugin.requestPermissions === "function") {
+      const result = await plugin.requestPermissions();
+      const granted = result && (result.display === "granted" || result.display === "provisional");
+      if (granted) return true;
+    }
+  } catch (e) {
+    console.warn("AleemFin notification permission request failed", e);
   }
   return false;
 };
 window.__aleemFinAuthenticateBiometric = authenticateBiometric;
+window.__aleemFinRequestNotificationPermission = requestNotificationPermission;
 
 const hashPin = async pin => {
   const value = String(pin || "");
