@@ -174,6 +174,18 @@ var toLocalISO = d => {
 };
 var todayISO = () => toLocalISO(/* @__PURE__ */new Date());
 var ACCENT_PALETTE = {
+  emerald: {
+    name: "Original",
+    grad: "from-emerald-500 to-teal-400 af-accent-grad",
+    text: "text-emerald-500 af-accent-text",
+    text400: "text-emerald-400 af-accent-text400",
+    textStrong: "text-emerald-600 af-accent-textStrong",
+    solidBtn: "bg-emerald-600 hover:bg-emerald-500 af-accent-solid",
+    activeBg: "bg-emerald-500/15 af-accent-bg15",
+    activeBg10: "bg-emerald-500/10 af-accent-bg10",
+    activeBg20: "bg-emerald-500/20 af-accent-bg20",
+    swatch: "bg-emerald-500"
+  },
   teal: {
     name: "Teal",
     grad: "from-teal-500 to-cyan-400 af-accent-grad",
@@ -265,7 +277,7 @@ var NAV_ITEMS = [{
 const SETTINGS_KEY = "aleemfin_settings_v1";
 const DEFAULT_SETTINGS = {
   theme: "dark",
-  accentColor: "teal",
+  accentColor: "emerald",
   heroMetric: "liquid",
   dashboardCards: ["accounts", "vault", "loans", "analytics"],
   hiddenDashboardCards: [],
@@ -290,11 +302,11 @@ const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      const legacyAccent = parsed.accentColor === "emerald" || parsed.accentColor === "rose" || parsed.accentColor === "red";
+      const legacyAccent = parsed.accentColor === "rose" || parsed.accentColor === "red";
       return {
         ...DEFAULT_SETTINGS,
         ...parsed,
-        accentColor: legacyAccent ? "teal" : parsed.accentColor,
+        accentColor: legacyAccent ? "emerald" : parsed.accentColor,
         customCategories: {
           ...DEFAULT_SETTINGS.customCategories,
           ...(parsed.customCategories || {})
@@ -336,7 +348,11 @@ React.useEffect(() => {
 }, [settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
-const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.teal;
+const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";
+if (settings.accentColor !== safeAccentColor) {
+  try { updateSettings({ accentColor: safeAccentColor }); } catch (e) {}
+}
+const accent = ACCENT_PALETTE[safeAccentColor];
 const cleanedPrimaryNavIds = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.filter(id => id !== "recurring") : DEFAULT_SETTINGS.primaryNavIds;
 const primaryNavIds = cleanedPrimaryNavIds.length === 4 ? cleanedPrimaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
@@ -349,6 +365,11 @@ const dateFmt = iso => {
   if (!y || !m || !d) return iso;
   if (settings.dateFormat === "DD/MM/YYYY") return `${d}/${m}/${y}`;
   if (settings.dateFormat === "MM/DD/YYYY") return `${m}/${d}/${y}`;
+  if (settings.dateFormat === "DD-MMM-YYYY") {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${Number(d)}-${months[Number(m) - 1]}-${y}`;
+  }
+  if (settings.dateFormat === "DD-MM-YYYY") return `${d}-${m}-${y}`;
   return iso;
 };
 const [darkMode, setDarkMode] = useState(true);

@@ -1414,7 +1414,6 @@ html[data-af-accent="teal"] { --af-accent: #14B8A6; }
 html[data-af-accent="blue"] { --af-accent: #3B82F6; }
 html[data-af-accent="violet"] { --af-accent: #8B5CF6; }
 html[data-af-accent="amber"] { --af-accent: #F59E0B; }
-html[data-af-accent="rose"] { --af-accent: #F43F5E; }
 
 .af-accent-text, .af-accent-text400, .af-accent-textStrong { color: var(--af-accent) !important; }
 .af-accent-solid { background: var(--af-accent) !important; color: #fff !important; }
@@ -1494,7 +1493,7 @@ html.dark .loan-text-action-repay {
 /* Accent picker: compact circular swatches with a clear selected state. */
 .settings-accent-picker {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   padding: 4px 2px 2px;
 }
@@ -1539,3 +1538,18 @@ html.dark .loan-text-action-repay {
 .settings-accent-option.is-selected .settings-accent-label {
   color: var(--af-accent) !important;
 }
+
+
+/* Final semantic-color contract: these colors never follow the user accent. */
+:root,
+html[data-af-accent="emerald"],
+html[data-af-accent="teal"],
+html[data-af-accent="blue"],
+html[data-af-accent="violet"],
+html[data-af-accent="amber"] {
+  --af-green: #1DBF73 !important;
+  --af-red: #E5484D !important;
+}
+.home-positive, .insight-positive { color: var(--af-green) !important; }
+.home-negative, .insight-negative { color: var(--af-red) !important; }
+.home-account-dot { background: var(--af-green) !important; }
