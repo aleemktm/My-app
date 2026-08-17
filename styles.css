@@ -1399,3 +1399,9 @@ html.dark .ios-security-lock-input{background:#18181b;border-color:rgba(255,255,
 .insight-comparison-legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
 .insight-panel-dark .insight-comparison-legend{color:#a1a1aa}
 @media(max-width:560px){.insight-comparison-chart-wrap,.insight-comparison-chart{height:175px}.insight-comparison-chart-wrap{margin-top:2px}}
+
+/* Home hero privacy controls */
+.home-rate-actions{margin-left:auto;display:flex;align-items:center;gap:.15rem}
+.home-rate-actions .home-rate-icon-button{width:28px;height:28px;padding:0;border-radius:9px;background:transparent;color:#64748b;border:0;display:flex;align-items:center;justify-content:center}
+.home-rate-actions .home-rate-icon-button:active{transform:scale(.94)}
+.home-hero-dark .home-rate-actions .home-rate-icon-button{color:#a1a1aa}
