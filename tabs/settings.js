@@ -42,13 +42,21 @@
       }
       const request = window.__aleemFinRequestNotificationPermission;
       if (typeof request !== "function") {
-        alert("Notifications are not available in this build yet.");
+        alert("Notifications are not available in this version of AleemFin.");
         return;
       }
-      const ok = await request();
-      if (ok) updateSettings({ notificationsEnabled: true });
-      else alert("AleemFin could not get notification permission. Please allow Notifications for AleemFin in iPhone Settings.");
+      const result = await request();
+      if (result && result.ok) {
+        updateSettings({ notificationsEnabled: true });
+      } else if (result && result.reason === "standalone-required") {
+        alert("On iPhone, web notifications work when AleemFin is installed on the Home Screen. Open AleemFin from its Home Screen icon and try again.");
+      } else {
+        alert("AleemFin could not get notification permission. If Notifications are already blocked, open iPhone Settings and allow them for AleemFin.");
+      }
     };
+    const nativeApp = (() => { try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch (e) { return false; } })();
+    const standalonePWA = (() => { try { return !!((window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true); } catch (e) { return false; } })();
+    const biometricsAvailable = nativeApp;
     const dataSize = new Blob([JSON.stringify({
     accounts,
     assets,
@@ -297,16 +305,17 @@
     h(SettingsRow, { icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." }, IOSSwitch({ checked: settings.hapticsEnabled !== false, onChange: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), label: "Haptic feedback" })),
     h(SettingsRow, { icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." }, IOSSwitch({ checked: settings.soundEnabled === true, onChange: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), label: "Action sounds" }))
   )), h(SettingsSection, { title: "Notifications" }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconSettings, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : "Allow AleemFin to send reminders and important updates." }, IOSSwitch({ checked: settings.notificationsEnabled === true, onChange: enableNotifications, label: "Notifications" })),
+    h(SettingsRow, { icon: Icons.IconSettings, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : standalonePWA ? "Allow AleemFin to send reminders and important updates." : "Install AleemFin on the iPhone Home Screen to enable web notifications." }, IOSSwitch({ checked: settings.notificationsEnabled === true, onChange: enableNotifications, label: "Notifications" })),
     h(SettingsRow, { icon: Icons.IconSettings, title: "Loan reminders", detail: "Remind you about upcoming loan repayments." }, IOSSwitch({ checked: settings.loanRemindersEnabled !== false, onChange: () => updateSettings({ loanRemindersEnabled: settings.loanRemindersEnabled === false }), label: "Loan reminders" })),
     h(SettingsRow, { icon: Icons.IconSettings, title: "Recurring reminders", detail: "Remind you about recurring entries when they are due." }, IOSSwitch({ checked: settings.recurringRemindersEnabled !== false, onChange: () => updateSettings({ recurringRemindersEnabled: settings.recurringRemindersEnabled === false }), label: "Recurring reminders" }))
   ))
 , h(SettingsSection, { title: "Security" }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconSettings, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : "Tap the switch to authenticate with Face ID / Touch ID and enable app unlock." }, IOSSwitch({ checked: settings.biometricEnabled === true, onChange: async () => {
+    h(SettingsRow, { icon: Icons.IconSettings, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : biometricsAvailable ? "Tap the switch to authenticate with Face ID / Touch ID and enable app unlock." : "Face ID / Touch ID is available in the native iOS app. Safari/PWA cannot access the native biometric plugin." }, IOSSwitch({ checked: settings.biometricEnabled === true, onChange: async () => {
+      if (!biometricsAvailable) { alert("Face ID / Touch ID is available when you run AleemFin as the native iOS app. Safari and the PWA cannot use AleemFin's native biometric plugin."); return; }
       if (settings.biometricEnabled === true) { updateSettings({ biometricEnabled: false }); return; }
       const ok = await (typeof window.__aleemFinAuthenticateBiometric === "function" ? window.__aleemFinAuthenticateBiometric() : false);
       if (ok) updateSettings({ biometricEnabled: true });
-      else alert("Face ID / Touch ID could not be enabled. Make sure Face ID is set up on your iPhone and AleemFin is allowed to use it.");
+      else alert("Face ID / Touch ID could not be enabled. Check that Face ID is set up and AleemFin has permission to use it.");
     }, label: "Biometrics" })),
     h(SettingsRow, { icon: Icons.IconSettings, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." }, h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up")))), h(SettingsSection, {
     title: "App"
