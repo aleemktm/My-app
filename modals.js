@@ -195,6 +195,13 @@
     const dragging = React.useRef(false);
     const dragActive = React.useRef(false);
     const closeTimer = React.useRef(null);
+    React.useEffect(() => {
+      const prevOverflow = document.body.style.overflow;
+      const prevTouch = document.body.style.touchAction;
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      return () => { document.body.style.overflow = prevOverflow; document.body.style.touchAction = prevTouch; };
+    }, []);
     const categories = settings.customCategories || DEFAULT_SETTINGS.customCategories;
     const dismiss = React.useCallback(() => {
       if (closing) return;
@@ -261,6 +268,109 @@
               )
             )
           )
+        )
+      ), document.body
+    );
+  }
+
+  function SecuritySheet(props) {
+    const { darkMode, settings, updateSettings, setSecuritySheetOpen, setSecurityLocked, hashPin, inputCls } = props;
+    const [closing, setClosing] = React.useState(false);
+    const [mode, setMode] = React.useState(settings.pinLockEnabled ? "manage" : "setup");
+    const [currentPin, setCurrentPin] = React.useState("");
+    const [newPin, setNewPin] = React.useState("");
+    const [confirmPin, setConfirmPin] = React.useState("");
+    const [error, setError] = React.useState("");
+    const [resetConfirm, setResetConfirm] = React.useState(false);
+    const closeTimer = React.useRef(null);
+    const start = React.useRef({ x: 0, y: 0, active: false, vertical: null });
+    const [offsetY, setOffsetY] = React.useState(0);
+    React.useEffect(() => {
+      const prevOverflow = document.body.style.overflow;
+      const prevTouch = document.body.style.touchAction;
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      return () => { document.body.style.overflow = prevOverflow; document.body.style.touchAction = prevTouch; if (closeTimer.current) clearTimeout(closeTimer.current); };
+    }, []);
+    const dismiss = React.useCallback(() => {
+      if (closing) return;
+      setClosing(true); setOffsetY(0);
+      closeTimer.current = setTimeout(() => setSecuritySheetOpen(false), 320);
+    }, [closing, setSecuritySheetOpen]);
+    const onPointerDown = e => { if (e.pointerType === "mouse" && e.button !== 0) return; start.current = { x:e.clientX, y:e.clientY, active:true, vertical:null }; };
+    const onPointerMove = e => {
+      const g = start.current; if (!g.active || closing) return;
+      const dx=e.clientX-g.x, dy=e.clientY-g.y;
+      if (g.vertical === null && (Math.abs(dx)>8 || Math.abs(dy)>8)) g.vertical=Math.abs(dy)>=Math.abs(dx);
+      if (g.vertical !== true) return;
+      if (dy>0) { if(e.cancelable)e.preventDefault(); setOffsetY(Math.min(320,dy)); if(e.currentTarget.setPointerCapture){try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}} }
+    };
+    const onPointerUp = e => { const g=start.current; if(!g.active)return; const dy=e.clientY-g.y; g.active=false; if(g.vertical===true&&dy>90){dismiss();}else setOffsetY(0); };
+    const savePin = async e => {
+      e.preventDefault(); setError("");
+      if (!/^\d{4,8}$/.test(newPin)) { setError("PIN must be 4–8 digits."); return; }
+      if (newPin !== confirmPin) { setError("PINs do not match."); return; }
+      const pinHash = await hashPin(newPin);
+      updateSettings({ pinLockEnabled:true, pinHash }); setSecurityLocked(false); setNewPin(""); setConfirmPin(""); setMode("manage");
+    };
+    const changePin = async e => {
+      e.preventDefault(); setError("");
+      if (!/^\d{4,8}$/.test(newPin)) { setError("PIN must be 4–8 digits."); return; }
+      if (newPin !== confirmPin) { setError("PINs do not match."); return; }
+      if ((await hashPin(currentPin)) !== settings.pinHash) { setError("Current PIN is incorrect."); return; }
+      updateSettings({ pinHash: await hashPin(newPin), pinLockEnabled:true }); setCurrentPin(""); setNewPin(""); setConfirmPin(""); setError(""); setMode("manage");
+    };
+    const disablePin = async () => {
+      if (!settings.pinLockEnabled) return;
+      updateSettings({ pinLockEnabled:false, pinHash:"" }); setSecurityLocked(false); setResetConfirm(false); setMode("setup");
+    };
+    return ReactDOM.createPortal(
+      React.createElement("div", { className:`ios-settings-sheet-backdrop ${closing?"is-closing":""}`, onClick:e=>{if(e.target===e.currentTarget)dismiss();}, style:{touchAction:"none"} },
+        React.createElement("div", { className:`ios-settings-sheet ${closing?"is-closing":""}`, style:{"--sheet-offset":`${offsetY}px`,touchAction:"pan-y"}, onClick:e=>e.stopPropagation(), onPointerDown, onPointerMove, onPointerUp, onPointerCancel:()=>{start.current.active=false;setOffsetY(0);} },
+          React.createElement("div", { className:`ios-settings-sheet-panel ${darkMode?"is-dark":""}` },
+            React.createElement("div", { className:"ios-settings-sheet-handle" }),
+            React.createElement("div", { className:"flex items-start justify-between gap-3 px-1 pb-3" },
+              React.createElement("div", {className:"min-w-0"}, React.createElement("h3",{className:"text-sm font-bold"},"Security"), React.createElement("p",{className:"text-[10px] text-zinc-400 mt-1"},"Protect AleemFin with iOS-style security controls.")),
+              React.createElement("button",{type:"button",onClick:dismiss,className:`w-9 h-9 rounded-full flex items-center justify-center ${darkMode?"bg-zinc-800 text-zinc-300":"bg-zinc-100 text-zinc-600"}`},React.createElement(Icons.IconClose,{className:"w-4 h-4"}))
+            ),
+            React.createElement("div",{className:"ios-settings-sheet-scroll space-y-3"},
+              React.createElement("div",{className:`ios-security-native-card ${darkMode?"is-dark":""}`},
+                React.createElement("div",{className:"ios-security-row"},React.createElement("div",{className:"min-w-0"},React.createElement("strong",null,"Biometrics"),React.createElement("span",null,"Face ID / Touch ID · ready for Capacitor/Xcode native hookup.")),React.createElement("span",{className:`ios-security-status ${settings.biometricEnabled?"is-on":""}`},settings.biometricEnabled?"On":"Off")),
+                React.createElement("div",{className:"ios-security-row"},React.createElement("div",{className:"min-w-0"},React.createElement("strong",null,"PIN Lock"),React.createElement("span",null,settings.pinLockEnabled?"Enabled":"Not set")),React.createElement("span",{className:`ios-security-status ${settings.pinLockEnabled?"is-on":""}`},settings.pinLockEnabled?"On":"Off"))
+              ),
+              !settings.pinLockEnabled && mode==="setup" && React.createElement("form",{onSubmit:savePin,className:"ios-security-form"},React.createElement("div",{className:"ios-security-title"},"Set PIN"),React.createElement("input",{type:"password",inputMode:"numeric",pattern:"[0-9]*",maxLength:8,autoComplete:"new-password",placeholder:"4–8 digit PIN",value:newPin,onChange:e=>setNewPin(e.target.value.replace(/\\D/g,"")).slice(0,8),className:inputCls}),React.createElement("input",{type:"password",inputMode:"numeric",pattern:"[0-9]*",maxLength:8,autoComplete:"new-password",placeholder:"Confirm PIN",value:confirmPin,onChange:e=>setConfirmPin(e.target.value.replace(/\\D/g,"")).slice(0,8),className:inputCls}),error&&React.createElement("p",{className:"text-xs text-rose-500 font-semibold"},error),React.createElement("button",{type:"submit",className:"ios-security-primary"},"Enable PIN Lock")) ,
+              settings.pinLockEnabled && mode==="manage" && React.createElement("div",{className:"ios-security-actions"},React.createElement("button",{type:"button",onClick:()=>{setMode("change");setError("")},className:"ios-security-action"},"Change PIN"),React.createElement("button",{type:"button",onClick:()=>setResetConfirm(true),className:"ios-security-action is-danger"},"Forgot PIN / Reset Lock")),
+              settings.pinLockEnabled && mode==="change" && React.createElement("form",{onSubmit:changePin,className:"ios-security-form"},React.createElement("div",{className:"ios-security-title"},"Change PIN"),React.createElement("input",{type:"password",inputMode:"numeric",maxLength:8,placeholder:"Current PIN",value:currentPin,onChange:e=>setCurrentPin(e.target.value.replace(/\\D/g,"")).slice(0,8),className:inputCls}),React.createElement("input",{type:"password",inputMode:"numeric",maxLength:8,placeholder:"New PIN",value:newPin,onChange:e=>setNewPin(e.target.value.replace(/\\D/g,"")).slice(0,8),className:inputCls}),React.createElement("input",{type:"password",inputMode:"numeric",maxLength:8,placeholder:"Confirm new PIN",value:confirmPin,onChange:e=>setConfirmPin(e.target.value.replace(/\\D/g,"")).slice(0,8),className:inputCls}),error&&React.createElement("p",{className:"text-xs text-rose-500 font-semibold"},error),React.createElement("div",{className:"flex gap-2"},React.createElement("button",{type:"button",onClick:()=>setMode("manage"),className:"ios-security-action"},"Cancel"),React.createElement("button",{type:"submit",className:"ios-security-primary flex-1"},"Save New PIN"))),
+              resetConfirm && React.createElement("div",{className:"ios-security-reset"},React.createElement("strong",null,"Reset PIN Lock?"),React.createElement("p",null,"This removes the local PIN lock from this device. Your financial data is not deleted."),React.createElement("div",{className:"flex gap-2 justify-end"},React.createElement("button",{type:"button",onClick:()=>setResetConfirm(false),className:"ios-security-action"},"Cancel"),React.createElement("button",{type:"button",onClick:disablePin,className:"ios-security-primary"},"Reset Lock")))
+            )
+          )
+        )
+      ), document.body
+    );
+  }
+
+  function SecurityLockOverlay(props) {
+    const { darkMode, settings, hashPin, setSecurityLocked, updateSettings } = props;
+    const [pin, setPin] = React.useState("");
+    const [error, setError] = React.useState("");
+    const [resetConfirm, setResetConfirm] = React.useState(false);
+    const unlock = async e => {
+      e.preventDefault();
+      if ((await hashPin(pin)) === settings.pinHash) { setSecurityLocked(false); setPin(""); setError(""); }
+      else { setError("Incorrect PIN."); setPin(""); }
+    };
+    return ReactDOM.createPortal(
+      React.createElement("div", { className:`ios-security-lock ${darkMode?"is-dark":""}` },
+        React.createElement("div", { className:"ios-security-lock-card" },
+          React.createElement("div", { className:"ios-security-lock-icon" }, React.createElement(Icons.IconSettings, { className:"w-6 h-6" })),
+          React.createElement("h2", { className:"text-base font-bold" }, "AleemFin is Locked"),
+          React.createElement("p", { className:"text-xs text-zinc-400 mt-1" }, "Enter your PIN to continue."),
+          React.createElement("form", { onSubmit:unlock, className:"mt-4 space-y-3" },
+            React.createElement("input", { autoFocus:true, type:"password", inputMode:"numeric", maxLength:8, placeholder:"PIN", value:pin, onChange:e=>setPin(e.target.value.replace(/\\D/g,"").slice(0,8)), className:"ios-security-lock-input" }),
+            error && React.createElement("p", { className:"text-xs text-rose-500 font-semibold" }, error),
+            React.createElement("button", { type:"submit", className:"ios-security-primary w-full" }, "Unlock")
+          ),
+          React.createElement("button", { type:"button", onClick:()=>setResetConfirm(true), className:"text-[9px] text-zinc-400 mt-3 text-center underline underline-offset-2" }, "Forgot PIN? Reset lock"), resetConfirm && React.createElement("div", { className:"mt-3 rounded-2xl border border-rose-500/15 bg-rose-500/5 p-3" }, React.createElement("p", { className:"text-[9px] text-zinc-400 text-left leading-relaxed" }, "Resetting removes the local PIN lock. Your financial data stays on this device."), React.createElement("div", { className:"flex gap-2 justify-end mt-2" }, React.createElement("button", { type:"button", onClick:()=>setResetConfirm(false), className:"ios-security-action" }, "Cancel"), React.createElement("button", { type:"button", onClick:()=>{updateSettings({pinLockEnabled:false,pinHash:""});setSecurityLocked(false);}, className:"ios-security-primary" }, "Reset Lock")))
         )
       ), document.body
     );
@@ -851,6 +961,8 @@
   window.Modals.MoreSheet = MoreSheet;
   window.Modals.DashboardCardsSheet = DashboardCardsSheet;
   window.Modals.CategoryManagerSheet = CategoryManagerSheet;
+  window.Modals.SecuritySheet = SecuritySheet;
+  window.Modals.SecurityLockOverlay = SecurityLockOverlay;
   window.Modals.DeleteConfirm = DeleteConfirm;
   window.Modals.RatesModal = RatesModal;
   window.Modals.RepaymentModal = RepaymentModal;

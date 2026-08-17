@@ -296,6 +296,9 @@ const DEFAULT_SETTINGS = {
   liveRateSync: true,
   soundEnabled: false,
   hapticsEnabled: true,
+  biometricEnabled: false,
+  pinLockEnabled: false,
+  pinHash: "",
   showGreeting: true,
   primaryNavIds: ["overview", "transactions", "accounts", "loans"],
   defaultCurrency: "AED",
@@ -332,6 +335,24 @@ const updateSettings = partial => {
     return next;
   });
 };
+const hashPin = async pin => {
+  const value = String(pin || "");
+  if (window.crypto && window.crypto.subtle) {
+    const data = new TextEncoder().encode(value);
+    const digest = await window.crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+  return (hash >>> 0).toString(16);
+};
+React.useEffect(() => {
+  const onVisibility = () => {
+    if (document.visibilityState === "visible" && settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  return () => document.removeEventListener("visibilitychange", onVisibility);
+}, [settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
 const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
@@ -718,6 +739,13 @@ const [dashboardCardsSheetOpen, setDashboardCardsSheetOpen] = useState(false);
 const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 const [categoryType, setCategoryType] = useState("expense");
 const [categoryName, setCategoryName] = useState("");
+const [securitySheetOpen, setSecuritySheetOpen] = useState(false);
+const [securityLocked, setSecurityLocked] = useState(() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+    return !!(saved && saved.pinLockEnabled && saved.pinHash);
+  } catch (_) { return false; }
+});
 const [dangerAction, setDangerAction] = useState(null);
 const [planningEditor, setPlanningEditor] = useState(null);
 const [budgetForm, setBudgetForm] = useState({
@@ -2063,6 +2091,7 @@ const confirmDangerAction = () => {
   localStorage.removeItem(SETTINGS_KEY);
   localStorage.removeItem(GOLD_HISTORY_KEY);
   setSettings(DEFAULT_SETTINGS);
+  setSecurityLocked(false);
   setCurrency(DEFAULT_SETTINGS.defaultCurrency);
   persistGoldHistory([]);
   setDangerAction(null);
@@ -2080,14 +2109,14 @@ const renderTxRow = tx => {
     className: `p-3.5 rounded-2xl border ${subCardCls} ledger-card-compact`
   },
     React.createElement("div", { className: "ledger-card-topline" },
-      React.createElement("div", { className: "ledger-card-title-wrap" },
-        React.createElement("div", { className: "flex items-center gap-2 min-w-0" },
-          React.createElement("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, React.createElement((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })),
-          React.createElement("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
-          React.createElement("span", { className: "text-[10px] text-zinc-400 shrink-0" }, dateFmt(tx.date))
-        ),
-        React.createElement("p", { className: "font-bold mt-1 text-sm truncate" }, tx.title)
-      ),
+      React.createElement("div", { className: "flex items-center gap-2 min-w-0" },
+        React.createElement("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, React.createElement((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })),
+        React.createElement("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
+        React.createElement("span", { className: "text-[10px] text-zinc-400 shrink-0" }, dateFmt(tx.date))
+      )
+    ),
+    React.createElement("div", { className: "ledger-title-amount-row" },
+      React.createElement("p", { className: "font-bold text-sm truncate" }, tx.title),
       React.createElement("div", { className: "ledger-amount-stack" },
         React.createElement("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` }, tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount))
       )
@@ -2389,7 +2418,7 @@ const toggleDashboardCardForSheet = id => {
   if (selectedDashboardCardsForSheet.includes(id)) updateSettings({ dashboardCards: selectedDashboardCardsForSheet.filter(cardId => cardId !== id) });
   else if (selectedDashboardCardsForSheet.length < 4) updateSettings({ dashboardCards: [...selectedDashboardCardsForSheet, id] });
 };
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2529,7 +2558,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         className: "text-[10px] leading-none"
       }, "Settings"));
     })()))),
-moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), categoryManagerOpen && React.createElement(Modals.CategoryManagerSheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps))
+moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), categoryManagerOpen && React.createElement(Modals.CategoryManagerSheet, tabProps), securitySheetOpen && React.createElement(Modals.SecuritySheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps), securityLocked && React.createElement(Modals.SecurityLockOverlay, tabProps))
     );
   }
 
