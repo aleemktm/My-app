@@ -1387,3 +1387,15 @@ html.dark .ios-security-lock-input{background:#18181b;border-color:rgba(255,255,
 .ios-settings-sheet{transition:transform .42s cubic-bezier(.34,1.56,.64,1)!important}
 .ios-settings-sheet.is-closing{transition:transform .34s cubic-bezier(.32,.72,0,1)!important}
 @media(prefers-reduced-motion:reduce){.ios-dashboard-cards-sheet,.ios-settings-sheet{transition:none!important}}
+
+/* v28: unify dashboard-card picker with the native dark sheet surface and refine Insights comparisons. */
+.ios-dashboard-cards-panel.is-dark{background:#18181b!important;color:#f2f2f7!important;border-color:rgba(255,255,255,.08)!important;box-shadow:0 -20px 65px rgba(0,0,0,.5)}
+.ios-dashboard-cards-panel:not(.is-dark){background:#fff!important;color:#18181b!important;border-color:rgba(0,0,0,.08)!important}
+.ios-dashboard-cards-panel .dashboard-card-choice{min-height:68px}
+.insight-comparison-chart-wrap{width:100%;height:190px;margin-top:4px;overflow:hidden}
+.insight-comparison-chart{display:block;width:100%;height:190px;overflow:visible}
+.insight-comparison-legend{display:flex;justify-content:center;gap:14px;margin:2px 0 0;font-size:8px;color:#8e8e93;font-weight:800}
+.insight-comparison-legend span{display:inline-flex;align-items:center;gap:5px}
+.insight-comparison-legend i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.insight-panel-dark .insight-comparison-legend{color:#a1a1aa}
+@media(max-width:560px){.insight-comparison-chart-wrap,.insight-comparison-chart{height:175px}.insight-comparison-chart-wrap{margin-top:2px}}

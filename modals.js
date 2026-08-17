@@ -146,7 +146,7 @@
         onPointerCancel
       },
         React.createElement("div", {
-          className: `ios-dashboard-cards-panel w-full border shadow-2xl ${darkMode ? "bg-zinc-900/96 border-zinc-800 text-zinc-100" : "bg-white/96 border-zinc-200 text-zinc-900"}`
+          className: `ios-dashboard-cards-panel ${darkMode ? "is-dark bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"} w-full border shadow-2xl`
         },
           React.createElement("div", { className: "ios-dashboard-cards-header", onPointerDown },
             React.createElement("div", { className: "mx-auto mb-3 h-1.5 w-11 rounded-full bg-zinc-400/45" }),
