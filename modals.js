@@ -498,30 +498,49 @@
     // inset sheet can otherwise remain positioned against the hidden layout viewport.
     const [viewport, setViewport] = React.useState(() => {
       const vv = window.visualViewport;
-      return {
-        height: vv ? vv.height : window.innerHeight,
-        top: vv ? vv.offsetTop : 0
-      };
+      const height = vv ? vv.height : window.innerHeight;
+      const top = vv ? vv.offsetTop : 0;
+      const keyboard = Math.max(0, window.innerHeight - (height + top));
+      return { height, top, keyboard };
     });
 
     React.useEffect(() => {
       const vv = window.visualViewport;
-      if (!vv) return;
       const syncViewport = () => {
-        setViewport({ height: vv.height, top: vv.offsetTop });
+        const height = vv ? vv.height : window.innerHeight;
+        const top = vv ? vv.offsetTop : 0;
+        // iOS Safari/WKWebView can leave position:fixed elements anchored to the
+        // layout viewport while the software keyboard occupies the visual viewport.
+        // Explicitly track that overlap and lift the sheet by exactly that amount.
+        const keyboard = Math.max(0, window.innerHeight - (height + top));
+        setViewport({ height, top, keyboard });
+
         requestAnimationFrame(() => {
+          const sheet = sheetRef.current;
           const active = document.activeElement;
-          if (active && sheetRef.current && sheetRef.current.contains(active) && typeof active.scrollIntoView === "function") {
-            active.scrollIntoView({ block: "nearest", inline: "nearest" });
-          }
+          if (!sheet || !active || !sheet.contains(active)) return;
+          const sr = sheet.getBoundingClientRect();
+          const ar = active.getBoundingClientRect();
+          const safeTop = Math.max(sr.top + 12, top + 12);
+          const safeBottom = height + top - 12;
+          if (ar.bottom > safeBottom) sheet.scrollTop += ar.bottom - safeBottom;
+          else if (ar.top < safeTop) sheet.scrollTop -= safeTop - ar.top;
         });
       };
       syncViewport();
-      vv.addEventListener("resize", syncViewport);
-      vv.addEventListener("scroll", syncViewport);
+      window.addEventListener("resize", syncViewport);
+      window.addEventListener("orientationchange", syncViewport);
+      if (vv) {
+        vv.addEventListener("resize", syncViewport);
+        vv.addEventListener("scroll", syncViewport);
+      }
       return () => {
-        vv.removeEventListener("resize", syncViewport);
-        vv.removeEventListener("scroll", syncViewport);
+        window.removeEventListener("resize", syncViewport);
+        window.removeEventListener("orientationchange", syncViewport);
+        if (vv) {
+          vv.removeEventListener("resize", syncViewport);
+          vv.removeEventListener("scroll", syncViewport);
+        }
       };
     }, []);
 
@@ -530,9 +549,10 @@
         className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${closing ? "is-closing" : ""}`,
         style: {
           "--sheet-viewport-height": `${viewport.height}px`,
-          top: `${viewport.top}px`,
-          bottom: "auto",
-          height: `${viewport.height}px`,
+          "--keyboard-offset": `${viewport.keyboard}px`,
+          top: 0,
+          bottom: 0,
+          height: "auto",
           right: 0
         },
         onClick: e => { if (e.target === e.currentTarget) dismiss(); }
@@ -542,6 +562,7 @@
           className: `ios-form-bottom-sheet w-full max-w-md rounded-t-[30px] border border-b-0 p-5 pb-6 shadow-2xl max-h-[92vh] overflow-y-auto md:rounded-3xl md:border-b md:max-h-[90vh] ${darkMode ? "is-dark" : ""} ${closing ? "is-closing" : ""} ${dragging ? "is-dragging" : ""}`,
           style: {
             "--sheet-offset": `${offsetY}px`,
+            "--keyboard-offset": `${viewport.keyboard}px`,
             "--sheet-viewport-height": `${viewport.height}px`
           },
           onClick: e => e.stopPropagation()
