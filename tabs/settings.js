@@ -35,15 +35,6 @@
   }, children));
     const h = React.createElement;
     const IOSSwitch = ({ checked, onChange, label }) => h("button", { type: "button", role: "switch", "aria-checked": checked, "aria-label": label, onClick: onChange, className: `ios-settings-switch ${checked ? "is-on" : "is-off"}` }, h("span", { className: "ios-settings-switch-thumb" }));
-    const nativeIOS = !!(window.AleemFinNative && typeof window.AleemFinNative.isNativeIOS === "function" && window.AleemFinNative.isNativeIOS());
-    const toggleBiometrics = async () => {
-      if (settings.biometricEnabled === true) { updateSettings({ biometricEnabled: false }); return; }
-      if (nativeIOS && window.AleemFinNative && typeof window.AleemFinNative.biometricAvailability === "function") {
-        const status = await window.AleemFinNative.biometricAvailability();
-        if (status && status.available && !status.supported) { alert("Face ID / Touch ID is not available on this iPhone."); return; }
-      }
-      updateSettings({ biometricEnabled: true });
-    };
     const dataSize = new Blob([JSON.stringify({
     accounts,
     assets,
@@ -292,22 +283,13 @@
     h(SettingsRow, { icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." }, IOSSwitch({ checked: settings.hapticsEnabled !== false, onChange: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), label: "Haptic feedback" })),
     h(SettingsRow, { icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." }, IOSSwitch({ checked: settings.soundEnabled === true, onChange: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), label: "Action sounds" }))
   ))
- , h(SettingsSection, { title: "Security", subtitle: "Choose how AleemFin should protect your financial information on iPhone." }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconSettings, title: "Face ID / Touch ID", detail: settings.biometricEnabled === true ? (nativeIOS ? "Enabled · Face ID / Touch ID is ready on this iPhone." : "Enabled · Native authentication will activate in the iOS app.") : "Use Face ID or Touch ID to unlock AleemFin." }, IOSSwitch({ checked: settings.biometricEnabled === true, onChange: toggleBiometrics, label: "Face ID or Touch ID" })),
-    settings.biometricEnabled === true && h(SettingsRow, { icon: Icons.IconTune, title: "Authentication timing", detail: "Choose when AleemFin should ask for biometric authentication." }, h("select", { value: settings.biometricAuthTiming || "immediately", onChange: e => updateSettings({ biometricAuthTiming: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` }, h("option", { value: "immediately" }, "Immediately"), h("option", { value: "1m" }, "After 1 minute"), h("option", { value: "5m" }, "After 5 minutes"), h("option", { value: "never" }, "Never"))),
-    h(SettingsRow, { icon: Icons.IconSettings, title: "Lock when app leaves AleemFin", detail: settings.lockOnBackground !== false ? "AleemFin locks when it moves into the background." : "AleemFin stays unlocked when you leave the app." }, IOSSwitch({ checked: settings.lockOnBackground !== false, onChange: () => updateSettings({ lockOnBackground: settings.lockOnBackground === false }), label: "Lock when app leaves AleemFin" })),
-    h(SettingsRow, { icon: Icons.IconSettings, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · PIN can be used as a local fallback." : "Optional local PIN fallback for the security layer." }, h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up"))
-  )), h(SettingsSection, { title: "Notifications", subtitle: "Choose which AleemFin reminders and alerts you want to receive." }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconTune, title: "Allow notifications", detail: settings.notificationsEnabled === true ? "Notifications are enabled in AleemFin." : "Turn on notifications to prepare AleemFin reminders." }, IOSSwitch({ checked: settings.notificationsEnabled === true, onChange: async () => { const next = settings.notificationsEnabled !== true; if (next && window.AleemFinNative && window.AleemFinNative.requestNotificationPermission) { const result = await window.AleemFinNative.requestNotificationPermission(); if (result && result.available && result.result && result.result.display === "denied") return; } updateSettings({ notificationsEnabled: next }); }, label: "Allow notifications" })),
-    settings.notificationsEnabled === true && h("div", { className: "space-y-2" },
-      h(SettingsRow, { icon: Icons.IconTune, title: "Loan reminders", detail: "Upcoming repayments and due dates." }, IOSSwitch({ checked: settings.loanReminders !== false, onChange: () => updateSettings({ loanReminders: settings.loanReminders === false }), label: "Loan reminders" })),
-      h(SettingsRow, { icon: Icons.IconTune, title: "Budget warnings", detail: "Warnings when spending approaches or exceeds a budget." }, IOSSwitch({ checked: settings.budgetWarnings !== false, onChange: () => updateSettings({ budgetWarnings: settings.budgetWarnings === false }), label: "Budget warnings" })),
-      h(SettingsRow, { icon: Icons.IconTune, title: "Goal reminders", detail: "Helpful reminders for active savings goals." }, IOSSwitch({ checked: settings.goalReminders !== false, onChange: () => updateSettings({ goalReminders: settings.goalReminders === false }), label: "Goal reminders" })),
-      h(SettingsRow, { icon: Icons.IconTune, title: "Recurring transactions", detail: "Reminders for upcoming recurring entries." }, IOSSwitch({ checked: settings.recurringReminders !== false, onChange: () => updateSettings({ recurringReminders: settings.recurringReminders === false }), label: "Recurring transaction reminders" })),
-      h(SettingsRow, { icon: Icons.IconTune, title: "Exchange-rate alerts", detail: "Optional alerts for exchange-rate changes." }, IOSSwitch({ checked: settings.exchangeRateAlerts === true, onChange: () => updateSettings({ exchangeRateAlerts: settings.exchangeRateAlerts !== true }), label: "Exchange-rate alerts" })),
-      h(SettingsRow, { icon: Icons.IconTune, title: "Reminder time", detail: "Preferred time for daily AleemFin reminders." }, h("input", { type: "time", value: settings.notificationTime || "09:00", onChange: e => updateSettings({ notificationTime: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` }))
-    )
-  )), h(SettingsSection, {
+, h(SettingsSection, { title: "Security" }, h("div", { className: "space-y-2" },
+    h(SettingsRow, { icon: Icons.IconSettings, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : "Use Face ID / Touch ID to unlock AleemFin on supported devices." }, IOSSwitch({ checked: settings.biometricEnabled === true, onChange: async () => {
+      if (settings.biometricEnabled === true) { updateSettings({ biometricEnabled: false }); return; }
+      const ok = await (typeof window.__aleemFinAuthenticateBiometric === "function" ? window.__aleemFinAuthenticateBiometric() : false);
+      if (ok) updateSettings({ biometricEnabled: true });
+    }, label: "Biometrics" })),
+    h(SettingsRow, { icon: Icons.IconSettings, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." }, h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up")))), h(SettingsSection, {
     title: "App"
   }, h("div", {
     className: "settings-plain-info"
