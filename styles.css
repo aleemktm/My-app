@@ -1408,7 +1408,7 @@ html.dark .ios-security-lock-input{background:#18181b;border-color:rgba(255,255,
 
 
 /* Dynamic app-wide accent system — selected in Settings and applied across every tab. */
-:root { --af-accent: #1DBF73; }
+:root { --af-accent: #14B8A6; }
 html[data-af-accent="emerald"] { --af-accent: #1DBF73; }
 html[data-af-accent="teal"] { --af-accent: #14B8A6; }
 html[data-af-accent="blue"] { --af-accent: #3B82F6; }
@@ -1437,3 +1437,105 @@ html[data-af-accent="rose"] { --af-accent: #F43F5E; }
 .home-empty-icon, .asset-row-icon { background: color-mix(in srgb, var(--af-accent) 10%, transparent) !important; }
 .assets-apply { background: color-mix(in srgb, var(--af-accent) 12%, transparent) !important; }
 .asset-row-progress span { background: var(--af-accent) !important; }
+
+
+/* Accent refinement: financial meaning colors stay fixed while controls follow the selected accent. */
+:root,
+html[data-af-accent="emerald"],
+html[data-af-accent="teal"],
+html[data-af-accent="blue"],
+html[data-af-accent="violet"],
+html[data-af-accent="amber"],
+html[data-af-accent="rose"] {
+  --af-green: #1DBF73 !important;
+}
+
+/* Accent-controlled buttons keep their label/icon color in sync with the control. */
+.af-accent-solid,
+.af-accent-solid * {
+  color: #fff !important;
+}
+
+/* Accent-controlled navigation: do not hard-code the semantic green here. */
+.mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+.mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  background: color-mix(in srgb, var(--af-accent) 16%, transparent) !important;
+  color: var(--af-accent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 10%, transparent),
+              0 2px 10px color-mix(in srgb, var(--af-accent) 10%, transparent) !important;
+}
+html.dark .mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+html.dark .mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  background: color-mix(in srgb, var(--af-accent) 20%, transparent) !important;
+  color: var(--af-accent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 12%, transparent),
+              0 2px 12px color-mix(in srgb, var(--af-accent) 14%, transparent) !important;
+}
+.mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active .mobile-nav-icon-active,
+.mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active .mobile-nav-icon-active {
+  color: var(--af-accent) !important;
+}
+.mobile-nav-swipe .mobile-nav-tab:not(.mobile-nav-tab-active):hover,
+.mobile-settings-fixed .mobile-nav-tab:not(.mobile-nav-tab-active):hover {
+  color: var(--af-accent) !important;
+}
+
+/* Loan action controls are accent controls, not financial inflow/outflow values. */
+.loan-text-action-repay {
+  color: var(--af-accent) !important;
+  border-color: color-mix(in srgb, var(--af-accent) 24%, transparent) !important;
+}
+html.dark .loan-text-action-repay {
+  color: color-mix(in srgb, var(--af-accent) 72%, white) !important;
+  border-color: color-mix(in srgb, var(--af-accent) 24%, transparent) !important;
+}
+
+
+/* Accent picker: compact circular swatches with a clear selected state. */
+.settings-accent-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 4px 2px 2px;
+}
+.settings-accent-option {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--af-label) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 2px !important;
+  border-radius: 14px !important;
+}
+.settings-accent-option:focus-visible {
+  outline: 2px solid var(--af-accent) !important;
+  outline-offset: 2px;
+}
+.settings-accent-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: block;
+  box-shadow: 0 0 0 2px var(--af-surface-solid), 0 0 0 3px var(--af-separator);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.settings-accent-option.is-selected .settings-accent-swatch {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px var(--af-surface-solid),
+              0 0 0 4px var(--af-accent);
+}
+.settings-accent-label {
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--af-secondary);
+}
+.settings-accent-option.is-selected .settings-accent-label {
+  color: var(--af-accent) !important;
+}

@@ -174,18 +174,6 @@ var toLocalISO = d => {
 };
 var todayISO = () => toLocalISO(/* @__PURE__ */new Date());
 var ACCENT_PALETTE = {
-  emerald: {
-    name: "Emerald",
-    grad: "from-emerald-500 to-teal-400 af-accent-grad",
-    text: "text-emerald-500 af-accent-text",
-    text400: "text-emerald-400 af-accent-text400",
-    textStrong: "text-emerald-600 af-accent-textStrong",
-    solidBtn: "bg-emerald-600 hover:bg-emerald-500 af-accent-solid",
-    activeBg: "bg-emerald-500/15 af-accent-bg15",
-    activeBg10: "bg-emerald-500/10 af-accent-bg10",
-    activeBg20: "bg-emerald-500/20 af-accent-bg20",
-    swatch: "bg-emerald-500"
-  },
   teal: {
     name: "Teal",
     grad: "from-teal-500 to-cyan-400 af-accent-grad",
@@ -233,18 +221,6 @@ var ACCENT_PALETTE = {
     activeBg10: "bg-amber-500/10 af-accent-bg10",
     activeBg20: "bg-amber-500/20 af-accent-bg20",
     swatch: "bg-amber-500"
-  },
-  rose: {
-    name: "Rose",
-    grad: "from-rose-500 to-pink-400 af-accent-grad",
-    text: "text-rose-500 af-accent-text",
-    text400: "text-rose-400 af-accent-text400",
-    textStrong: "text-rose-600 af-accent-textStrong",
-    solidBtn: "bg-rose-600 hover:bg-rose-500 af-accent-solid",
-    activeBg: "bg-rose-500/15 af-accent-bg15",
-    activeBg10: "bg-rose-500/10 af-accent-bg10",
-    activeBg20: "bg-rose-500/20 af-accent-bg20",
-    swatch: "bg-rose-500"
   }
 };
 var NAV_ITEMS = [{
@@ -289,7 +265,7 @@ var NAV_ITEMS = [{
 const SETTINGS_KEY = "aleemfin_settings_v1";
 const DEFAULT_SETTINGS = {
   theme: "dark",
-  accentColor: "emerald",
+  accentColor: "teal",
   heroMetric: "liquid",
   dashboardCards: ["accounts", "vault", "loans", "analytics"],
   hiddenDashboardCards: [],
@@ -312,14 +288,19 @@ const DEFAULT_SETTINGS = {
 const [settings, setSettings] = useState(() => {
   try {
     const saved = localStorage.getItem(SETTINGS_KEY);
-    if (saved) return {
-      ...DEFAULT_SETTINGS,
-      ...JSON.parse(saved),
-      customCategories: {
-        ...DEFAULT_SETTINGS.customCategories,
-        ...(JSON.parse(saved).customCategories || {})
-      }
-    };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const legacyAccent = parsed.accentColor === "emerald" || parsed.accentColor === "rose" || parsed.accentColor === "red";
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        accentColor: legacyAccent ? "teal" : parsed.accentColor,
+        customCategories: {
+          ...DEFAULT_SETTINGS.customCategories,
+          ...(parsed.customCategories || {})
+        }
+      };
+    }
   } catch (e) {}
   return DEFAULT_SETTINGS;
 });
@@ -355,7 +336,7 @@ React.useEffect(() => {
 }, [settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
-const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.emerald;
+const accent = ACCENT_PALETTE[settings.accentColor] || ACCENT_PALETTE.teal;
 const cleanedPrimaryNavIds = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.filter(id => id !== "recurring") : DEFAULT_SETTINGS.primaryNavIds;
 const primaryNavIds = cleanedPrimaryNavIds.length === 4 ? cleanedPrimaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
 const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
