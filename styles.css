@@ -1310,3 +1310,42 @@ html.dark .ledger-account-from,html.dark .ledger-account-to,.ledger-statement-da
 /* Ledger account direction labels: match Available balance styling exactly. */
 .ledger-account-chip.ledger-account-from, .ledger-account-chip.ledger-account-to { color:#8e8e93 !important; background:transparent !important; border:0 !important; padding:0 !important; font-size:9px !important; font-weight:600 !important; }
 html.dark .ledger-account-chip.ledger-account-from, html.dark .ledger-account-chip.ledger-account-to { color:#8e8e93 !important; }
+
+/* v26 refinements: compact transaction hierarchy, native settings switches, and unified Settings sheets. */
+.ledger-card-compact{display:flex;flex-direction:column;gap:7px;min-width:0}
+.ledger-card-topline,.ledger-card-bottomline{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:12px;min-width:0}
+.ledger-card-title-wrap{min-width:0}
+.ledger-card-title-wrap h3{max-width:100%}
+.ledger-card-bottomline{min-height:15px}
+.ledger-card-bottomline .ledger-account-chip,.ledger-card-bottomline .ledger-available-balance{align-self:center}
+.ledger-account-chip{background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;color:#8e8e93!important;font-size:9px!important;font-weight:600!important;line-height:1.2!important;white-space:nowrap}
+html.dark .ledger-account-chip{color:#8e8e93!important}
+.ledger-available-right{justify-self:end;text-align:right}
+
+/* Solid light-mode surface so the Dashboard Cards sheet never looks transparent. */
+.ios-dashboard-cards-panel:not(.is-dark){background:#fff!important;color:#18181b!important}
+.ios-dashboard-cards-panel.is-dark{background:#18181b!important;color:#f2f2f7!important}
+.ios-dashboard-cards-backdrop{z-index:1000000!important}
+.ios-dashboard-cards-sheet{z-index:1000001!important}
+
+/* Native iOS-style Settings switches. */
+.ios-settings-switch{position:relative;display:inline-flex;align-items:center;width:51px;height:31px;padding:2px;border:0;border-radius:999px;background:#78788066;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);transition:background .22s ease,box-shadow .22s ease;flex:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ios-settings-switch.is-on{background:#34c759;box-shadow:none}
+.ios-settings-switch-thumb{display:block;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.22),0 .5px 1px rgba(0,0,0,.12);transform:translateX(0);transition:transform .22s cubic-bezier(.22,1,.36,1)}
+.ios-settings-switch.is-on .ios-settings-switch-thumb{transform:translateX(20px)}
+html.dark .ios-settings-switch.is-off{background:#636366}
+
+/* Manage Categories uses the same native sheet treatment as the other Settings sheets. */
+.ios-settings-sheet-backdrop{position:fixed;inset:0;z-index:1000002;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.42);backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);touch-action:none;animation:iosSettingsSheetBackdropIn .30s ease both}
+.ios-settings-sheet-backdrop.is-closing{animation:iosSettingsSheetBackdropOut .28s ease both;pointer-events:none}
+.ios-settings-sheet{width:100%;max-width:560px;transform:translate3d(0,var(--sheet-offset,0px),0);transition:transform .38s cubic-bezier(.22,1,.36,1);will-change:transform;touch-action:pan-y;overflow:hidden;border-radius:30px 30px 0 0;z-index:1000003}
+.ios-settings-sheet.is-closing{transform:translate3d(0,106%,0);transition:transform .34s cubic-bezier(.32,.72,0,1)}
+.ios-settings-sheet-panel{background:#fff;color:#18181b;border:1px solid rgba(0,0,0,.08);border-bottom:0;border-radius:30px 30px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.18);padding:12px 16px calc(20px + env(safe-area-inset-bottom));max-height:min(82dvh,720px);display:flex;flex-direction:column;overflow:hidden}
+.ios-settings-sheet-panel.is-dark{background:#18181b;color:#f2f2f7;border-color:rgba(255,255,255,.08);box-shadow:0 -20px 65px rgba(0,0,0,.5)}
+.ios-settings-sheet-handle{width:38px;height:5px;border-radius:999px;background:rgba(142,142,147,.38);margin:0 auto 14px;flex:none}
+.ios-settings-sheet-scroll{min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 1px 4px}
+.ios-settings-sheet-scroll button,.ios-settings-sheet-scroll input{touch-action:manipulation}
+@media(min-width:768px){.ios-settings-sheet-backdrop{align-items:center;padding:24px;background:rgba(0,0,0,.52);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.ios-settings-sheet{max-width:520px}.ios-settings-sheet-panel{border:1px solid rgba(0,0,0,.08);border-radius:30px;max-height:min(78vh,680px)}.ios-settings-sheet-panel.is-dark{border-color:rgba(255,255,255,.08)}}
+@keyframes iosSettingsSheetBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes iosSettingsSheetBackdropOut{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.ios-settings-sheet-backdrop,.ios-settings-sheet,.ios-settings-switch,.ios-settings-switch-thumb{transition:none!important;animation:none!important}}

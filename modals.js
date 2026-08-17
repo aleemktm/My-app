@@ -186,6 +186,86 @@
     );
   }
 
+  function CategoryManagerSheet(props) {
+    const { DEFAULT_SETTINGS, accent, addCategory, categoryName, categoryType, darkMode, inputCls, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, settings, subCardCls } = props;
+    const [closing, setClosing] = React.useState(false);
+    const [offsetY, setOffsetY] = React.useState(0);
+    const startY = React.useRef(0);
+    const startX = React.useRef(0);
+    const dragging = React.useRef(false);
+    const dragActive = React.useRef(false);
+    const closeTimer = React.useRef(null);
+    const categories = settings.customCategories || DEFAULT_SETTINGS.customCategories;
+    const dismiss = React.useCallback(() => {
+      if (closing) return;
+      setClosing(true);
+      setOffsetY(0);
+      closeTimer.current = setTimeout(() => setCategoryManagerOpen(false), 320);
+    }, [closing, setCategoryManagerOpen]);
+    React.useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+    const onPointerDown = e => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      startY.current = e.clientY; startX.current = e.clientX;
+      dragging.current = true; dragActive.current = false;
+    };
+    const onPointerMove = e => {
+      if (!dragging.current || closing) return;
+      const dy = e.clientY - startY.current, dx = e.clientX - startX.current;
+      if (!dragActive.current) {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { dragging.current = false; return; }
+        if (dy < 8) return;
+        dragActive.current = true;
+      }
+      if (dy <= 0) { setOffsetY(0); return; }
+      setOffsetY(Math.min(280, dy));
+      if (e.cancelable) e.preventDefault();
+      if (e.currentTarget.setPointerCapture && e.pointerId != null) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} }
+    };
+    const onPointerUp = e => {
+      if (!dragging.current) return;
+      const dy = e.clientY - startY.current;
+      const wasDragging = dragActive.current;
+      dragging.current = false; dragActive.current = false;
+      if (wasDragging && dy > 82) dismiss(); else if (wasDragging) setOffsetY(0);
+    };
+    return ReactDOM.createPortal(
+      React.createElement("div", {
+        className: `ios-settings-sheet-backdrop ${closing ? "is-closing" : ""}`,
+        onClick: e => { if (e.target === e.currentTarget) dismiss(); },
+        style: { touchAction: "none" }
+      },
+        React.createElement("div", {
+          className: `ios-settings-sheet ${closing ? "is-closing" : ""}`,
+          style: { "--sheet-offset": `${offsetY}px`, touchAction: "pan-y" },
+          onClick: e => e.stopPropagation(), onPointerDown, onPointerMove, onPointerUp,
+          onPointerCancel: () => { dragging.current = false; dragActive.current = false; setOffsetY(0); }
+        },
+          React.createElement("div", { className: `ios-settings-sheet-panel ${darkMode ? "is-dark" : ""}` },
+            React.createElement("div", { className: "ios-settings-sheet-handle" }),
+            React.createElement("div", { className: "flex items-start justify-between gap-3 px-1 pb-3" },
+              React.createElement("div", { className: "min-w-0" },
+                React.createElement("h3", { className: "text-sm font-bold" }, "Manage categories"),
+                React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Add or remove your income and expense categories.")
+              ),
+              React.createElement("button", { type: "button", onClick: dismiss, className: `w-9 h-9 rounded-full flex items-center justify-center ${darkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`, "aria-label": "Close" }, React.createElement(Icons.IconClose, { className: "w-4 h-4" }))
+            ),
+            React.createElement("div", { className: "ios-settings-sheet-scroll" },
+              React.createElement("div", { className: "flex gap-2 mb-3" }, ["expense", "income"].map(type => React.createElement("button", { key: type, type: "button", onClick: () => setCategoryType(type), className: `flex-1 py-2.5 rounded-xl text-xs font-bold capitalize ${categoryType === type ? `${accent.activeBg} ${accent.textStrong}` : darkMode ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"}` }, type))),
+              React.createElement("div", { className: "space-y-2" }, (categories[categoryType] || []).map(name => React.createElement("div", { key: name, className: `px-3.5 py-3 rounded-2xl flex items-center justify-between ${darkMode ? "bg-zinc-950" : "bg-zinc-50"}` },
+                React.createElement("span", { className: "text-xs font-semibold" }, name),
+                React.createElement("button", { type: "button", onClick: () => removeCategory(categoryType, name), className: "w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-rose-500", title: `Remove ${name}` }, React.createElement(Icons.IconTrash, { className: "w-4 h-4" }))
+              ))),
+              React.createElement("form", { onSubmit: addCategory, className: "flex gap-2 pt-2 pb-1" },
+                React.createElement("input", { value: categoryName, onChange: e => setCategoryName(e.target.value), placeholder: "New category", className: `${inputCls} flex-1` }),
+                React.createElement("button", { type: "submit", className: `px-4 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Add")
+              )
+            )
+          )
+        )
+      ), document.body
+    );
+  }
+
   function DeleteConfirm(props) {
     const { confirmDelete, darkMode, deleteTarget, setDeleteTarget } = props;
     return /* @__PURE__ */React.createElement("div", {
@@ -770,6 +850,7 @@
   window.Modals = window.Modals || {};
   window.Modals.MoreSheet = MoreSheet;
   window.Modals.DashboardCardsSheet = DashboardCardsSheet;
+  window.Modals.CategoryManagerSheet = CategoryManagerSheet;
   window.Modals.DeleteConfirm = DeleteConfirm;
   window.Modals.RatesModal = RatesModal;
   window.Modals.RepaymentModal = RepaymentModal;

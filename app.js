@@ -2077,22 +2077,26 @@ const renderTxRow = tx => {
   const isInflow = tx.type === "income" || (tx.type === "transfer" && statementMeta?.toAccount && String(tx.toAccountId) === String(statementMeta.toAccount.id));
   const availableBalance = statementMeta?.account ? (isInflow && statementMeta.toBalance != null ? statementMeta.toBalance : statementMeta.balance) : null;
   const content = React.createElement("div", {
-    className: `p-3.5 rounded-2xl border flex justify-between items-center text-xs ${subCardCls}`
-  }, React.createElement("div", null, React.createElement("div", {
-    className: "flex items-center gap-2"
-  }, React.createElement("span", {
-    className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`,
-    title: tx.category,
-    "aria-label": tx.category
-  }, React.createElement((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })), React.createElement("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category), React.createElement("span", { className: "text-[10px] text-zinc-400" }, dateFmt(tx.date))),
-  React.createElement("p", { className: "font-bold mt-1 text-sm" }, tx.title),
-  statementMeta?.account && React.createElement("span", { className: `ledger-account-chip ${isInflow ? "ledger-account-to" : "ledger-account-from"} home-tx-account` },
-    `${isInflow ? "to" : "from"} a/c ${statementMeta.account.name}`)),
-  React.createElement("div", { className: "ledger-amount-stack" },
-    React.createElement("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` },
-      tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount)),
-    availableBalance != null && React.createElement("span", { className: "ledger-available-balance ledger-available-right" },
-      `Available ${statementMeta.account.currency} ${numFmt(availableBalance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)));
+    className: `p-3.5 rounded-2xl border ${subCardCls} ledger-card-compact`
+  },
+    React.createElement("div", { className: "ledger-card-topline" },
+      React.createElement("div", { className: "ledger-card-title-wrap" },
+        React.createElement("div", { className: "flex items-center gap-2 min-w-0" },
+          React.createElement("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, React.createElement((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })),
+          React.createElement("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
+          React.createElement("span", { className: "text-[10px] text-zinc-400 shrink-0" }, dateFmt(tx.date))
+        ),
+        React.createElement("p", { className: "font-bold mt-1 text-sm truncate" }, tx.title)
+      ),
+      React.createElement("div", { className: "ledger-amount-stack" },
+        React.createElement("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` }, tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount))
+      )
+    ),
+    React.createElement("div", { className: "ledger-card-bottomline" },
+      statementMeta?.account ? React.createElement("span", { className: "ledger-account-chip" }, `${isInflow ? "to" : "from"} a/c ${statementMeta.account.name}`) : React.createElement("span", null),
+      availableBalance != null ? React.createElement("span", { className: "ledger-available-balance ledger-available-right" }, `Available ${statementMeta.account.currency} ${numFmt(availableBalance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : React.createElement("span", null)
+    )
+  );
   if (isTransfer) return React.createElement("div", { key: tx.id, className: "swipe-row" }, React.createElement("div", { className: "swipe-content" }, content));
   return React.createElement(SwipeRow, {
     key: tx.id,
@@ -2525,7 +2529,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         className: "text-[10px] leading-none"
       }, "Settings"));
     })()))),
-moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps))
+moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), categoryManagerOpen && React.createElement(Modals.CategoryManagerSheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps))
     );
   }
 
