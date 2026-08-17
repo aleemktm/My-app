@@ -12,8 +12,8 @@ var {
 var hapticFeedback = function(duration) {
   try {
     if (window.__aleemFinHapticsEnabled === false) return;
-    if (window.AleemFinNative && typeof window.AleemFinNative.haptic === "function") {
-      window.AleemFinNative.haptic(duration >= 18 ? "heavy" : duration >= 12 ? "medium" : "light");
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.hapticFeedback) {
+      window.webkit.messageHandlers.hapticFeedback.postMessage({ duration: duration || 10 });
       return;
     }
     if (navigator && typeof navigator.vibrate === "function") navigator.vibrate(duration || 10);
@@ -285,15 +285,6 @@ const DEFAULT_SETTINGS = {
   soundEnabled: false,
   hapticsEnabled: true,
   biometricEnabled: false,
-  biometricAuthTiming: "immediately",
-  lockOnBackground: true,
-  notificationsEnabled: false,
-  loanReminders: true,
-  budgetWarnings: true,
-  goalReminders: true,
-  recurringReminders: true,
-  exchangeRateAlerts: false,
-  notificationTime: "09:00",
   pinLockEnabled: false,
   pinHash: "",
   showGreeting: true,
@@ -337,6 +328,26 @@ const updateSettings = partial => {
     return next;
   });
 };
+const authenticateBiometric = async () => {
+  try {
+    // Capacitor plugin path (native iOS/Android).
+    const plugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BiometricAuth;
+    if (plugin && typeof plugin.authenticate === "function") {
+      await plugin.authenticate({ reason: "Unlock AleemFin securely." });
+      return true;
+    }
+    // Optional native WebKit bridge for the iOS host app.
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.biometricAuth) {
+      window.webkit.messageHandlers.biometricAuth.postMessage({ reason: "Unlock AleemFin securely." });
+      return true;
+    }
+  } catch (e) {
+    return false;
+  }
+  return false;
+};
+window.__aleemFinAuthenticateBiometric = authenticateBiometric;
+
 const hashPin = async pin => {
   const value = String(pin || "");
   if (window.crypto && window.crypto.subtle) {
@@ -349,39 +360,15 @@ const hashPin = async pin => {
   return (hash >>> 0).toString(16);
 };
 React.useEffect(() => {
-  let hiddenAt = 0;
-  let active = true;
-  const syncNativePresentation = () => {
-    if (window.AleemFinNative && typeof window.AleemFinNative.setStatusBar === "function") {
-      window.AleemFinNative.setStatusBar(!!darkMode);
-    }
-    if (window.AleemFinNative && typeof window.AleemFinNative.setKeyboardResizeMode === "function") {
-      window.AleemFinNative.setKeyboardResizeMode();
-    }
-  };
-  syncNativePresentation();
-  const onVisibility = async () => {
-    if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
-    if (document.visibilityState !== "visible") return;
-    const elapsed = hiddenAt ? Date.now() - hiddenAt : 0;
-    const biometricTiming = settings.biometricAuthTiming || "immediately";
-    const timingMs = biometricTiming === "1m" ? 60000 : biometricTiming === "5m" ? 300000 : 0;
-    const shouldLock = settings.lockOnBackground && biometricTiming !== "never" && (biometricTiming === "immediately" || elapsed >= timingMs);
-    if (!shouldLock) return;
-    if (settings.biometricEnabled === true && window.AleemFinNative && window.AleemFinNative.isNativeIOS && window.AleemFinNative.isNativeIOS()) {
+  const onVisibility = () => {
+    if (document.visibilityState === "visible" && (settings.pinLockEnabled && settings.pinHash || settings.biometricEnabled)) {
       setSecurityLocked(true);
-      return;
     }
-    if (settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
   };
   document.addEventListener("visibilitychange", onVisibility);
-  window.addEventListener("pageshow", syncNativePresentation);
-  return () => {
-    active = false;
-    document.removeEventListener("visibilitychange", onVisibility);
-    window.removeEventListener("pageshow", syncNativePresentation);
-  };
-}, [darkMode, settings.lockOnBackground, settings.biometricAuthTiming, settings.biometricEnabled, settings.pinLockEnabled, settings.pinHash]);
+  return () => document.removeEventListener("visibilitychange", onVisibility);
+}, [settings.pinLockEnabled, settings.pinHash, settings.biometricEnabled]);
+
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
 const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";
@@ -789,6 +776,19 @@ const [securityLocked, setSecurityLocked] = useState(() => {
     return !!(saved && saved.pinLockEnabled && saved.pinHash);
   } catch (_) { return false; }
 });
+React.useEffect(() => {
+  if (!securityLocked || !settings.biometricEnabled) return;
+  let cancelled = false;
+  (async () => {
+    const ok = await authenticateBiometric();
+    if (ok && !cancelled) {
+      setSecurityLocked(false);
+      hapticFeedback(18);
+      actionSound("success");
+    }
+  })();
+  return () => { cancelled = true; };
+}, [securityLocked, settings.biometricEnabled]);
 const [dangerAction, setDangerAction] = useState(null);
 const [planningEditor, setPlanningEditor] = useState(null);
 const [budgetForm, setBudgetForm] = useState({
@@ -2461,7 +2461,7 @@ const toggleDashboardCardForSheet = id => {
   if (selectedDashboardCardsForSheet.includes(id)) updateSettings({ dashboardCards: selectedDashboardCardsForSheet.filter(cardId => cardId !== id) });
   else if (selectedDashboardCardsForSheet.length < 4) updateSettings({ dashboardCards: [...selectedDashboardCardsForSheet, id] });
 };
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
