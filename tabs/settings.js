@@ -2,7 +2,7 @@
 // and SettingsRow are bundled in since they were only ever used here).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
     const SettingsSection = ({
     title,
     children,
@@ -202,7 +202,10 @@
   }, h("div", { className: "space-y-2" },
     h(SettingsRow, { icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." }, IOSSwitch({ checked: settings.hapticsEnabled !== false, onChange: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), label: "Haptic feedback" })),
     h(SettingsRow, { icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." }, IOSSwitch({ checked: settings.soundEnabled === true, onChange: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), label: "Action sounds" }))
-  )), h(SettingsSection, {
+  ))
+, h(SettingsSection, { title: "Security" }, h("div", { className: "space-y-2" },
+    h(SettingsRow, { icon: Icons.IconSettings, title: "Biometrics", detail: "Face ID / Touch ID. Native authentication will be connected through Capacitor/Xcode." }, IOSSwitch({ checked: settings.biometricEnabled === true, onChange: () => updateSettings({ biometricEnabled: settings.biometricEnabled !== true }), label: "Biometrics" })),
+    h(SettingsRow, { icon: Icons.IconSettings, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." }, h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up")))), h(SettingsSection, {
     title: "App"
   }, h("div", {
     className: "settings-plain-info"
