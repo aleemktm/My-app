@@ -14,7 +14,12 @@
       const h = plugins && plugins.Haptics;
       if (h) {
         const style = kind === "heavy" || kind === "delete" ? "HEAVY" : kind === "medium" ? "MEDIUM" : "LIGHT";
-        if (h.impact) { await h.impact({ style }); return; }
+        if (h.impact) {
+          // Capacitor Haptics uses ImpactStyle enum values. String values are
+          // accepted by the JS bridge in current Capacitor releases.
+          await h.impact({ style });
+          return;
+        }
         if (h.vibrate) { await h.vibrate({ duration: kind === "heavy" ? 25 : 10 }); return; }
       }
       if (navigator && typeof navigator.vibrate === "function") navigator.vibrate(kind === "heavy" ? 25 : 10);
@@ -24,6 +29,11 @@
   const getBiometricPlugin = () => {
     const plugins = getPlugins();
     return plugins && (plugins.BiometricAuth || plugins.Biometrics || plugins.BiometricAuthentication);
+  };
+
+  const getPlugin = (name) => {
+    const plugins = getPlugins();
+    return plugins && plugins[name];
   };
 
   const isNativeIOS = () => {
@@ -57,7 +67,12 @@
         if (!plugin) return { available: false, supported: false };
         if (plugin.checkBiometry) {
           const result = await plugin.checkBiometry();
-          return { available: true, supported: result && result.isAvailable !== false, result };
+          return {
+            available: true,
+            supported: !!(result && result.isAvailable),
+            biometryType: result && result.biometryType,
+            result
+          };
         }
         return { available: true, supported: true };
       } catch (error) { return { available: true, supported: false, error }; }
@@ -67,11 +82,45 @@
     },
     async requestNotifications() {
       try {
-        const plugins = getPlugins();
-        const notifications = plugins && plugins.LocalNotifications;
+        const notifications = getPlugin("LocalNotifications");
         if (!notifications || !notifications.requestPermissions) return { available: false };
         return { available: true, result: await notifications.requestPermissions() };
       } catch (error) { return { available: true, error }; }
+    },
+    async notificationPermissionState() {
+      try {
+        const notifications = getPlugin("LocalNotifications");
+        if (!notifications || !notifications.checkPermissions) return { available: false };
+        return { available: true, result: await notifications.checkPermissions() };
+      } catch (error) { return { available: true, error }; }
+    },
+    async setStatusBar(dark) {
+      try {
+        const statusBar = getPlugin("StatusBar");
+        if (!statusBar) return { available: false };
+        const style = dark ? "DARK" : "LIGHT";
+        if (statusBar.setStyle) await statusBar.setStyle({ style });
+        if (statusBar.setOverlaysWebView) await statusBar.setOverlaysWebView({ overlay: true });
+        return { available: true };
+      } catch (error) { return { available: true, error }; }
+    },
+    async setKeyboardResizeMode() {
+      try {
+        const keyboard = getPlugin("Keyboard");
+        if (!keyboard || !keyboard.setResizeMode) return { available: false };
+        return { available: true, result: await keyboard.setResizeMode({ mode: "body" }) };
+      } catch (error) { return { available: true, error }; }
+    },
+    async getNativeState() {
+      return {
+        ios: isNativeIOS(),
+        capacitor: !!getCapacitor(),
+        haptics: !!getPlugin("Haptics"),
+        biometrics: !!getBiometricPlugin(),
+        notifications: !!getPlugin("LocalNotifications"),
+        statusBar: !!getPlugin("StatusBar"),
+        keyboard: !!getPlugin("Keyboard")
+      };
     }
   };
 })();

@@ -350,13 +350,23 @@ const hashPin = async pin => {
 };
 React.useEffect(() => {
   let hiddenAt = 0;
+  let active = true;
+  const syncNativePresentation = () => {
+    if (window.AleemFinNative && typeof window.AleemFinNative.setStatusBar === "function") {
+      window.AleemFinNative.setStatusBar(!!darkMode);
+    }
+    if (window.AleemFinNative && typeof window.AleemFinNative.setKeyboardResizeMode === "function") {
+      window.AleemFinNative.setKeyboardResizeMode();
+    }
+  };
+  syncNativePresentation();
   const onVisibility = async () => {
     if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
     if (document.visibilityState !== "visible") return;
     const elapsed = hiddenAt ? Date.now() - hiddenAt : 0;
     const biometricTiming = settings.biometricAuthTiming || "immediately";
     const timingMs = biometricTiming === "1m" ? 60000 : biometricTiming === "5m" ? 300000 : 0;
-    const shouldLock = settings.lockOnBackground && (timingMs === 0 || elapsed >= timingMs);
+    const shouldLock = settings.lockOnBackground && biometricTiming !== "never" && (biometricTiming === "immediately" || elapsed >= timingMs);
     if (!shouldLock) return;
     if (settings.biometricEnabled === true && window.AleemFinNative && window.AleemFinNative.isNativeIOS && window.AleemFinNative.isNativeIOS()) {
       setSecurityLocked(true);
@@ -365,8 +375,13 @@ React.useEffect(() => {
     if (settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
   };
   document.addEventListener("visibilitychange", onVisibility);
-  return () => document.removeEventListener("visibilitychange", onVisibility);
-}, [settings.lockOnBackground, settings.biometricAuthTiming, settings.biometricEnabled, settings.pinLockEnabled, settings.pinHash]);
+  window.addEventListener("pageshow", syncNativePresentation);
+  return () => {
+    active = false;
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pageshow", syncNativePresentation);
+  };
+}, [darkMode, settings.lockOnBackground, settings.biometricAuthTiming, settings.biometricEnabled, settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
 const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";
