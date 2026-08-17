@@ -357,11 +357,16 @@ React.useEffect(() => {
     const biometricTiming = settings.biometricAuthTiming || "immediately";
     const timingMs = biometricTiming === "1m" ? 60000 : biometricTiming === "5m" ? 300000 : 0;
     const shouldLock = settings.lockOnBackground && (timingMs === 0 || elapsed >= timingMs);
-    if (shouldLock && settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
+    if (!shouldLock) return;
+    if (settings.biometricEnabled === true && window.AleemFinNative && window.AleemFinNative.isNativeIOS && window.AleemFinNative.isNativeIOS()) {
+      setSecurityLocked(true);
+      return;
+    }
+    if (settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
   };
   document.addEventListener("visibilitychange", onVisibility);
   return () => document.removeEventListener("visibilitychange", onVisibility);
-}, [settings.lockOnBackground, settings.biometricAuthTiming, settings.pinLockEnabled, settings.pinHash]);
+}, [settings.lockOnBackground, settings.biometricAuthTiming, settings.biometricEnabled, settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
 const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";

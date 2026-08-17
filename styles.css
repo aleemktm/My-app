@@ -1586,3 +1586,31 @@ input, select, textarea { scroll-margin-top: calc(env(safe-area-inset-top, 0px) 
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .safe-x { padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px)); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+/* AleemFin v32 — iOS native-feeling interaction layer */
+html {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+body {
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+input, select, textarea {
+  scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 84px);
+  scroll-margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+}
+@supports (-webkit-touch-callout: none) {
+  body { -webkit-overflow-scrolling: touch; }
+}
+@media (orientation: landscape) {
+  .safe-x {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}

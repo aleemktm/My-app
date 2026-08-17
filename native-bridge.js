@@ -40,11 +40,30 @@
       try {
         const plugin = getBiometricPlugin();
         if (!plugin || !plugin.authenticate) return { available: false, success: false };
-        const result = await plugin.authenticate({ reason: reason || "Unlock AleemFin" });
+        let result;
+        try {
+          result = await plugin.authenticate({ reason: reason || "Unlock AleemFin" });
+        } catch (_) {
+          result = await plugin.authenticate();
+        }
         return { available: true, success: result && result.success !== false, result };
       } catch (error) {
         return { available: true, success: false, error };
       }
+    },
+    async biometricAvailability() {
+      try {
+        const plugin = getBiometricPlugin();
+        if (!plugin) return { available: false, supported: false };
+        if (plugin.checkBiometry) {
+          const result = await plugin.checkBiometry();
+          return { available: true, supported: result && result.isAvailable !== false, result };
+        }
+        return { available: true, supported: true };
+      } catch (error) { return { available: true, supported: false, error }; }
+    },
+    async requestNotificationPermission() {
+      return this.requestNotifications();
     },
     async requestNotifications() {
       try {

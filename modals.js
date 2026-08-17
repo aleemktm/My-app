@@ -354,6 +354,21 @@
     const [pin, setPin] = React.useState("");
     const [error, setError] = React.useState("");
     const [resetConfirm, setResetConfirm] = React.useState(false);
+    const [biometricBusy, setBiometricBusy] = React.useState(false);
+    const tryBiometric = async () => {
+      if (!settings.biometricEnabled || !window.AleemFinNative || typeof window.AleemFinNative.authenticate !== "function") return false;
+      setBiometricBusy(true);
+      try {
+        const result = await window.AleemFinNative.authenticate("Unlock AleemFin");
+        if (result && result.success) { setSecurityLocked(false); setPin(""); setError(""); return true; }
+      } finally { setBiometricBusy(false); }
+      return false;
+    };
+    React.useEffect(() => {
+      if (settings.biometricEnabled && window.AleemFinNative && window.AleemFinNative.isNativeIOS && window.AleemFinNative.isNativeIOS()) {
+        tryBiometric();
+      }
+    }, []);
     const unlock = async e => {
       e.preventDefault();
       if ((await hashPin(pin)) === settings.pinHash) { setSecurityLocked(false); setPin(""); setError(""); }
@@ -368,7 +383,8 @@
           React.createElement("form", { onSubmit:unlock, className:"mt-4 space-y-3" },
             React.createElement("input", { autoFocus:true, type:"password", inputMode:"numeric", maxLength:8, placeholder:"PIN", value:pin, onChange:e=>setPin(e.target.value.replace(/\\D/g,"").slice(0,8)), className:"ios-security-lock-input" }),
             error && React.createElement("p", { className:"text-xs text-rose-500 font-semibold" }, error),
-            React.createElement("button", { type:"submit", className:"ios-security-primary w-full" }, "Unlock")
+            settings.biometricEnabled && window.AleemFinNative && window.AleemFinNative.isNativeIOS && window.AleemFinNative.isNativeIOS() && React.createElement("button", { type:"button", onClick:tryBiometric, disabled:biometricBusy, className:"ios-security-primary w-full disabled:opacity-60" }, biometricBusy ? "Checking Face ID…" : "Unlock with Face ID"),
+            React.createElement("button", { type:"submit", className:"ios-security-action w-full" }, "Unlock with PIN")
           ),
           React.createElement("button", { type:"button", onClick:()=>setResetConfirm(true), className:"text-[9px] text-zinc-400 mt-3 text-center underline underline-offset-2" }, "Forgot PIN? Reset lock"), resetConfirm && React.createElement("div", { className:"mt-3 rounded-2xl border border-rose-500/15 bg-rose-500/5 p-3" }, React.createElement("p", { className:"text-[9px] text-zinc-400 text-left leading-relaxed" }, "Resetting removes the local PIN lock. Your financial data stays on this device."), React.createElement("div", { className:"flex gap-2 justify-end mt-2" }, React.createElement("button", { type:"button", onClick:()=>setResetConfirm(false), className:"ios-security-action" }, "Cancel"), React.createElement("button", { type:"button", onClick:()=>{updateSettings({pinLockEnabled:false,pinHash:""});setSecurityLocked(false);}, className:"ios-security-primary" }, "Reset Lock")))
         )
