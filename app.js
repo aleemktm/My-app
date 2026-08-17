@@ -12,8 +12,8 @@ var {
 var hapticFeedback = function(duration) {
   try {
     if (window.__aleemFinHapticsEnabled === false) return;
-    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.hapticFeedback) {
-      window.webkit.messageHandlers.hapticFeedback.postMessage({ duration: duration || 10 });
+    if (window.AleemFinNative && typeof window.AleemFinNative.haptic === "function") {
+      window.AleemFinNative.haptic(duration >= 18 ? "heavy" : duration >= 12 ? "medium" : "light");
       return;
     }
     if (navigator && typeof navigator.vibrate === "function") navigator.vibrate(duration || 10);
@@ -285,6 +285,15 @@ const DEFAULT_SETTINGS = {
   soundEnabled: false,
   hapticsEnabled: true,
   biometricEnabled: false,
+  biometricAuthTiming: "immediately",
+  lockOnBackground: true,
+  notificationsEnabled: false,
+  loanReminders: true,
+  budgetWarnings: true,
+  goalReminders: true,
+  recurringReminders: true,
+  exchangeRateAlerts: false,
+  notificationTime: "09:00",
   pinLockEnabled: false,
   pinHash: "",
   showGreeting: true,
@@ -340,12 +349,19 @@ const hashPin = async pin => {
   return (hash >>> 0).toString(16);
 };
 React.useEffect(() => {
-  const onVisibility = () => {
-    if (document.visibilityState === "visible" && settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
+  let hiddenAt = 0;
+  const onVisibility = async () => {
+    if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+    if (document.visibilityState !== "visible") return;
+    const elapsed = hiddenAt ? Date.now() - hiddenAt : 0;
+    const biometricTiming = settings.biometricAuthTiming || "immediately";
+    const timingMs = biometricTiming === "1m" ? 60000 : biometricTiming === "5m" ? 300000 : 0;
+    const shouldLock = settings.lockOnBackground && (timingMs === 0 || elapsed >= timingMs);
+    if (shouldLock && settings.pinLockEnabled && settings.pinHash) setSecurityLocked(true);
   };
   document.addEventListener("visibilitychange", onVisibility);
   return () => document.removeEventListener("visibilitychange", onVisibility);
-}, [settings.pinLockEnabled, settings.pinHash]);
+}, [settings.lockOnBackground, settings.biometricAuthTiming, settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
 const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";
