@@ -122,11 +122,14 @@
     role: "radiogroup",
     "aria-label": "Accent color"
   }, [
-    ["emerald", "#10B981", "Original"],
+    ["emerald", "#1DBF73", "Original"],
     ["teal", "#14B8A6", "Teal"],
     ["blue", "#3B82F6", "Blue"],
     ["violet", "#8B5CF6", "Violet"],
-    ["amber", "#F59E0B", "Amber"]
+    ["amber", "#F59E0B", "Amber"],
+    ["indigo", "#6366F1", "Indigo"],
+    ["sky", "#0EA5E9", "Sky"],
+    ["pink", "#EC4899", "Pink"]
   ].map(([id, color, label]) => h("button", {
     key: id,
     type: "button",
@@ -184,6 +187,35 @@
       title: "Greeting",
       detail: "Show the personalized greeting above the Home hero card."
     }, IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" }))
+  )), h(SettingsSection, {
+    title: "Navigation"
+  }, h("div", { className: "space-y-2" },
+    h("div", { className: `${subCardCls} p-3 rounded-2xl` },
+      h("div", { className: "flex items-center justify-between gap-3 mb-2" },
+        h("div", { className: "min-w-0" },
+          h("p", { className: "text-xs font-bold" }, "Bottom navigation"),
+          h("p", { className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed" }, "Choose the four destinations that stay one tap away on mobile.")),
+        h("span", { className: `shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-bold ${accent.activeBg10} ${accent.textStrong}` }, "4 slots")
+      ),
+      h("div", { className: "settings-nav-grid" }, [{id:"overview",label:"Home",icon:Icons.IconOverview},{id:"transactions",label:"Ledger",icon:Icons.IconLedger},{id:"accounts",label:"Accounts",icon:Icons.IconAccounts},{id:"vault",label:"Assets",icon:Icons.IconVault},{id:"loans",label:"Loans",icon:Icons.IconLoan},{id:"analytics",label:"Insights",icon:Icons.IconAnalytics},{id:"planning",label:"Planning",icon:Icons.IconTarget},{id:"rates",label:"FX & Convert",icon:Icons.IconRates}].map(item => {
+        const selected = Array.isArray(settings.primaryNavIds) && settings.primaryNavIds.includes(item.id);
+        const count = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.length : 4;
+        const disabled = !selected && count >= 4;
+        return h("button", {
+          key: item.id, type: "button",
+          disabled,
+          onClick: () => {
+            const current = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.filter(id => id !== "recurring") : DEFAULT_SETTINGS.primaryNavIds.slice();
+            if (selected) {
+              if (current.length > 1) updateSettings({ primaryNavIds: current.filter(id => id !== item.id) });
+            } else if (current.length < 4) {
+              updateSettings({ primaryNavIds: [...current, item.id] });
+            }
+          },
+          className: `settings-nav-choice ${selected ? "is-selected" : ""} ${disabled ? "is-disabled" : ""}`
+        }, h(item.icon, { className: "w-4 h-4" }), h("span", null, item.label));
+      }))
+    )
   ))
 , h(SettingsSection, {
     title: "Formats"
