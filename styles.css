@@ -1552,4 +1552,3 @@ html[data-af-accent="amber"] {
 }
 .home-positive, .insight-positive { color: var(--af-green) !important; }
 .home-negative, .insight-negative { color: var(--af-red) !important; }
-.home-account-dot { background: var(--af-green) !important; }

@@ -421,131 +421,169 @@
     );
   }
 
+  function LoanFormSheet(props) {
+    const {
+      accent, accounts, darkMode, inputCls, numFmt, title,
+      onSubmit, onClose, children, submitLabel
+    } = props;
+    const [offsetY, setOffsetY] = React.useState(0);
+    const [dragging, setDragging] = React.useState(false);
+    const [closing, setClosing] = React.useState(false);
+    const sheetRef = React.useRef(null);
+    const dragStart = React.useRef(null);
+    const closeTimer = React.useRef(null);
+
+    const dismiss = React.useCallback(() => {
+      if (closing) return;
+      setDragging(false);
+      setOffsetY(0);
+      setClosing(true);
+      closeTimer.current = setTimeout(() => onClose(), 320);
+    }, [closing, onClose]);
+
+    React.useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
+    React.useEffect(() => {
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+      const isInteractive = target => target && target.closest && target.closest("input, select, textarea, button, a");
+      const start = e => {
+        if (closing || !e.touches || e.touches.length !== 1 || isInteractive(e.target)) return;
+        const t = e.touches[0];
+        dragStart.current = { x: t.clientX, y: t.clientY };
+      };
+      const move = e => {
+        if (!dragStart.current || closing || !e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        const dx = t.clientX - dragStart.current.x;
+        const dy = t.clientY - dragStart.current.y;
+        if (Math.abs(dx) > Math.abs(dy) || dy <= 0) return;
+        if (dy > 6) {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragging(true);
+          setOffsetY(Math.min(260, dy));
+        }
+      };
+      const end = e => {
+        if (!dragStart.current) return;
+        const y = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : dragStart.current.y;
+        const dy = y - dragStart.current.y;
+        dragStart.current = null;
+        if (dy > 85) dismiss();
+        else { setDragging(false); setOffsetY(0); }
+      };
+      sheet.addEventListener("touchstart", start, { passive: false });
+      sheet.addEventListener("touchmove", move, { passive: false });
+      sheet.addEventListener("touchend", end, { passive: false });
+      sheet.addEventListener("touchcancel", end, { passive: false });
+      return () => {
+        sheet.removeEventListener("touchstart", start);
+        sheet.removeEventListener("touchmove", move);
+        sheet.removeEventListener("touchend", end);
+        sheet.removeEventListener("touchcancel", end);
+      };
+    }, [closing, dismiss]);
+
+    React.useEffect(() => {
+      const prevOverflow = document.body.style.overflow;
+      const prevTouch = document.body.style.touchAction;
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      return () => { document.body.style.overflow = prevOverflow; document.body.style.touchAction = prevTouch; };
+    }, []);
+
+    return ReactDOM.createPortal(
+      React.createElement("div", {
+        className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${closing ? "is-closing" : ""}`,
+        onClick: e => { if (e.target === e.currentTarget) dismiss(); }
+      },
+        React.createElement("div", {
+          ref: sheetRef,
+          className: `ios-form-bottom-sheet w-full max-w-md rounded-t-[30px] border border-b-0 p-5 pb-6 shadow-2xl max-h-[92vh] overflow-y-auto md:rounded-3xl md:border-b md:max-h-[90vh] ${darkMode ? "is-dark" : ""} ${closing ? "is-closing" : ""} ${dragging ? "is-dragging" : ""}`,
+          style: { "--sheet-offset": `${offsetY}px` },
+          onClick: e => e.stopPropagation()
+        },
+          React.createElement("div", { className: "ios-form-sheet-handle md:hidden" }),
+          React.createElement("div", { className: "flex justify-between items-center mb-3" },
+            React.createElement("h3", { className: "font-bold text-sm" }, title),
+            React.createElement("button", { type: "button", onClick: dismiss, className: "p-1 rounded-lg hover:bg-zinc-800 text-zinc-400", "aria-label": "Close" }, React.createElement(Icons.IconClose, { className: "w-3.5 h-3.5" }))
+          ),
+          React.createElement("form", { onSubmit: e => { e.preventDefault(); if (!closing) onSubmit(e); }, className: "space-y-3" },
+            children,
+            React.createElement("div", { className: "pt-2 flex justify-end space-x-2" },
+              React.createElement("button", { type: "button", onClick: dismiss, className: `px-3.5 py-2 rounded-xl text-xs font-semibold border ${darkMode ? "border-zinc-800 hover:bg-zinc-800" : "border-zinc-200 hover:bg-zinc-100"}` }, "Cancel"),
+              React.createElement("button", { type: "submit", className: `px-3.5 py-2 ${accent.solidBtn} text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20` }, submitLabel)
+            )
+          )
+        )
+      ), document.body
+    );
+  }
+
   function RepaymentModal(props) {
     const { accent, accounts, darkMode, handleRepaymentSubmit, inputCls, numFmt, repayAccountId, repayAmount, repayDate, repaymentModalLoan, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan } = props;
-    return /* @__PURE__ */React.createElement("div", {
-    className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm"
-  }, /* @__PURE__ */React.createElement("div", {
-    className: `w-full max-w-sm rounded-3xl border p-5 shadow-2xl ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
-  }, /* @__PURE__ */React.createElement("div", {
-    className: "flex justify-between items-center mb-3"
-  }, /* @__PURE__ */React.createElement("h3", {
-    className: "font-bold text-sm"
-  }, "Record Repayment for ", repaymentModalLoan.name), /* @__PURE__ */React.createElement("button", {
-    onClick: () => setRepaymentModalLoan(null),
-    className: "p-1 rounded-lg hover:bg-zinc-800 text-zinc-400"
-  }, /* @__PURE__ */React.createElement(Icons.IconClose, {
-    className: "w-3.5 h-3.5"
-  }))), /* @__PURE__ */React.createElement("form", {
-    onSubmit: handleRepaymentSubmit,
-    className: "space-y-3"
-  }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "Repayment Amount (", repaymentModalLoan.currency, ")"), /* @__PURE__ */React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    step: "0.01",
-    min: "0.01",
-    max: repaymentModalLoan ? repaymentModalLoan.amount - (repaymentModalLoan.repaid || 0) : void 0,
-    required: true,
-    autoFocus: true,
-    placeholder: "0.00",
-    value: repayAmount,
-    onChange: e => setRepayAmount(e.target.value),
-    className: `w-full px-3 py-2.5 rounded-xl text-[16px] border outline-none ${darkMode ? "bg-zinc-950 border-zinc-800 text-emerald-400 font-bold" : "bg-zinc-50 border-zinc-200 text-emerald-600 font-bold"}`
-  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, repaymentModalLoan.type === "lent" ? "Deposit into Account" : "Pay from Account", " (optional)"), /* @__PURE__ */React.createElement("select", {
-    value: repayAccountId,
-    onChange: e => setRepayAccountId(e.target.value),
-    className: inputCls
-  }, /* @__PURE__ */React.createElement("option", {
-    value: ""
-  }, "Don't record a cash movement"), accounts.map(acc => /* @__PURE__ */React.createElement("option", {
-    key: acc.id,
-    value: acc.id
-  }, acc.name, " (", numFmt(acc.balance), " ", acc.currency, ")"))), /* @__PURE__ */React.createElement("p", {
-    className: "text-[10px] text-zinc-400 mt-1"
-  }, "Choosing an account also adds a matching ledger entry.")), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "Date"), /* @__PURE__ */React.createElement("input", {
-    type: "date",
-    value: repayDate,
-    onChange: e => setRepayDate(e.target.value),
-    className: inputCls
-  })), /* @__PURE__ */React.createElement("div", {
-    className: "pt-2 flex justify-end space-x-2"
-  }, /* @__PURE__ */React.createElement("button", {
-    type: "button",
-    onClick: () => setRepaymentModalLoan(null),
-    className: `px-3.5 py-2 rounded-xl text-xs font-semibold border ${darkMode ? "border-zinc-800" : "border-zinc-200"}`
-  }, "Cancel"), /* @__PURE__ */React.createElement("button", {
-    type: "submit",
-    className: `px-3.5 py-2 ${accent.solidBtn} text-white rounded-xl text-xs font-semibold`
-  }, "Confirm Repayment")))));
+    if (!repaymentModalLoan) return null;
+    return React.createElement(LoanFormSheet, {
+      accent, accounts, darkMode, inputCls, numFmt,
+      title: `Record payment · ${repaymentModalLoan.name}`,
+      submitLabel: "Record payment",
+      onClose: () => setRepaymentModalLoan(null),
+      onSubmit: handleRepaymentSubmit
+    },
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Payment Amount (", repaymentModalLoan.currency, ")"),
+        React.createElement("input", {
+          type: "number", inputMode: "decimal", step: "0.01", min: "0.01",
+          max: repaymentModalLoan.amount - (repaymentModalLoan.repaid || 0), required: true, autoFocus: true,
+          placeholder: "0.00", value: repayAmount, onChange: e => setRepayAmount(e.target.value), className: inputCls
+        })
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, repaymentModalLoan.type === "lent" ? "Deposit into Account" : "Pay from Account", " (optional)"),
+        React.createElement("select", { value: repayAccountId, onChange: e => setRepayAccountId(e.target.value), className: inputCls },
+          React.createElement("option", { value: "" }, "Don't record a cash movement"),
+          accounts.map(acc => React.createElement("option", { key: acc.id, value: acc.id }, acc.name, " (", numFmt(acc.balance), " ", acc.currency, ")"))
+        ),
+        React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Choosing an account also adds a matching ledger entry.")
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Date"),
+        React.createElement("input", { type: "date", value: repayDate, onChange: e => setRepayDate(e.target.value), className: inputCls })
+      )
+    );
   }
 
   function LoanAddMoreModal(props) {
-    const { accounts, addMoreAccountId, addMoreAmount, addMoreDate, darkMode, handleAddMoreSubmit, inputCls, loanAddMoreTarget, numFmt, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setLoanAddMoreTarget } = props;
-    return /* @__PURE__ */React.createElement("div", {
-    className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm"
-  }, /* @__PURE__ */React.createElement("div", {
-    className: `w-full max-w-sm rounded-3xl border p-5 shadow-2xl ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
-  }, /* @__PURE__ */React.createElement("div", {
-    className: "flex justify-between items-center mb-3"
-  }, /* @__PURE__ */React.createElement("h3", {
-    className: "font-bold text-sm"
-  }, loanAddMoreTarget.type === "lent" ? "Lend More to " : "Borrow More from ", loanAddMoreTarget.name), /* @__PURE__ */React.createElement("button", {
-    onClick: () => setLoanAddMoreTarget(null),
-    className: "p-1 rounded-lg hover:bg-zinc-800 text-zinc-400"
-  }, /* @__PURE__ */React.createElement(Icons.IconClose, {
-    className: "w-3.5 h-3.5"
-  }))), /* @__PURE__ */React.createElement("form", {
-    onSubmit: handleAddMoreSubmit,
-    className: "space-y-3"
-  }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "Additional Amount (", loanAddMoreTarget.currency, ")"), /* @__PURE__ */React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    step: "0.01",
-    min: "0.01",
-    required: true,
-    autoFocus: true,
-    placeholder: "0.00",
-    value: addMoreAmount,
-    onChange: e => setAddMoreAmount(e.target.value),
-    className: `w-full px-3 py-2.5 rounded-xl text-[16px] border outline-none ${darkMode ? "bg-zinc-950 border-zinc-800 text-blue-400 font-bold" : "bg-zinc-50 border-zinc-200 text-blue-600 font-bold"}`
-  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, loanAddMoreTarget.type === "lent" ? "Pay from Account" : "Deposit into Account", " (optional)"), /* @__PURE__ */React.createElement("select", {
-    value: addMoreAccountId,
-    onChange: e => setAddMoreAccountId(e.target.value),
-    className: inputCls
-  }, /* @__PURE__ */React.createElement("option", {
-    value: ""
-  }, "Don't record a cash movement"), accounts.map(acc => /* @__PURE__ */React.createElement("option", {
-    key: acc.id,
-    value: acc.id
-  }, acc.name, " (", numFmt(acc.balance), " ", acc.currency, ")"))), /* @__PURE__ */React.createElement("p", {
-    className: "text-[10px] text-zinc-400 mt-1"
-  }, "Choosing an account also adds a matching ledger entry.")), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
-    className: "block text-[11px] font-medium mb-1"
-  }, "Date"), /* @__PURE__ */React.createElement("input", {
-    type: "date",
-    value: addMoreDate,
-    onChange: e => setAddMoreDate(e.target.value),
-    className: inputCls
-  })), /* @__PURE__ */React.createElement("div", {
-    className: "pt-2 flex justify-end space-x-2"
-  }, /* @__PURE__ */React.createElement("button", {
-    type: "button",
-    onClick: () => setLoanAddMoreTarget(null),
-    className: `px-3.5 py-2 rounded-xl text-xs font-semibold border ${darkMode ? "border-zinc-800" : "border-zinc-200"}`
-  }, "Cancel"), /* @__PURE__ */React.createElement("button", {
-    type: "submit",
-    className: "px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold"
-  }, "Confirm")))));
+    const { accent, accounts, addMoreAccountId, addMoreAmount, addMoreDate, darkMode, handleAddMoreSubmit, inputCls, loanAddMoreTarget, numFmt, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setLoanAddMoreTarget } = props;
+    if (!loanAddMoreTarget) return null;
+    return React.createElement(LoanFormSheet, {
+      accent, accounts, darkMode, inputCls, numFmt,
+      title: `${loanAddMoreTarget.type === "lent" ? "Lend more to" : "Borrow more from"} · ${loanAddMoreTarget.name}`,
+      submitLabel: "Add more",
+      onClose: () => setLoanAddMoreTarget(null),
+      onSubmit: handleAddMoreSubmit
+    },
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Additional Amount (", loanAddMoreTarget.currency, ")"),
+        React.createElement("input", {
+          type: "number", inputMode: "decimal", step: "0.01", min: "0.01", required: true, autoFocus: true,
+          placeholder: "0.00", value: addMoreAmount, onChange: e => setAddMoreAmount(e.target.value), className: inputCls
+        })
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, loanAddMoreTarget.type === "lent" ? "Pay from Account" : "Deposit into Account", " (optional)"),
+        React.createElement("select", { value: addMoreAccountId, onChange: e => setAddMoreAccountId(e.target.value), className: inputCls },
+          React.createElement("option", { value: "" }, "Don't record a cash movement"),
+          accounts.map(acc => React.createElement("option", { key: acc.id, value: acc.id }, acc.name, " (", numFmt(acc.balance), " ", acc.currency, ")"))
+        ),
+        React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Choosing an account also adds a matching ledger entry.")
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Date"),
+        React.createElement("input", { type: "date", value: addMoreDate, onChange: e => setAddMoreDate(e.target.value), className: inputCls })
+      )
+    );
   }
 
   function MainFormModal(props) {
