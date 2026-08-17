@@ -5,7 +5,7 @@
       accent, darkMode, dateFmt, exportCSV, filteredTransactions, ledgerFilter,
       ledgerSearch, ledgerSort, numFmt, openAddModal, openEditModal,
       setDeleteTarget, setLedgerFilter, setLedgerSearch, setLedgerSort,
-      subCardCls, transactions, selectionKey, getTransactionStatementMeta, statementMessageFor,
+      subCardCls, transactions, selectionKey, getTransactionStatementMeta,
       statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate,
       setStatementFromDate, statementToDate, setStatementToDate, exportStatement, accounts
     } = props;
@@ -70,10 +70,6 @@
       sheet.style.transform = "translate3d(0,0,0)";
       sheet.style.opacity = "1";
     };
-    const statementCardMessage = tx => {
-      const message = statementMessageFor(tx) || "";
-      return message.replace(/\s*Available balance is\s+[^.]*\.?\s*$/i, "").trim();
-    };
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "flex justify-between items-center px-1 gap-2" },
         h("h2", { className: "text-sm font-bold uppercase tracking-wider text-emerald-500" }, "Connected Transactions Ledger"),
@@ -116,28 +112,23 @@
               onDelete: () => setDeleteTarget({ type: "transaction", id: tx.id, name: tx.title }),
               selectionKey: selectionKey("transaction", tx.id)
             },
-              h("div", { className: `swipe-content-card p-4 rounded-2xl border flex justify-between items-center ${subCardCls}` },
-                h("div", null,
-                  h("div", { className: "flex items-center gap-1" },
-                    h("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, h((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })),
-                    h("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
-                    h("span", { className: "text-[10px] text-zinc-400" }, dateFmt(tx.date))
+              h("div", { className: `swipe-content-card p-4 rounded-2xl border ${subCardCls} ledger-card-compact` },
+                h("div", { className: "ledger-card-topline" },
+                  h("div", { className: "ledger-card-title-wrap" },
+                    h("div", { className: "flex items-center gap-1 min-w-0" },
+                      h("span", { className: `tx-category-icon ${tx.type === "income" ? "tx-category-income" : tx.type === "expense" ? "tx-category-expense" : "tx-category-transfer"}`, title: tx.category, "aria-label": tx.category }, h((tx.type === "income" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowDown45 : (tx.type === "expense" && String(tx.category).toLowerCase() === "other") ? window.Icons.IconArrowUp45 : window.Icons.getCategoryIcon(tx.category, tx.type), { className: "w-3.5 h-3.5" })),
+                      h("span", { className: `tx-category-label ${tx.type === "income" ? "tx-category-income-text" : tx.type === "expense" ? "tx-category-expense-text" : "tx-category-transfer-text"}` }, tx.category),
+                      h("span", { className: "text-[10px] text-zinc-400 shrink-0" }, dateFmt(tx.date))
+                    ),
+                    h("h3", { className: "font-bold text-sm mt-1 truncate" }, tx.title)
                   ),
-                  h("h3", { className: "font-bold text-sm mt-1" }, tx.title),
-                  (() => {
-                    if (!meta?.account) return null;
-                    return h("div", { className: "ledger-statement-meta" },
-                      h("div", { className: "ledger-account-balance-row" },
-                        h("span", { className: `ledger-account-chip ${isIn ? "ledger-account-to" : "ledger-account-from"}` }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`)
-                      ),
-                      h("p", { className: "ledger-statement-message", title: statementCardMessage(tx) }, statementCardMessage(tx))
-                    );
-                  })()
+                  h("div", { className: "ledger-amount-stack" },
+                    h("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` }, tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount))
+                  )
                 ),
-                h("div", { className: "ledger-amount-stack" },
-                  h("span", { className: `font-bold text-sm ${tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"}` },
-                    tx.type === "income" ? "+" : tx.type === "expense" ? "-" : "", tx.currency, " ", numFmt(tx.amount)),
-                  meta?.account && h("span", { className: "ledger-available-balance ledger-available-right" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+                h("div", { className: "ledger-card-bottomline" },
+                  meta?.account ? h("span", { className: "ledger-account-chip" }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`) : h("span", null),
+                  meta?.account ? h("span", { className: "ledger-available-balance ledger-available-right" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : h("span", null)
                 )
               )
             );

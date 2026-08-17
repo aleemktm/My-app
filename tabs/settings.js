@@ -34,6 +34,7 @@
     className: "shrink-0"
   }, children));
     const h = React.createElement;
+    const IOSSwitch = ({ checked, onChange, label }) => h("button", { type: "button", role: "switch", "aria-checked": checked, "aria-label": label, onClick: onChange, className: `ios-settings-switch ${checked ? "is-on" : "is-off"}` }, h("span", { className: "ios-settings-switch-thumb" }));
     const dataSize = new Blob([JSON.stringify({
     accounts,
     assets,
@@ -194,45 +195,13 @@
     title: "Manage categories",
     detail: `${(categories.income || []).length} income and ${(categories.expense || []).length} expense categories.`
   }, h("button", {
-    onClick: () => setCategoryManagerOpen(open => !open),
+    onClick: () => setCategoryManagerOpen(true),
     className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.activeBg10} ${accent.textStrong}`
-  }, categoryManagerOpen ? "Done" : "Manage")), categoryManagerOpen && h("div", {
-    className: `p-4 ${subCardCls} space-y-3`
-  }, h("div", {
-    className: "flex gap-2"
-  }, ["expense", "income"].map(type => h("button", {
-    key: type,
-    onClick: () => setCategoryType(type),
-    className: `flex-1 py-2 rounded-xl text-xs font-bold capitalize ${categoryType === type ? `${accent.activeBg} ${accent.textStrong}` : "bg-zinc-500/10 text-zinc-400"}`
-  }, type))), h("div", {
-    className: "space-y-2"
-  }, (categories[categoryType] || []).map(name => h("div", {
-    key: name,
-    className: `px-3 py-2 rounded-xl flex items-center justify-between ${darkMode ? "bg-zinc-950" : "bg-zinc-50"}`
-  }, h("span", {
-    className: "text-xs font-semibold"
-  }, name), h("button", {
-    onClick: () => removeCategory(categoryType, name),
-    className: "p-1 rounded-lg text-zinc-400 hover:text-rose-500",
-    title: `Remove ${name}`
-  }, h(Icons.IconTrash, {
-    className: "w-3.5 h-3.5"
-  }))))), h("form", {
-    onSubmit: addCategory,
-    className: "flex gap-2"
-  }, h("input", {
-    value: categoryName,
-    onChange: e => setCategoryName(e.target.value),
-    placeholder: "New category",
-    className: `${inputCls} flex-1`
-  }), h("button", {
-    type: "submit",
-    className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white`
-  }, "Add"))))), h(SettingsSection, {
+  }, "Manage")))), h(SettingsSection, {
     title: "Interaction"
   }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." }, h("button", { type: "button", onClick: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.hapticsEnabled === false ? "bg-zinc-500/10 text-zinc-500" : `${accent.activeBg10} ${accent.textStrong}`}` }, settings.hapticsEnabled === false ? "Off" : "On")),
-    h(SettingsRow, { icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." }, h("button", { type: "button", onClick: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.soundEnabled === true ? `${accent.activeBg10} ${accent.textStrong}` : "bg-zinc-500/10 text-zinc-500"}` }, settings.soundEnabled === true ? "On" : "Off"))
+    h(SettingsRow, { icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." }, IOSSwitch({ checked: settings.hapticsEnabled !== false, onChange: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), label: "Haptic feedback" })),
+    h(SettingsRow, { icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." }, IOSSwitch({ checked: settings.soundEnabled === true, onChange: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), label: "Action sounds" }))
   )), h(SettingsSection, {
     title: "App"
   }, h("div", {
