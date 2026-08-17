@@ -116,6 +116,32 @@
   }, "Dark"), h("option", {
     value: "auto"
   }, "System")))), h(SettingsSection, {
+    title: "Accent color"
+  }, h("div", {
+    className: "settings-accent-picker",
+    role: "radiogroup",
+    "aria-label": "Accent color"
+  }, [
+    ["teal", "#14B8A6", "Teal"],
+    ["blue", "#3B82F6", "Blue"],
+    ["violet", "#8B5CF6", "Violet"],
+    ["amber", "#F59E0B", "Amber"]
+  ].map(([id, color, label]) => h("button", {
+    key: id,
+    type: "button",
+    role: "radio",
+    "aria-checked": settings.accentColor === id,
+    "aria-label": label,
+    title: label,
+    onClick: () => updateSettings({ accentColor: id }),
+    className: `settings-accent-option ${settings.accentColor === id ? "is-selected" : ""}`
+  }, h("span", {
+    className: "settings-accent-swatch",
+    style: { backgroundColor: color }
+  }), h("span", {
+    className: "settings-accent-label"
+  }, label)))
+  )), h(SettingsSection, {
     title: "Home dashboard"
   }, h("button", {
     type: "button",
