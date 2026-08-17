@@ -8,7 +8,7 @@
       exchangeRates, fmt, greeting, liveGoldAEDPerGram, momDeltaPct, monthlyExpenseAED,
       monthlyIncomeAED, monthlySavingsAED, netWorthTotal, numFmt, openAddModal, openRatesModal,
       refreshLiveRates, renderTxRow, runwayStatus, savingsRate, setActiveTab, setCurrency,
-      settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
+      heroWealthHidden, toggleHeroWealthVisibility, settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
       totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
       goldChangePct, goldChangeAED, selectionToolbar
     } = props;
@@ -83,8 +83,8 @@
         h("div", { className: "home-hero-main" },
           h("div", null,
             h("span", { className: "home-metric-label" }, heroLabel),
-            h("div", { className: "home-metric" }, fmt(heroValue)),
-            h("div", { className: "home-secondary-metric" }, secondaryLabel + " · " + fmt(secondaryValue)),
+            h("div", { className: "home-metric" }, heroWealthHidden ? "••••••" : fmt(heroValue)),
+            h("div", { className: "home-secondary-metric" }, secondaryLabel + " · " + (heroWealthHidden ? "••••" : fmt(secondaryValue))),
             h("div", { className: "home-health-row" },
               h("span", { className: `home-health-chip ${runwayStatus.cls || ""}` }, runwayStatus.label),
               h("span", { className: isPositive ? "home-positive" : "home-negative" }, savingsRate === null ? "Savings rate N/A" : `${savingsRate}% saved this month`)
@@ -97,7 +97,10 @@
         h("div", { className: "home-rate-strip" },
           h("span", null, syncingGold || syncingRates ? "Updating live market data…" : liveGoldAEDPerGram ? `24k gold AED ${liveGoldAEDPerGram.toFixed(2)}/g` : "Gold rate not synced"),
           h("span", null, `1 AED = ${rateText} PKR`),
-          h("button", { type: "button", onClick: refreshLiveRates, disabled: syncingGold || syncingRates, title: "Refresh live rates" }, h(Icons.IconSync, { className: `w-3.5 h-3.5 ${syncingGold || syncingRates ? "animate-spin" : ""}` }))
+          h("div", { className: "home-rate-actions" },
+            h("button", { type: "button", onClick: toggleHeroWealthVisibility, title: heroWealthHidden ? "Show wealth" : "Hide wealth", "aria-label": heroWealthHidden ? "Show wealth" : "Hide wealth", className: "home-rate-icon-button" }, heroWealthHidden ? h(Icons.IconEyeOff, { className: "w-3.5 h-3.5" }) : h(Icons.IconEye, { className: "w-3.5 h-3.5" })),
+            h("button", { type: "button", onClick: refreshLiveRates, disabled: syncingGold || syncingRates, title: "Refresh live rates", className: "home-rate-icon-button" }, h(Icons.IconSync, { className: `w-3.5 h-3.5 ${syncingGold || syncingRates ? "animate-spin" : ""}` }))
+          )
         )
       ),
 
