@@ -122,6 +122,7 @@
     role: "radiogroup",
     "aria-label": "Accent color"
   }, [
+    ["emerald", "#10B981", "Original"],
     ["teal", "#14B8A6", "Teal"],
     ["blue", "#3B82F6", "Blue"],
     ["violet", "#8B5CF6", "Violet"],
@@ -166,6 +167,59 @@
       className: `px-2.5 py-1 rounded-lg text-[10px] font-semibold ${darkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`
     }, option.label) : null;
   }))))
+, h(SettingsSection, {
+    title: "Home appearance"
+  }, h("div", { className: "space-y-2" },
+    h(SettingsRow, {
+      icon: Icons.IconWallet,
+      title: "Hero card metric",
+      detail: "Choose the main wealth figure shown at the top of Home."
+    }, h("select", {
+      value: settings.heroMetric || "liquid",
+      onChange: e => updateSettings({ heroMetric: e.target.value }),
+      className: `${inputCls} w-auto py-2 text-xs font-bold`
+    }, h("option", { value: "liquid" }, "Available wealth"), h("option", { value: "networth" }, "Net worth"))),
+    h(SettingsRow, {
+      icon: Icons.IconTune,
+      title: "Greeting",
+      detail: "Show the personalized greeting above the Home hero card."
+    }, IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" }))
+  ))
+, h(SettingsSection, {
+    title: "Formats"
+  }, h("div", { className: "space-y-2" },
+    h(SettingsRow, {
+      icon: Icons.IconTune,
+      title: "Date format",
+      detail: "Choose how dates are displayed throughout AleemFin."
+    }, h("select", {
+      value: settings.dateFormat || "YYYY-MM-DD",
+      onChange: e => updateSettings({ dateFormat: e.target.value }),
+      className: `${inputCls} w-auto py-2 text-xs font-bold`
+    },
+      h("option", { value: "YYYY-MM-DD" }, "2026-12-01"),
+      h("option", { value: "MM/DD/YYYY" }, "12/1/2026"),
+      h("option", { value: "DD/MM/YYYY" }, "1/12/2026"),
+      h("option", { value: "DD-MMM-YYYY" }, "1-Dec-2026"),
+      h("option", { value: "DD-MM-YYYY" }, "1-12-2026")
+    )),
+    h(SettingsRow, {
+      icon: Icons.IconTune,
+      title: "Number format",
+      detail: "Use commas or periods as thousands separators."
+    }, h("select", {
+      value: settings.numberFormat || "comma",
+      onChange: e => updateSettings({ numberFormat: e.target.value }),
+      className: `${inputCls} w-auto py-2 text-xs font-bold`
+    }, h("option", { value: "comma" }, "1,234,567.89"), h("option", { value: "period" }, "1.234.567,89")))
+  ))
+, h(SettingsSection, {
+    title: "Rates & sync"
+  }, h(SettingsRow, {
+    icon: Icons.IconRates,
+    title: "Automatic FX rate sync",
+    detail: "Refresh exchange rates automatically when AleemFin is opened."
+  }, IOSSwitch({ checked: settings.liveRateSync !== false, onChange: () => updateSettings({ liveRateSync: settings.liveRateSync === false }), label: "Automatic FX rate sync" })))
 , h(SettingsSection, {
     title: "Currency"
   }, h("div", {
