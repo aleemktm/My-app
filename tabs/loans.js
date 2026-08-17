@@ -1,88 +1,146 @@
 // tabs/loans.js — Loans & Liabilities tab.
 (function () {
   function Loans(props) {
-    const { accounts, transactions = [], darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, undoLoanMovement } = props;
-    const h = React.createElement;
-    const lentCount = sortedLoans.filter(l => l.type === "lent").length;
-    const borrowedCount = sortedLoans.filter(l => l.type === "borrowed").length;
-    const visibleLoans = loanFilter === "all" ? sortedLoans : sortedLoans.filter(l => l.type === loanFilter);
-    return h("div", { className: "loans-native space-y-4 max-w-2xl mx-auto w-full" },
-      h("div", { className: "loans-header" },
-        h("div", null, h("span", { className: "accounts-eyebrow" }, "MONEY OWED"), h("h2", { className: "accounts-title" }, "Loans"), h("p", { className: "accounts-subtitle" }, `${lentCount} lent · ${borrowedCount} borrowed`)),
-        h("div", { className: "loans-header-actions" },
-          h("label", { className: `icon-select ${darkMode ? "icon-select-dark" : ""}`, title: "Sort loans", "aria-label": "Sort loans" },
-            h(Icons.IconSort, { className: "w-4 h-4" }),
-            h("select", { value: loanSort, onChange: e => setLoanSort(e.target.value), "aria-label": "Sort loans" },
-              h("option", { value: "date_desc" }, "Newest First"), h("option", { value: "date_asc" }, "Oldest First"), h("option", { value: "amount_desc" }, "Amount: High-Low"), h("option", { value: "amount_asc" }, "Amount: Low-High"), h("option", { value: "name" }, "Name A-Z")
-            )
-          ),
-          h("button", { onClick: () => openAddModal("loan"), className: "accounts-add-button", "aria-label": "Add loan" }, h(Icons.IconPlus, { className: "w-4 h-4" }), h("span", null, "Add"))
-        )
-      ),
-      h("div", { className: "loan-filter-segment", role: "tablist", "aria-label": "Loan type" },
-        [
-          ["all", "All", sortedLoans.length], ["lent", "Lent out", lentCount], ["borrowed", "Borrowed", borrowedCount]
-        ].map(([value, label, count]) => h("button", { key: value, type: "button", role: "tab", "aria-selected": loanFilter === value, onClick: () => setLoanFilter(value), className: `loan-filter-tab ${loanFilter === value ? "is-active" : ""}` }, label, h("span", null, count)))
-      ),
-      h("div", { className: "loan-native-summary" },
-        h("button", { type: "button", className: `loan-native-summary-card loan-native-lent ${loanFilter === "lent" ? "is-filtered" : ""}`, onClick: () => setLoanFilter("lent"), "aria-label": "Show lent out loans" }, h(Icons.IconArrowUp45, { className: "loan-native-summary-icon" }), h("div", null, h("span", null, "Lent out"), h("strong", null, fmt(totalLoansLentAED)), h("small", null, "Money others owe you"))),
-        h("button", { type: "button", className: `loan-native-summary-card loan-native-borrowed ${loanFilter === "borrowed" ? "is-filtered" : ""}`, onClick: () => setLoanFilter("borrowed"), "aria-label": "Show borrowed loans" }, h(Icons.IconArrowDown45, { className: "loan-native-summary-icon" }), h("div", null, h("span", null, "Borrowed"), h("strong", null, fmt(totalLoansBorrowedAED)), h("small", null, "Money you owe")))
-      ),
-      h("div", { className: "loans-list" }, visibleLoans.length === 0 ? h("div", { className: "loan-empty-state" }, h(Icons.IconLoan, { className: "w-5 h-5" }), h("strong", null, loanFilter === "lent" ? "No lent-out loans" : loanFilter === "borrowed" ? "No borrowed loans" : "No loans yet"), h("span", null, "Add a loan to start tracking it.")) : visibleLoans.map(loan => {
-        const repaid = Number(loan.repaid || 0);
-        const outstanding = Math.max(0, Number(loan.amount || 0) - repaid);
-        const percentPaid = Math.min(100, Math.round(repaid / Number(loan.amount || 1) * 100) || 0);
-        const isFullyPaid = outstanding <= 0;
-        const isOverdue = !isFullyPaid && loan.dueDate && loan.dueDate < todayStr;
-        const typeClass = loan.type === "lent" ? "loan-card-lent" : "loan-card-borrowed";
-        return h(window.SwipeRow, {
-          key: loan.id,
-          onEdit: () => openEditModal("loan", loan),
-          onDelete: () => setDeleteTarget({ type: "loan", id: loan.id, name: loan.name }),
-          selectionKey: selectionKey("loan", loan.id)
-        }, h("div", { className: `loan-native-card ${darkMode ? "loan-native-dark" : ""} ${typeClass}` },
-          h("div", { className: "loan-card-topline" },
-            h("div", { className: "loan-person" },
-              h("span", { className: "loan-direction-icon" }, loan.type === "lent" ? h(Icons.IconArrowUp45, { className: "w-4 h-4" }) : h(Icons.IconArrowDown45, { className: "w-4 h-4" })),
-              h("div", { className: "min-w-0" }, h("span", { className: "loan-kind" }, loan.type === "lent" ? "Lent out" : "Borrowed"), h("h3", null, loan.name))
-            ),
-            h("div", { className: "loan-outstanding" }, h("span", null, "Outstanding"), h("strong", null, loan.currency, " ", numFmt(outstanding)))
-          ),
-          h("div", { className: "loan-card-details" },
-            h("div", null, h("span", null, "Original"), h("strong", null, loan.currency, " ", numFmt(loan.amount))),
-            h("div", null, h("span", null, "Repaid"), h("strong", null, loan.currency, " ", numFmt(repaid))),
-            h("div", null, h("span", null, "Due"), h("strong", null, loan.dueDate ? dateFmt(loan.dueDate) : "—"))
-          ),
-          h("div", { className: "loan-progress-wrap" },
-            h("div", { className: "loan-progress-label" }, h("span", null, `${percentPaid}% repaid`), h("span", null, isFullyPaid ? "Settled" : isOverdue ? "Overdue" : `${loan.currency} ${numFmt(outstanding)} left`)),
-            h("div", { className: "loan-progress-track" }, h("div", { className: "loan-progress-fill", style: { width: `${percentPaid}%` } }))
-          ),
-          loan.whatsapp && !isFullyPaid && h("a", { href: `https://wa.me/${loan.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${loan.name}, reminder regarding the outstanding balance of ${loan.currency} ${numFmt(outstanding)}`)}`, target: "_blank", rel: "noreferrer", className: "loan-reminder" }, "WhatsApp Reminder →"),
-          h("div", { className: "loan-card-actions" },
-            !isFullyPaid && h("button", { onClick: () => { setRepaymentModalLoan(loan); setRepayAmount(outstanding.toString()); setRepayAccountId((accounts[0] ? accounts[0].id : "") || ""); setRepayDate(todayISO()); }, className: "loan-text-action loan-text-action-repay", title: "Record repayment", "aria-label": "Record repayment" }, "+ Record payment"),
-            h("button", { onClick: () => { setLoanAddMoreTarget(loan); setAddMoreAmount(""); setAddMoreAccountId((accounts[0] ? accounts[0].id : "") || ""); setAddMoreDate(todayISO()); }, className: "loan-text-action loan-text-action-add", title: "Add more to loan", "aria-label": "Add more to loan" }, "+Add more"),
-            h("button", { onClick: () => setExpandedLoanHistory(prev => ({ ...prev, [loan.id]: !prev[loan.id] })), className: "loan-icon-action loan-icon-action-history", title: expandedLoanHistory[loan.id] ? "Hide history" : "Show history", "aria-label": expandedLoanHistory[loan.id] ? "Hide history" : "Show history" }, h(Icons.IconHistory, { className: "w-4 h-4" }))
-          ),
-          expandedLoanHistory[loan.id] && h("div", { className: "loan-history-panel" },
-            (() => {
-              const movements = Array.isArray(loan.movements) ? [...loan.movements] : [];
-              const movementTxIds = new Set(movements.map(m => m.id));
-              const legacyRepayments = transactions.filter(t => t && t.loanId === loan.id && t.type && t.category === "Loan Repayment" && !movementTxIds.has(t.movementId));
-              const history = movements.concat(legacyRepayments.map(t => ({ id: "legacy:" + t.id, legacyTransactionId: t.id, kind: "repayment", amount: Number(t.accountAmount != null ? t.accountAmount : t.amount) || 0, date: t.date, accountId: t.accountId })));
-              return history.sort((a,b) => (b.date || "").localeCompare(a.date || "")).map(mv => h("div", { key: mv.id, className: "loan-history-row" },
-                h("span", null, dateFmt(mv.date), " · ", mv.kind === "principal" ? loan.type === "lent" ? "Given" : "Received" : "Repaid"),
-                h("div", { className: "flex items-center gap-2" },
-                  h("strong", { className: mv.kind === "principal" ? loan.type === "lent" ? "loan-history-out" : "loan-history-in" : loan.type === "repayment" ? loan.type === "lent" ? "loan-history-in" : "loan-history-out" : "" }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)),
-                  h("button", { type: "button", className: "loan-icon-action loan-icon-action-history loan-history-undo", onClick: () => undoLoanMovement(loan.id, mv.id, mv.legacyTransactionId), title: "Undo this record", "aria-label": "Undo this record" }, h(Icons.IconUndo, { className: "w-3 h-3" }))
-                )
-              ));
-            })(),
-            (!loan.movements || loan.movements.length === 0) && !transactions.some(t => t && t.loanId === loan.id && t.category === "Loan Repayment") && h("p", { className: "loan-history-empty" }, "No dated movements logged yet for this entry.")
-          )
-        ));
-      }))
-    );
+    const { accounts, darkMode, dateFmt, expandedLoanHistory, fmt, loanSort, numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanSort, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, subCardCls, todayISO, todayStr, totalLoansBorrowedAED, totalLoansLentAED } = props;
+    return /* @__PURE__ */React.createElement("div", {
+    className: "space-y-4 max-w-2xl mx-auto w-full"
+  }, /* @__PURE__ */React.createElement("div", {
+    className: "flex justify-between items-center px-1 gap-2"
+  }, /* @__PURE__ */React.createElement("h2", {
+    className: "text-sm font-bold uppercase tracking-wider text-emerald-600"
+  }, "Loans & Liabilities"), /* @__PURE__ */React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /* @__PURE__ */React.createElement("select", {
+    value: loanSort,
+    onChange: e => setLoanSort(e.target.value),
+    className: `px-2 py-1.5 rounded-xl text-xs border outline-none ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
+  }, /* @__PURE__ */React.createElement("option", {
+    value: "date_desc"
+  }, "Newest First"), /* @__PURE__ */React.createElement("option", {
+    value: "date_asc"
+  }, "Oldest First"), /* @__PURE__ */React.createElement("option", {
+    value: "amount_desc"
+  }, "Amount: High-Low"), /* @__PURE__ */React.createElement("option", {
+    value: "amount_asc"
+  }, "Amount: Low-High"), /* @__PURE__ */React.createElement("option", {
+    value: "name"
+  }, "Name A-Z")), /* @__PURE__ */React.createElement("button", {
+    onClick: () => openAddModal("loan"),
+    className: "px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold whitespace-nowrap"
+  }, "+ Add Entry"))), /* @__PURE__ */React.createElement("div", {
+    className: `p-4 ${subCardCls} grid grid-cols-2 gap-3 text-center`
+  }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("span", {
+    className: "text-[10px] font-bold uppercase tracking-wider text-zinc-500 block"
+  }, "Lent Out"), /* @__PURE__ */React.createElement("span", {
+    className: "font-extrabold text-lg text-emerald-600"
+  }, fmt(totalLoansLentAED))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("span", {
+    className: "text-[10px] font-bold uppercase tracking-wider text-zinc-500 block"
+  }, "Borrowed"), /* @__PURE__ */React.createElement("span", {
+    className: "font-extrabold text-lg text-rose-500"
+  }, fmt(totalLoansBorrowedAED)))), /* @__PURE__ */React.createElement("div", {
+    className: "space-y-3"
+  }, sortedLoans.map(loan => {
+    const repaid = loan.repaid || 0;
+    const outstanding = loan.amount - repaid;
+    const percentPaid = Math.round(repaid / loan.amount * 100) || 0;
+    const isFullyPaid = outstanding <= 0;
+    const isOverdue = !isFullyPaid && loan.dueDate && loan.dueDate < todayStr;
+    return /* @__PURE__ */React.createElement("div", {
+      key: loan.id,
+      className: `p-4 rounded-2xl border space-y-3 ${subCardCls}`
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "flex justify-between items-start"
+    }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("div", {
+      className: "flex items-center gap-2 flex-wrap"
+    }, /* @__PURE__ */React.createElement("span", {
+      className: `px-2 py-0.5 rounded text-[9px] font-bold uppercase ${loan.type === "lent" ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-500"}`
+    }, loan.type === "lent" ? "Lent Out" : "Borrowed Liability"), isFullyPaid && /* @__PURE__ */React.createElement("span", {
+      className: "px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded text-[9px] font-bold uppercase"
+    }, "Fully Paid"), isOverdue && /* @__PURE__ */React.createElement("span", {
+      className: "px-2 py-0.5 bg-rose-500/10 text-rose-500 rounded text-[9px] font-bold uppercase animate-pulse"
+    }, "Overdue")), /* @__PURE__ */React.createElement("h3", {
+      className: "font-bold text-sm mt-1"
+    }, loan.name), loan.dueDate && /* @__PURE__ */React.createElement("p", {
+      className: "text-[10px] opacity-50 mt-0.5"
+    }, "Due: ", dateFmt(loan.dueDate)), loan.whatsapp && !isFullyPaid && /* @__PURE__ */React.createElement("a", {
+      href: `https://wa.me/${loan.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${loan.name}, reminder regarding the outstanding balance of ${loan.currency} ${numFmt(outstanding)}`)}`,
+      target: "_blank",
+      rel: "noreferrer",
+      className: "text-[10px] text-emerald-500 hover:underline block mt-0.5"
+    }, "WhatsApp Reminder \\u2192")), /* @__PURE__ */React.createElement("div", {
+      className: "flex items-center space-x-2"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "text-right mr-1"
+    }, /* @__PURE__ */React.createElement("span", {
+      className: `font-bold text-sm block ${isFullyPaid ? "text-zinc-400 line-through" : loan.type === "lent" ? "text-emerald-600" : "text-rose-500"}`
+    }, loan.currency, " ", numFmt(outstanding)), /* @__PURE__ */React.createElement("span", {
+      className: "text-[10px] opacity-50"
+    }, "Orig: ", numFmt(loan.amount))), /* @__PURE__ */React.createElement("button", {
+      onClick: () => openEditModal("loan", loan),
+      title: "Edit",
+      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10 active:scale-95"
+    }, /* @__PURE__ */React.createElement(Icons.IconEdit, {
+      className: "w-4 h-4"
+    })), /* @__PURE__ */React.createElement("button", {
+      onClick: () => setDeleteTarget({
+        type: "loan",
+        id: loan.id,
+        name: loan.name
+      }),
+      title: "Delete",
+      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 active:scale-95"
+    }, /* @__PURE__ */React.createElement(Icons.IconTrash, {
+      className: "w-4 h-4"
+    })))), /* @__PURE__ */React.createElement("div", {
+      className: "space-y-1"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "flex justify-between text-[10px] text-zinc-400"
+    }, /* @__PURE__ */React.createElement("span", null, "Repaid: ", loan.currency, " ", numFmt(repaid), " (", percentPaid, "%)"), /* @__PURE__ */React.createElement("span", null, outstanding === 0 ? "Settled" : `${percentPaid}% Paid`)), /* @__PURE__ */React.createElement("div", {
+      className: "w-full bg-zinc-800/20 h-2 rounded-full overflow-hidden"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "bg-emerald-500 h-full transition-all duration-300",
+      style: {
+        width: `${percentPaid}%`
+      }
+    }))), /* @__PURE__ */React.createElement("div", {
+      className: "pt-1 flex flex-wrap gap-2 justify-end"
+    }, !isFullyPaid && /* @__PURE__ */React.createElement("button", {
+      onClick: () => {
+        setRepaymentModalLoan(loan);
+        setRepayAmount(outstanding.toString());
+        setRepayAccountId((accounts[0] ? accounts[0].id : "") || "");
+        setRepayDate(todayISO());
+      },
+      className: "px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-xl text-xs font-bold"
+    }, "+ Record Repayment"), /* @__PURE__ */React.createElement("button", {
+      onClick: () => {
+        setLoanAddMoreTarget(loan);
+        setAddMoreAmount("");
+        setAddMoreAccountId((accounts[0] ? accounts[0].id : "") || "");
+        setAddMoreDate(todayISO());
+      },
+      className: "px-3 py-1.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-xl text-xs font-bold"
+    }, "+ Add More"), /* @__PURE__ */React.createElement("button", {
+      onClick: () => setExpandedLoanHistory(prev => ({
+        ...prev,
+        [loan.id]: !prev[loan.id]
+      })),
+      className: "px-3 py-1.5 bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20 rounded-xl text-xs font-bold"
+    }, expandedLoanHistory[loan.id] ? "Hide History" : "History"), expandedLoanHistory[loan.id] && /* @__PURE__ */React.createElement("div", {
+      className: "w-full pt-2 space-y-1.5"
+    }, (loan.movements && loan.movements.length > 0 ? [...loan.movements].slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")) : []).map(mv => /* @__PURE__ */React.createElement("div", {
+      key: mv.id,
+      className: "flex justify-between items-center text-[11px] px-2.5 py-1.5 rounded-lg bg-zinc-500/5"
+    }, /* @__PURE__ */React.createElement("span", {
+      className: "text-zinc-400"
+    }, dateFmt(mv.date), " \u00B7 ", mv.kind === "principal" ? loan.type === "lent" ? "Given" : "Received" : "Repaid"), /* @__PURE__ */React.createElement("span", {
+      className: `font-bold ${mv.kind === "principal" ? loan.type === "lent" ? "text-rose-500" : "text-emerald-600" : loan.type === "lent" ? "text-emerald-600" : "text-rose-500"}`
+    }, mv.kind === "principal" ? "+" : "-", loan.currency, " ", numFmt(mv.amount)))), (!loan.movements || loan.movements.length === 0) && /* @__PURE__ */React.createElement("p", {
+      className: "text-[10px] text-zinc-400 text-center py-2"
+    }, "No dated movements logged yet for this entry."))));
+  })));
   }
+
   window.Tabs = window.Tabs || {};
   window.Tabs.Loans = Loans;
 })();

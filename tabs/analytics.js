@@ -1,201 +1,274 @@
-// tabs/analytics.js — Premium Insights experience.
-// Uses the existing finance data model but presents it as a calm, native-iOS-inspired intelligence dashboard.
+// tabs/analytics.js — Analytics tab. Renders as TWO pieces (Analytics inline block
+// + AnalyticsSummary, originally renderInsightSummary()), matching the original
+// app exactly: both are shown when activeTab === "analytics".
 (function () {
-  const h = React.createElement;
-  const GREEN = "#1DBF73";
-  const RED = "#FF3B30";
-  const BLUE = "#007AFF";
-  const PURPLE = "#AF52DE";
-  const GRAY = "#8E8E93";
-
-  function moneyDelta(value, fmt) {
-    return `${value >= 0 ? "+" : "−"}${fmt(Math.abs(value))}`;
-  }
-
-  function pct(value) {
-    if (!Number.isFinite(value)) return "—";
-    return `${Math.round(value)}%`;
-  }
-
-  function scoreFor({ savingsRate, emergencyRunwayMonths, monthlySavingsAED, monthlyIncomeAED }) {
-    const runway = emergencyRunwayMonths === "12+" ? 12 : Number(emergencyRunwayMonths || 0);
-    const savings = savingsRate == null ? 0 : Math.max(0, Math.min(100, savingsRate));
-    const cashFlow = monthlyIncomeAED > 0 ? Math.max(0, Math.min(100, monthlySavingsAED / monthlyIncomeAED * 100)) : 0;
-    const score = Math.round(Math.max(0, Math.min(100, savings * 0.45 + Math.min(100, runway / 6 * 100) * 0.35 + cashFlow * 0.20)));
-    return score;
-  }
-
-  function sparkline(data, field, color, darkMode) {
-    const width = 320, height = 96, pad = 8;
-    const values = data.map(d => Number(d[field]) || 0);
-    const min = Math.min(0, ...values), max = Math.max(1, ...values);
-    const range = Math.max(1, max - min);
-    const points = data.map((d, i) => {
-      const x = pad + i * (width - pad * 2) / Math.max(1, data.length - 1);
-      const y = height - pad - ((Number(d[field]) || 0) - min) / range * (height - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
-    return h("svg", { viewBox: `0 0 ${width} ${height}`, className: "insight-sparkline", role: "img" },
-      h("line", { x1: pad, y1: height - pad, x2: width - pad, y2: height - pad, stroke: darkMode ? "#3F3F46" : "#E4E4E7", strokeWidth: "1" }),
-      h("polyline", { points, fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round" }),
-      data.map((d, i) => {
-        const x = pad + i * (width - pad * 2) / Math.max(1, data.length - 1);
-        const y = height - pad - ((Number(d[field]) || 0) - min) / range * (height - pad * 2);
-        return h("circle", { key: d.key, cx: x, cy: y, r: i === data.length - 1 ? 4 : 2.2, fill: darkMode ? "#18181B" : "#FFFFFF", stroke: color, strokeWidth: "2" });
-      })
-    );
-  }
-
-  function InsightHero(props) {
-    const { darkMode, fmt, monthlyIncomeAED, monthlyExpenseAED, monthlySavingsAED, savingsRate, emergencyRunwayMonths, runwayStatus, biggestExpenseThisMonth, monthlyHistory } = props;
-    const score = scoreFor(props);
-    const last = monthlyHistory[monthlyHistory.length - 1];
-    const prior = monthlyHistory[monthlyHistory.length - 2];
-    const netChange = prior && prior.net !== 0 ? (last.net - prior.net) / Math.abs(prior.net) * 100 : null;
-    const lead = monthlySavingsAED > 0
-      ? `You kept ${fmt(monthlySavingsAED)} this month. Your cash flow is moving in the right direction.`
-      : monthlySavingsAED < 0
-        ? `Spending is ahead of income by ${fmt(Math.abs(monthlySavingsAED))}. A small reset could bring the month back on track.`
-        : "Your month is balanced so far. Keep recording transactions to reveal stronger patterns.";
-    return h("section", { className: `insight-hero ${darkMode ? "insight-dark" : ""}` },
-      h("div", { className: "insight-hero-top" },
-        h("div", null,
-          h("span", { className: "insight-eyebrow" }, "INSIGHTS"),
-          h("h1", { className: "insight-title" }, "Your money, in focus."),
-          h("p", { className: "insight-subtitle" }, "A quiet read of your recent financial patterns.")),
-        h("div", { className: "insight-score", title: "A simple wellness signal based on savings, cash flow and runway" },
-          h("div", { className: "insight-score-ring", style: { background: `conic-gradient(${GREEN} ${score * 3.6}deg, rgba(29,191,115,.10) 0deg)` } },
-            h("div", { className: "insight-score-inner" }, h("strong", null, score), h("span", null, "HEALTH"))))),
-      h("div", { className: "insight-ai-card" },
-        h("div", { className: "insight-ai-icon" }, "✦"),
-        h("div", { className: "insight-ai-copy" },
-          h("span", { className: "insight-ai-label" }, "ALEEMFIN INSIGHT"),
-          h("p", null, lead),
-          h("div", { className: "insight-ai-meta" },
-            h("span", null, "Runway ", h("b", null, `~${emergencyRunwayMonths} mo`)),
-            h("span", null, "Savings ", h("b", null, savingsRate == null ? "—" : `${savingsRate}%`)),
-            netChange != null && h("span", null, "Net vs prior ", h("b", { className: netChange >= 0 ? "insight-positive" : "insight-negative" }, pct(netChange))))))),
-      h("div", { className: "insight-kpi-grid" },
-        h("div", { className: "insight-kpi" }, h("span", null, "INCOME"), h("strong", { style: { color: GREEN } }, fmt(monthlyIncomeAED)), h("small", null, "this month")),
-        h("div", { className: "insight-kpi" }, h("span", null, "SPENDING"), h("strong", { style: { color: RED } }, fmt(monthlyExpenseAED)), h("small", null, "this month")),
-        h("div", { className: "insight-kpi" }, h("span", null, "NET"), h("strong", { className: monthlySavingsAED >= 0 ? "insight-positive" : "insight-negative" }, moneyDelta(monthlySavingsAED, fmt)), h("small", null, "after expenses")),
-        h("div", { className: "insight-kpi" }, h("span", null, "BUFFER"), h("strong", { className: "insight-buffer-value" }, `${emergencyRunwayMonths} mo`), h("small", null, runwayStatus.label)));
-  }
-
-  function CashFlowCard({ darkMode, fmt, monthlyHistory, insightTrendPeriod, setInsightTrendPeriod }) {
-    const data = insightTrendPeriod === "yearly" ? arguments[0].yearlyHistory : monthlyHistory;
-    const chartData = data || monthlyHistory;
-    const income = chartData.reduce((a, x) => a + x.inc, 0);
-    const expense = chartData.reduce((a, x) => a + x.exp, 0);
-    const net = income - expense;
-    const max = Math.max(1, ...chartData.map(x => Math.max(x.inc, x.exp)));
-    return h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
-      h("div", { className: "insight-panel-head" },
-        h("div", null, h("span", { className: "insight-section-kicker" }, "CASH FLOW"), h("h2", null, insightTrendPeriod === "yearly" ? "Year at a glance" : "Six-month rhythm")),
-        h("div", { className: "insight-segment" },
-          ["monthly", "yearly"].map(id => h("button", { key: id, type: "button", onClick: () => setInsightTrendPeriod(id), className: insightTrendPeriod === id ? "active" : "" }, id === "monthly" ? "Monthly" : "Yearly")))),
-      h("div", { className: "insight-chart-wrap" },
-        h("div", { className: "insight-bar-chart", role: "img", "aria-label": `${insightTrendPeriod} income and expense chart` },
-          chartData.map(item => h("div", { key: item.key, className: "insight-bar-group" },
-            h("div", { className: "insight-bars" },
-              h("span", { className: "insight-bar income", style: { height: `${Math.max(3, item.inc / max * 100)}%` }, title: `Income ${fmt(item.inc)}` }),
-              h("span", { className: "insight-bar expense", style: { height: `${Math.max(3, item.exp / max * 100)}%` }, title: `Expenses ${fmt(item.exp)}` })),
-            h("small", null, insightTrendPeriod === "yearly" ? item.label : item.label))))),
-      h("div", { className: "insight-chart-legend" }, h("span", null, h("i", { style: { background: GREEN } }), "Income"), h("span", null, h("i", { style: { background: RED } }), "Expenses")),
-      h("div", { className: "insight-summary-strip" },
-        h("div", null, h("span", null, "In"), h("strong", { style: { color: GREEN } }, fmt(income))),
-        h("div", null, h("span", null, "Out"), h("strong", { style: { color: RED } }, fmt(expense))),
-        h("div", null, h("span", null, "Net"), h("strong", { className: net >= 0 ? "insight-positive" : "insight-negative" }, moneyDelta(net, fmt)))));
-  }
-
-  function GoldPerformanceCard(props) {
-    const { darkMode, fmt, goldAssets, goldHistory, settings, exchangeRates } = props;
-    const h = React.createElement;
-    const baseCurrency = settings && settings.defaultCurrency || "AED";
-    const totalWeight = goldAssets.reduce((sum, a) => sum + Number(a.weightGrams || 0), 0);
-    const avgPurchasePerGram = totalWeight > 0 ? goldAssets.reduce((sum, a) => sum + Number(a.purchaseValueBase || 0), 0) / totalWeight : 0;
-    const series = (goldHistory || []).map(item => {
-      const rate = Number(item.rateAEDPerGram || 0) / (exchangeRates && exchangeRates[baseCurrency] || 1);
-      const pnl = goldAssets.reduce((sum, a) => {
-        const grams = Number(a.weightGrams || 0);
-        const purchase = Number(a.purchaseValueBase || 0);
-        return sum + (grams > 0 ? grams * (rate - purchase / grams) : 0);
-      }, 0);
-      return { ...item, pnl, rate };
-    });
-    const latest = series[series.length - 1];
-    const previous = series[series.length - 2];
-    const currentPnl = latest ? latest.pnl : goldAssets.reduce((sum,a)=>sum + Number(a.currentValueBase||0) - Number(a.purchaseValueBase||0),0);
-    const labels = series.map(x => ({ date:x.date, label:new Date(`${x.date}T12:00:00`).toLocaleDateString("en-US", {month:"short",day:"numeric"}), pnl:x.pnl }));
-    const values = [0].concat(labels.map(x=>x.pnl));
-    const min = Math.min(0,...values), max = Math.max(0,...values), range = Math.max(1,max-min), width=640, height=210, padX=24, padY=22;
-    const pointFor=(v,i)=>[padX+i*(width-padX*2)/Math.max(1,values.length-1),height-padY-(v-min)/range*(height-padY*2)];
-    const points=values.map((v,i)=>pointFor(v,i).map(n=>n.toFixed(1)).join(",")).join(" ");
-    const zeroY=pointFor(0,0)[1];
-    return h("section",{className:`insight-panel gold-performance-panel ${darkMode?"insight-panel-dark":""}`},
-      h("div",{className:"insight-panel-head"},h("div",null,h("span",{className:"insight-section-kicker gold-kicker"},"GOLD PERFORMANCE"),h("h2",null,"Daily profit & loss")),h("strong",{className:currentPnl>=0?"gold-positive":"gold-negative"},`${currentPnl>=0?"+":"-"}${fmt(Math.abs(currentPnl))}`)),
-      goldAssets.length===0?h("div",{className:"insight-empty"},"Add gold assets to track their daily profit and loss."):series.length===0?h("div",{className:"insight-empty"},"Daily gold performance will appear after the next successful gold-rate sync."):h("div",{className:"gold-performance-chart"},
-        h("svg",{viewBox:`0 0 ${width} ${height}`,role:"img","aria-label":"Daily gold profit and loss trend"},h("line",{x1:padX,y1:zeroY,x2:width-padX,y2:zeroY,stroke:"#D4AF37",strokeWidth:"1",strokeDasharray:"4 5",opacity:".45"}),h("polyline",{points,fill:"none",stroke:"#D4AF37",strokeWidth:"3",strokeLinecap:"round",strokeLinejoin:"round"}),values.map((v,i)=>{const [x,y]=pointFor(v,i);return h("circle",{key:i,cx:x,cy:y,r:i===values.length-1?4.5:3,fill:darkMode?"#18181B":"#FFFFFF",stroke:"#D4AF37",strokeWidth:"2"})})),
-        h("div",{className:"gold-performance-labels"},h("span",null,"Purchase baseline"),labels.slice(-7).map(x=>h("span",{key:x.date,title:x.date},x.label))),
-        h("div",{className:"gold-performance-meta"},h("span",null,`Avg purchase ${fmt(avgPurchasePerGram)} / g`),h("span",null,latest?`Latest ${fmt(latest.rate)} / g`:"Latest pending"),h("span",null,previous?`Previous ${fmt(previous.rate)} / g`:"Previous pending")),
-        h("div",{className:"gold-performance-note"},`Daily fetched benchmark compared with your recorded gold purchase cost. P/L is based only on your gold weight and is shown in ${baseCurrency}.`))
-    );
-  }
-
   function Analytics(props) {
-    const { cardCls, categoryBreakdown = [], currentMonthLabel, darkMode, fmt, goldAssets = [], goldHistory = [], settings = {}, exchangeRates = { AED: 1 }, monthlyExpenseAED = 0, monthlyHistory = [], monthlyIncomeAED = 0, monthlySavingsAED = 0, savingsRate, emergencyRunwayMonths = 0, runwayStatus = { label: "—" }, biggestExpenseThisMonth, totalLiquidAED = 0, totalPhysicalAED = 0, totalLoansLentAED = 0, totalLoansBorrowedAED = 0 } = props;
-    const top = categoryBreakdown[0];
-    const categoryTotal = Math.max(1, monthlyExpenseAED);
-    const categories = categoryBreakdown.slice(0, 5);
-    const netWorthBase = Math.max(1, totalLiquidAED + totalPhysicalAED + totalLoansLentAED + totalLoansBorrowedAED);
-    const segments = [
-      ["Accounts", totalLiquidAED, GREEN], ["Assets", totalPhysicalAED, "#FF9500"], ["Lent", totalLoansLentAED, BLUE], ["Borrowed", totalLoansBorrowedAED, RED]
-    ];
-    return h("div", { className: "insight-page" },
-      h(InsightHero, props),
-      h("div", { className: "insight-two-col" },
-        h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
-          h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SPENDING"), h("h2", null, `${currentMonthLabel} mix`)), h("span", { className: "insight-panel-total" }, fmt(monthlyExpenseAED))),
-          categories.length === 0 ? h("div", { className: "insight-empty" }, "No spending recorded yet.") : h("div", { className: "insight-category-list" }, categories.map(([cat, value], i) => {
-            const share = value / categoryTotal * 100;
-            return h("div", { key: cat, className: "insight-category-row" },
-              h("div", { className: "insight-category-main" }, h("span", { className: "insight-rank" }, String(i + 1).padStart(2, "0")), h("span", null, cat)),
-              h("div", { className: "insight-category-value" }, h("b", null, fmt(value)), h("small", null, `${Math.round(share)}%`)),
-              h("div", { className: "insight-category-track" }, h("i", { style: { width: `${share}%` } })));
-          })),
-          top && biggestExpenseThisMonth && h("div", { className: "insight-callout" }, h("span", null, "Largest signal"), h("strong", null, `${top[0]} is your biggest spend category`), h("small", null, `${biggestExpenseThisMonth.title} was ${fmt(biggestExpenseThisMonth.aed)}.`)))),
-        h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
-          h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "NET WORTH"), h("h2", null, "Where it sits"))),
-          h("div", { className: "insight-donut-wrap" },
-            h("div", { className: "insight-donut", style: { background: `conic-gradient(${segments.map((s, i) => { const start = segments.slice(0, i).reduce((a, x) => a + Math.abs(x[1]), 0) / netWorthBase * 360; const end = start + Math.abs(s[1]) / netWorthBase * 360; return `${s[2]} ${start}deg ${end}deg`; }).join(", ")})` } },
-              h("div", { className: "insight-donut-hole" }, h("strong", null, fmt(totalLiquidAED + totalPhysicalAED + totalLoansLentAED - totalLoansBorrowedAED)), h("span", null, "net position"))),
-            h("div", { className: "insight-net-list" },
-              segments.map(([label, value, color]) => h("div", { key: label }, h("i", { style: { background: color } }), h("span", null, label), h("b", null, fmt(value))))))));
+    const { avgMonthlyNet, bestMonth, biggestExpenseThisMonth, cardCls, categoryBreakdown, currentMonthLabel, darkMode, emergencyRunwayMonths, fmt, maxMonthlyVal, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, runwayStatus, savingsRate, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED } = props;
+    return /* @__PURE__ */React.createElement("div", {
+    className: "space-y-4 max-w-xl mx-auto w-full"
+  }, /* @__PURE__ */React.createElement("h2", {
+    className: "text-sm font-bold uppercase tracking-wider text-blue-500 px-1"
+  }, "Financial Health & Insights"), /* @__PURE__ */React.createElement("div", {
+    className: `p-6 ${cardCls} space-y-4`
+  }, /* @__PURE__ */React.createElement("div", {
+    className: "space-y-3 text-xs md:text-sm"
+  }, /* @__PURE__ */React.createElement("div", {
+    className: "flex justify-between"
+  }, /* @__PURE__ */React.createElement("span", null, "Monthly Income"), /* @__PURE__ */React.createElement("span", {
+    className: "font-bold text-emerald-500"
+  }, fmt(monthlyIncomeAED))), /* @__PURE__ */React.createElement("div", {
+    className: "flex justify-between"
+  }, /* @__PURE__ */React.createElement("span", null, "Monthly Expenses"), /* @__PURE__ */React.createElement("span", {
+    className: "font-bold text-rose-500"
+  }, fmt(monthlyExpenseAED))), /* @__PURE__ */React.createElement("div", {
+    className: "flex justify-between border-t pt-3 font-bold text-base"
+  }, /* @__PURE__ */React.createElement("span", null, "Monthly Net Delta"), /* @__PURE__ */React.createElement("span", {
+    className: monthlySavingsAED < 0 ? "text-rose-500" : "text-blue-500"
+  }, fmt(monthlySavingsAED)))), /* @__PURE__ */React.createElement("div", {
+    className: "pt-3 border-t text-xs text-zinc-400 space-y-2"
+  }, /* @__PURE__ */React.createElement("p", null, "Emergency fund covers ", /* @__PURE__ */React.createElement("strong", {
+    className: darkMode ? "text-zinc-100" : "text-zinc-800"
+  }, "~", emergencyRunwayMonths, " months"), " of current monthly essential spend (", runwayStatus.label.toLowerCase(), ")."), /* @__PURE__ */React.createElement("p", null, "Savings rate this month is ", /* @__PURE__ */React.createElement("strong", {
+    className: darkMode ? "text-zinc-100" : "text-zinc-800"
+  }, savingsRate === null ? "N/A (no income logged this month)" : `${savingsRate}%`), "."), biggestExpenseThisMonth && /* @__PURE__ */React.createElement("p", null, "Biggest expense this month: ", /* @__PURE__ */React.createElement("strong", {
+    className: darkMode ? "text-zinc-100" : "text-zinc-800"
+  }, biggestExpenseThisMonth.title), " \\u2014 ", fmt(biggestExpenseThisMonth.aed), " (", biggestExpenseThisMonth.category, ")."))), /* @__PURE__ */React.createElement("div", {
+    className: `p-6 ${cardCls} space-y-4`
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "text-xs font-bold uppercase tracking-wider text-zinc-500"
+  }, "6-Month Income vs Expense Trend"), /* @__PURE__ */React.createElement("div", {
+    className: "flex items-end justify-between gap-1 h-36 px-1"
+  }, monthlyHistory.map(m => /* @__PURE__ */React.createElement("div", {
+    key: m.key,
+    className: "flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
+  }, /* @__PURE__ */React.createElement("div", {
+    className: "w-full flex items-end justify-center gap-1 flex-1"
+  }, /* @__PURE__ */React.createElement("div", {
+    className: "w-2.5 sm:w-3 rounded-t bg-emerald-500 transition-all",
+    style: {
+      height: `${Math.max(3, m.inc / maxMonthlyVal * 100)}%`
+    },
+    title: `Income ${fmt(m.inc)}`
+  }), /* @__PURE__ */React.createElement("div", {
+    className: "w-2.5 sm:w-3 rounded-t bg-rose-500 transition-all",
+    style: {
+      height: `${Math.max(3, m.exp / maxMonthlyVal * 100)}%`
+    },
+    title: `Expense ${fmt(m.exp)}`
+  })), /* @__PURE__ */React.createElement("span", {
+    className: "text-[9px] text-zinc-400"
+  }, m.label)))), /* @__PURE__ */React.createElement("div", {
+    className: "flex items-center justify-center gap-4 text-[10px] text-zinc-400"
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "flex items-center gap-1.5"
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "w-2 h-2 rounded-full bg-emerald-500 inline-block"
+  }), " Income"), /* @__PURE__ */React.createElement("span", {
+    className: "flex items-center gap-1.5"
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "w-2 h-2 rounded-full bg-rose-500 inline-block"
+  }), " Expense")), /* @__PURE__ */React.createElement("div", {
+    className: "grid grid-cols-2 gap-3 pt-2 border-t text-xs"
+  }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("span", {
+    className: "text-zinc-400 block mb-0.5"
+  }, "Avg. Monthly Net (6mo)"), /* @__PURE__ */React.createElement("strong", {
+    className: avgMonthlyNet < 0 ? "text-rose-500" : "text-blue-500"
+  }, fmt(avgMonthlyNet))), /* @__PURE__ */React.createElement("div", {
+    className: "text-right"
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "text-zinc-400 block mb-0.5"
+  }, "Best Month"), /* @__PURE__ */React.createElement("strong", {
+    className: "text-emerald-500"
+  }, bestMonth && bestMonth.net !== 0 ? `${bestMonth.label} (${fmt(bestMonth.net)})` : "N/A")))), /* @__PURE__ */React.createElement("div", {
+    className: `p-6 ${cardCls} space-y-3`
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "text-xs font-bold uppercase tracking-wider text-zinc-500"
+  }, currentMonthLabel, " Spend by Category"), categoryBreakdown.length === 0 && /* @__PURE__ */React.createElement("p", {
+    className: "text-xs text-zinc-400"
+  }, "No expenses logged this month yet."), /* @__PURE__ */React.createElement("div", {
+    className: "space-y-2.5"
+  }, categoryBreakdown.map(([cat, amtAED]) => {
+    const pct = monthlyExpenseAED > 0 ? Math.round(amtAED / monthlyExpenseAED * 100) : 0;
+    return /* @__PURE__ */React.createElement("div", {
+      key: cat,
+      className: "space-y-1"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "flex justify-between text-xs"
+    }, /* @__PURE__ */React.createElement("span", {
+      className: "font-semibold"
+    }, cat), /* @__PURE__ */React.createElement("span", {
+      className: "text-zinc-400"
+    }, fmt(amtAED), " (", pct, "%)")), /* @__PURE__ */React.createElement("div", {
+      className: "w-full bg-zinc-800/20 h-1.5 rounded-full overflow-hidden"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "bg-rose-500 h-full",
+      style: {
+        width: `${pct}%`
+      }
+    })));
+  }))), /* @__PURE__ */React.createElement("div", {
+    className: `p-6 ${cardCls} space-y-3`
+  }, /* @__PURE__ */React.createElement("span", {
+    className: "text-xs font-bold uppercase tracking-wider text-zinc-500"
+  }, "Net Worth Composition"), /* @__PURE__ */React.createElement("div", {
+    className: "space-y-2.5"
+  }, [{
+    label: "Liquid (Accounts)",
+    val: totalLiquidAED,
+    cls: "bg-teal-500"
+  }, {
+    label: "Physical Assets",
+    val: totalPhysicalAED,
+    cls: "bg-amber-500"
+  }, {
+    label: "Lent Out",
+    val: totalLoansLentAED,
+    cls: "bg-emerald-500"
+  }, {
+    label: "Borrowed (deducted)",
+    val: -totalLoansBorrowedAED,
+    cls: "bg-rose-500"
+  }].map(row => {
+    const base = Math.max(1, totalLiquidAED + totalPhysicalAED + totalLoansLentAED + totalLoansBorrowedAED);
+    const pct = Math.min(100, Math.round(Math.abs(row.val) / base * 100));
+    return /* @__PURE__ */React.createElement("div", {
+      key: row.label,
+      className: "space-y-1"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: "flex justify-between text-xs"
+    }, /* @__PURE__ */React.createElement("span", {
+      className: "font-semibold"
+    }, row.label), /* @__PURE__ */React.createElement("span", {
+      className: "text-zinc-400"
+    }, fmt(row.val))), /* @__PURE__ */React.createElement("div", {
+      className: "w-full bg-zinc-800/20 h-1.5 rounded-full overflow-hidden"
+    }, /* @__PURE__ */React.createElement("div", {
+      className: `${row.cls} h-full`,
+      style: {
+        width: `${pct}%`
+      }
+    })));
+  }))));
   }
 
   function AnalyticsSummary(props) {
-    const { darkMode, fmt, monthlyHistory = [], yearlyHistory = [], insightTrendPeriod, setInsightTrendPeriod, insightTrendStyle, setInsightTrendStyle, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, categoryBreakdown = [], goldAssets = [], goldHistory = [], settings = {}, exchangeRates = { AED: 1 } } = props;
-    const data = (insightTrendPeriod === "yearly" ? yearlyHistory : monthlyHistory) || [];
-    const trendNet = data.reduce((a, x) => a + x.net, 0);
-    const average = data.length ? trendNet / data.length : 0;
-    const positivePeriods = data.filter(x => x.net >= 0).length;
-    const last = data[data.length - 1];
-    return h("div", { className: "insight-page insight-summary-page" },
-      h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
-        h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "TREND"), h("h2", null, "The bigger picture")), h("div", { className: "insight-segment" }, ["monthly", "yearly"].map(id => h("button", { key: id, type: "button", onClick: () => setInsightTrendPeriod(id), className: insightTrendPeriod === id ? "active" : "" }, id === "monthly" ? "Monthly" : "Yearly")))),
-        h("div", { className: "insight-trend-hero" }, h("div", null, h("span", null, "Average net"), h("strong", { className: average >= 0 ? "insight-positive" : "insight-negative" }, moneyDelta(average, fmt)), h("small", null, `${positivePeriods} of ${data.length} periods positive`)), h("div", { className: "insight-trend-last" }, h("span", null, "Latest"), h("b", { className: last && last.net >= 0 ? "insight-positive" : "insight-negative" }, last ? moneyDelta(last.net, fmt) : "—"))),
-        h("div", { className: "insight-mini-chart" }, sparkline(data, "net", trendNet >= 0 ? GREEN : RED, darkMode)),
-        h("div", { className: "insight-style-row" }, ["line", "bars"].map(id => h("button", { key: id, type: "button", onClick: () => setInsightTrendStyle(id), className: insightTrendStyle === id ? "active" : "" }, id === "line" ? "Trend line" : "Bars"))),
-        insightTrendStyle === "bars" && h("div", { className: "insight-compact-bars" }, data.map(item => h("div", { key: item.key }, h("span", { style: { height: `${Math.max(4, Math.abs(item.net) / Math.max(1, ...data.map(x => Math.abs(x.net))) * 100)}%`, background: item.net >= 0 ? GREEN : RED } }), h("small", null, item.label))))),
-      h("div", { className: "insight-two-col insight-summary-stack" },
-        h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` }, h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SIGNALS"), h("h2", null, "Worth noticing"))),
-          h("div", { className: "insight-signal-list" },
-            h("div", null, h("span", null, "Best month"), h("strong", null, bestMonth && bestMonth.net !== 0 ? `${bestMonth.label} · ${moneyDelta(bestMonth.net, fmt)}` : "Not enough data")),
-            h("div", null, h("span", null, "Top category"), h("strong", null, categoryBreakdown[0] ? `${categoryBreakdown[0][0]} · ${fmt(categoryBreakdown[0][1])}` : "Not enough data")),
-            h("div", null, h("span", null, "Largest transaction"), h("strong", null, biggestExpenseThisMonth ? `${biggestExpenseThisMonth.title} · ${fmt(biggestExpenseThisMonth.aed)}` : "Not enough data")))),
-        h(GoldPerformanceCard, { darkMode, fmt, goldAssets, goldHistory, settings, exchangeRates }),
-        h("section", { className: `insight-panel insight-ai-panel ${darkMode ? "insight-panel-dark" : ""}` }, h("div", { className: "insight-ai-label" }, "✦ SMART NOTE"), h("h2", null, trendNet >= 0 ? "Your trend is compounding." : "Your trend needs a reset."), h("p", null, trendNet >= 0 ? "The strongest move now is consistency: protect the positive months and keep fixed costs predictable." : "Look for one recurring cost to trim and one category to cap. Small changes compound quickly over a full year."), h("div", { className: "insight-note-pill" }, insightTrendPeriod === "yearly" ? "Annual view" : "Recent view"))),
-      h("div", { className: "insight-footnote" }, "Insights are generated from transactions recorded in AleemFin. They are guidance, not financial advice."));
+    const { accent, biggestExpenseThisMonth, cardCls, categoryBreakdown, darkMode, fmt, insightTrendPeriod, insightTrendStyle, monthlyHistory, setInsightTrendPeriod, setInsightTrendStyle, yearlyHistory } = props;
+    const h = React.createElement;
+    const topCategory = categoryBreakdown[0];
+    const trendData = insightTrendPeriod === "yearly" ? yearlyHistory : monthlyHistory;
+    const chartMax = Math.max(1, ...trendData.map(item => Math.max(item.inc, item.exp)));
+    const chartWidth = 300;
+    const chartHeight = 136;
+    const chartPad = 12;
+    const chartPoints = field => trendData.map((item, index) => {
+    const x = chartPad + index * (chartWidth - chartPad * 2) / Math.max(1, trendData.length - 1);
+    const y = chartHeight - chartPad - item[field] / chartMax * (chartHeight - chartPad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+    const tabButton = (id, label) => h("button", {
+    type: "button",
+    onClick: () => setInsightTrendPeriod(id),
+    className: `px-3 py-1.5 rounded-lg text-[11px] font-bold ${insightTrendPeriod === id ? `${accent.activeBg} ${accent.textStrong}` : "text-zinc-400"}`
+  }, label);
+    const styleButton = (id, label) => h("button", {
+    type: "button",
+    onClick: () => setInsightTrendStyle(id),
+    className: `px-3 py-1.5 rounded-lg text-[11px] font-bold ${insightTrendStyle === id ? `${accent.activeBg10} ${accent.textStrong}` : "text-zinc-400"}`
+  }, label);
+    const trendChart = insightTrendStyle === "line" ? h("div", null, h("svg", {
+    viewBox: `0 0 ${chartWidth} ${chartHeight}`,
+    className: "w-full h-36",
+    role: "img",
+    "aria-label": `${insightTrendPeriod} income and expense trend`
+  }, h("line", {
+    x1: chartPad,
+    y1: chartHeight - chartPad,
+    x2: chartWidth - chartPad,
+    y2: chartHeight - chartPad,
+    stroke: darkMode ? "#3f3f46" : "#e4e4e7",
+    strokeWidth: "1"
+  }), h("polyline", {
+    points: chartPoints("inc"),
+    fill: "none",
+    stroke: "#10b981",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }), h("polyline", {
+    points: chartPoints("exp"),
+    fill: "none",
+    stroke: "#f43f5e",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  })), h("div", {
+    className: "grid gap-1 text-center text-[9px] text-zinc-400 -mt-1",
+    style: {
+      gridTemplateColumns: `repeat(${trendData.length}, minmax(0, 1fr))`
+    }
+  }, trendData.map(item => h("span", {
+    key: item.key
+  }, insightTrendPeriod === "yearly" ? item.label.slice(2) : item.label)))) : h("div", {
+    className: "flex items-end justify-between gap-1 h-36 px-1"
+  }, trendData.map(item => h("div", {
+    key: item.key,
+    className: "flex-1 h-full flex flex-col items-center justify-end gap-1.5"
+  }, h("div", {
+    className: "w-full flex items-end justify-center gap-1 flex-1"
+  }, h("div", {
+    className: "w-2.5 rounded-t bg-emerald-500",
+    style: {
+      height: `${Math.max(3, item.inc / chartMax * 100)}%`
+    },
+    title: `Income ${fmt(item.inc)}`
+  }), h("div", {
+    className: "w-2.5 rounded-t bg-rose-500",
+    style: {
+      height: `${Math.max(3, item.exp / chartMax * 100)}%`
+    },
+    title: `Expense ${fmt(item.exp)}`
+  })), h("span", {
+    className: "text-[9px] text-zinc-400"
+  }, insightTrendPeriod === "yearly" ? item.label.slice(2) : item.label))));
+    return h(React.Fragment, null, h("section", {
+    className: `p-5 ${cardCls} max-w-xl mx-auto w-full space-y-4`
+  }, h("div", {
+    className: "flex items-start justify-between gap-3"
+  }, h("div", null, h("p", {
+    className: "text-xs font-bold uppercase tracking-wider text-zinc-500"
+  }, "Trend explorer"), h("p", {
+    className: "text-[10px] text-zinc-400 mt-1"
+  }, "Recorded income and expenses only.")), h("div", {
+    className: `flex p-1 rounded-xl ${darkMode ? "bg-zinc-950" : "bg-zinc-100"}`
+  }, tabButton("monthly", "Monthly"), tabButton("yearly", "Yearly"))), h("div", {
+    className: `flex gap-1 p-1 rounded-xl w-max ${darkMode ? "bg-zinc-950" : "bg-zinc-100"}`
+  }, styleButton("line", "Line"), styleButton("bars", "Bars")), trendChart, h("div", {
+    className: "flex items-center justify-center gap-4 text-[10px] text-zinc-400"
+  }, h("span", {
+    className: "flex items-center gap-1.5"
+  }, h("span", {
+    className: "w-2 h-2 rounded-full bg-emerald-500 inline-block"
+  }), "Income"), h("span", {
+    className: "flex items-center gap-1.5"
+  }, h("span", {
+    className: "w-2 h-2 rounded-full bg-rose-500 inline-block"
+  }), "Expenses"))), h("div", {
+    className: `p-4 ${cardCls} max-w-xl mx-auto w-full`
+  }, h("div", {
+    className: "grid grid-cols-2 gap-3 text-xs"
+  }, h("div", null, h("p", {
+    className: "text-[10px] font-bold uppercase tracking-wider text-zinc-500"
+  }, "Top category"), h("p", {
+    className: "font-bold mt-1"
+  }, topCategory ? topCategory[0] : "No expenses yet"), topCategory && h("p", {
+    className: "text-[10px] text-rose-500 mt-0.5"
+  }, fmt(topCategory[1]))), h("div", null, h("p", {
+    className: "text-[10px] font-bold uppercase tracking-wider text-zinc-500"
+  }, "Biggest expense"), h("p", {
+    className: "font-bold mt-1"
+  }, biggestExpenseThisMonth ? biggestExpenseThisMonth.title : "No expenses yet"), biggestExpenseThisMonth && h("p", {
+    className: "text-[10px] text-rose-500 mt-0.5"
+  }, fmt(biggestExpenseThisMonth.aed))))));
   }
 
   window.Tabs = window.Tabs || {};

@@ -2,13 +2,13 @@
 // and SettingsRow are bundled in since they were only ever used here).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, dangerPhrase, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, setDangerPhrase, settings, subCardCls, transactions, updateSettings } = props;
     const SettingsSection = ({
     title,
     children,
     tone = "text-zinc-500"
   }) => /* @__PURE__ */React.createElement("section", {
-    className: "settings-section space-y-2"
+    className: "space-y-2"
   }, /* @__PURE__ */React.createElement("h3", {
     className: `text-[10px] font-bold uppercase tracking-wider px-1 ${tone}`
   }, title), children);
@@ -19,9 +19,9 @@
     children,
     danger = false
   }) => /* @__PURE__ */React.createElement("div", {
-    className: `settings-row ${danger ? "settings-row-danger" : ""} ${subCardCls} flex items-center gap-3`
+    className: `p-4 ${subCardCls} flex items-center gap-3`
   }, Icon && /* @__PURE__ */React.createElement("div", {
-    className: `settings-icon w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}`
+    className: `w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}`
   }, /* @__PURE__ */React.createElement(Icon, {
     className: "w-4 h-4"
   })), /* @__PURE__ */React.createElement("div", {
@@ -34,7 +34,6 @@
     className: "shrink-0"
   }, children));
     const h = React.createElement;
-    const IOSSwitch = ({ checked, onChange, label }) => h("button", { type: "button", role: "switch", "aria-checked": checked, "aria-label": label, onClick: onChange, className: `ios-settings-switch ${checked ? "is-on" : "is-off"}` }, h("span", { className: "ios-settings-switch-thumb" }));
     const dataSize = new Blob([JSON.stringify({
     accounts,
     assets,
@@ -90,9 +89,9 @@
     });
   };
     return h(React.Fragment, null, h("div", {
-    className: "settings-native"
+    className: "space-y-6 max-w-xl mx-auto w-full"
   }, h("div", {
-    className: "settings-hero"
+    className: "px-1"
   }, h("h2", {
     className: `text-sm font-bold uppercase tracking-wider ${accent.textStrong}`
   }, "Settings"), h("p", {
@@ -117,30 +116,24 @@
     value: "auto"
   }, "System")))), h(SettingsSection, {
     title: "Home dashboard"
-  }, h("button", {
-    type: "button",
-    onClick: () => setDashboardCardsSheetOpen(true),
-    className: `w-full text-left ${subCardCls} p-4 rounded-2xl border transition-all active:scale-[0.99]`
   }, h("div", {
-    className: "flex items-center justify-between gap-3"
-  }, h("div", {
-    className: "min-w-0"
-  }, h("p", {
+    className: `p-4 ${subCardCls} space-y-3`
+  }, h("div", null, h("p", {
     className: "text-xs font-bold"
   }, "Choose four cards"), h("p", {
-    className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed"
-  }, `${selectedDashboardCards.length}/4 selected · Customize your Home dashboard cards.`)), h("div", {
-    className: `shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-bold ${accent.activeBg10} ${accent.textStrong}`
-  }, `${selectedDashboardCards.length}/4`)), h("div", {
-    className: "mt-3 flex flex-wrap gap-1.5"
-  }, selectedDashboardCards.map(id => {
-    const option = dashboardOptions.find(item => item.id === id);
-    return option ? h("span", {
-      key: id,
-      className: `px-2.5 py-1 rounded-lg text-[10px] font-semibold ${darkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`
-    }, option.label) : null;
-  }))))
-, h(SettingsSection, {
+    className: "text-[10px] text-zinc-400 mt-0.5"
+  }, `${selectedDashboardCards.length}/4 selected. Choose from your finance totals, plans, upcoming items, or live market information.`)), h("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, dashboardOptions.map(option => {
+    const selected = selectedDashboardCards.includes(option.id);
+    const unavailable = !selected && selectedDashboardCards.length >= 4;
+    return h("button", {
+      key: option.id,
+      onClick: () => toggleDashboardCard(option.id),
+      disabled: unavailable,
+      className: `px-3 py-2.5 rounded-xl border text-left text-xs font-bold disabled:opacity-40 ${selected ? `${accent.activeBg} ${accent.textStrong} border-current` : darkMode ? "bg-zinc-950 border-zinc-800 text-zinc-400" : "bg-zinc-50 border-zinc-200 text-zinc-500"}`
+    }, selected ? "✓ " : "", option.label);
+  })))), h(SettingsSection, {
     title: "Currency"
   }, h("div", {
     className: "space-y-2"
@@ -157,7 +150,29 @@
       });
     },
     className: `${inputCls} w-auto py-2 text-xs font-bold`
-  }, h("option", {value:"AED"}, "AED · UAE Dirham"), h("option", {value:"USD"}, "USD · US Dollar"), h("option", {value:"EUR"}, "EUR · Euro"), h("option", {value:"GBP"}, "GBP · Pound"), h("option", {value:"SAR"}, "SAR · Saudi Riyal"), h("option", {value:"INR"}, "INR · Indian Rupee"), h("option", {value:"PKR"}, "PKR · Pakistani Rupee"), h("option", {value:"CAD"}, "CAD · Canadian Dollar"), h("option", {value:"AUD"}, "AUD · Australian Dollar"))))), h(SettingsSection, {
+  }, h("option", {
+    value: "AED"
+  }, "AED"), h("option", {
+    value: "USD"
+  }, "USD"), h("option", {
+    value: "PKR"
+  }, "PKR"))), h(SettingsRow, {
+    icon: Icons.IconRates,
+    title: "Exchange rates",
+    detail: "Manage AED, USD, and PKR rates or refresh them from the live source."
+  }, h("button", {
+    onClick: openRatesModal,
+    className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.activeBg10} ${accent.textStrong}`
+  }, "Manage")), h(SettingsRow, {
+    icon: Icons.IconSync,
+    title: "Sync live rates",
+    detail: "Check AED, USD, and PKR rates when AleemFin opens. You can always sync manually."
+  }, h("button", {
+    onClick: () => updateSettings({
+      liveRateSync: settings.liveRateSync === false
+    }),
+    className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.liveRateSync === false ? "bg-zinc-500/10 text-zinc-500" : `${accent.activeBg10} ${accent.textStrong}`}`
+  }, settings.liveRateSync === false ? "Off" : "On")))), h(SettingsSection, {
     title: "Data & backup"
   }, h("div", {
     className: "space-y-2"
@@ -195,34 +210,78 @@
     title: "Manage categories",
     detail: `${(categories.income || []).length} income and ${(categories.expense || []).length} expense categories.`
   }, h("button", {
-    onClick: () => setCategoryManagerOpen(true),
+    onClick: () => setCategoryManagerOpen(open => !open),
     className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.activeBg10} ${accent.textStrong}`
-  }, "Manage")))), h(SettingsSection, {
-    title: "Interaction"
-  }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." }, IOSSwitch({ checked: settings.hapticsEnabled !== false, onChange: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), label: "Haptic feedback" })),
-    h(SettingsRow, { icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." }, IOSSwitch({ checked: settings.soundEnabled === true, onChange: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), label: "Action sounds" }))
-  ))
-, h(SettingsSection, { title: "Security" }, h("div", { className: "space-y-2" },
-    h(SettingsRow, { icon: Icons.IconSettings, title: "Biometrics", detail: "Face ID / Touch ID. Native authentication will be connected through Capacitor/Xcode." }, IOSSwitch({ checked: settings.biometricEnabled === true, onChange: () => updateSettings({ biometricEnabled: settings.biometricEnabled !== true }), label: "Biometrics" })),
-    h(SettingsRow, { icon: Icons.IconSettings, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." }, h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up")))), h(SettingsSection, {
+  }, categoryManagerOpen ? "Done" : "Manage")), categoryManagerOpen && h("div", {
+    className: `p-4 ${subCardCls} space-y-3`
+  }, h("div", {
+    className: "flex gap-2"
+  }, ["expense", "income"].map(type => h("button", {
+    key: type,
+    onClick: () => setCategoryType(type),
+    className: `flex-1 py-2 rounded-xl text-xs font-bold capitalize ${categoryType === type ? `${accent.activeBg} ${accent.textStrong}` : "bg-zinc-500/10 text-zinc-400"}`
+  }, type))), h("div", {
+    className: "space-y-2"
+  }, (categories[categoryType] || []).map(name => h("div", {
+    key: name,
+    className: `px-3 py-2 rounded-xl flex items-center justify-between ${darkMode ? "bg-zinc-950" : "bg-zinc-50"}`
+  }, h("span", {
+    className: "text-xs font-semibold"
+  }, name), h("button", {
+    onClick: () => removeCategory(categoryType, name),
+    className: "p-1 rounded-lg text-zinc-400 hover:text-rose-500",
+    title: `Remove ${name}`
+  }, h(Icons.IconTrash, {
+    className: "w-3.5 h-3.5"
+  }))))), h("form", {
+    onSubmit: addCategory,
+    className: "flex gap-2"
+  }, h("input", {
+    value: categoryName,
+    onChange: e => setCategoryName(e.target.value),
+    placeholder: "New category",
+    className: `${inputCls} flex-1`
+  }), h("button", {
+    type: "submit",
+    className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white`
+  }, "Add"))))), h(SettingsSection, {
     title: "App"
   }, h("div", {
-    className: "settings-plain-info"
-  }, h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")), h("div", null, h("span", null, "Version"), h("strong", null, "1.0.0 · Personal prototype")), h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`)))), h(SettingsSection, {
+    className: "space-y-2"
+  }, h(SettingsRow, {
+    icon: Icons.IconOverview,
+    title: "App name",
+    detail: "AleemFin"
+  }), h(SettingsRow, {
+    icon: Icons.IconSettings,
+    title: "Version",
+    detail: "1.0.0 · Personal prototype"
+  }), h(SettingsRow, {
+    icon: Icons.IconWallet,
+    title: "Device storage",
+    detail: `${dataSizeLabel} used by your finance data. Data stays on this device.`
+  }))), h(SettingsSection, {
     title: "Danger zone",
     tone: "text-rose-500"
   }, h("div", {
     className: "space-y-2"
   }, h(SettingsRow, {
     icon: Icons.IconTrash,
-    title: "Erase all data",
-    detail: "Permanently remove all accounts, transactions, loans, assets and preferences from this device.",
+    title: "Reset all data",
+    detail: "Remove all accounts, transactions, loans and assets, while keeping your preferences.",
     danger: true
   }, h("button", {
-    onClick: () => openDangerAction(),
+    onClick: () => openDangerAction("reset"),
+    className: "px-3 py-2 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-500"
+  }, "Reset")), h(SettingsRow, {
+    icon: Icons.IconTrash,
+    title: "Clear all data",
+    detail: "Permanently remove all AleemFin data and preferences from this device.",
+    danger: true
+  }, h("button", {
+    onClick: () => openDangerAction("clear"),
     className: "px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white"
-  }, "Erase"))))), dangerAction && h("div", {
+  }, "Clear"))))), dangerAction && h("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm"
   }, h("div", {
     className: `w-full max-w-xs rounded-3xl border p-5 shadow-2xl space-y-4 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}`
@@ -234,9 +293,16 @@
     className: "space-y-1"
   }, h("h3", {
     className: "font-bold text-sm"
-  }, "Erase all data?"), h("p", {
+  }, dangerAction === "reset" ? "Reset all data?" : "Clear all data?"), h("p", {
     className: "text-xs text-zinc-400 leading-relaxed"
-  }, "This will permanently remove your accounts, transactions, loans, assets and all AleemFin preferences from this device. This can't be undone unless you have a backup.")), h("div", {
+  }, dangerAction === "reset" ? "This will permanently remove your accounts, transactions, loans, assets and other stored AleemFin data. Your preferences will remain." : "This will permanently remove your accounts, transactions, loans, assets and all AleemFin preferences from this device.")), h("div", null, h("label", {
+    className: "block text-[11px] font-medium mb-1"
+  }, `Type ${dangerAction === "reset" ? "RESET" : "CLEAR"} to continue`), h("input", {
+    autoFocus: true,
+    value: dangerPhrase,
+    onChange: e => setDangerPhrase(e.target.value.toUpperCase()),
+    className: inputCls
+  })), h("div", {
     className: "pt-1 flex justify-end gap-2"
   }, h("button", {
     type: "button",
@@ -245,8 +311,9 @@
   }, "Cancel"), h("button", {
     type: "button",
     onClick: confirmDangerAction,
-    className: "px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold"
-  }, "Erase")))));
+    disabled: dangerPhrase !== (dangerAction === "reset" ? "RESET" : "CLEAR"),
+    className: "px-3.5 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white rounded-xl text-xs font-semibold"
+  }, dangerAction === "reset" ? "Reset" : "Clear")))));
   }
 
   window.Tabs = window.Tabs || {};
