@@ -176,74 +176,74 @@ var todayISO = () => toLocalISO(/* @__PURE__ */new Date());
 var ACCENT_PALETTE = {
   emerald: {
     name: "Emerald",
-    grad: "from-emerald-500 to-teal-400",
-    text: "text-emerald-500",
-    text400: "text-emerald-400",
-    textStrong: "text-emerald-600",
-    solidBtn: "bg-emerald-600 hover:bg-emerald-500",
-    activeBg: "bg-emerald-500/15",
-    activeBg10: "bg-emerald-500/10",
-    activeBg20: "bg-emerald-500/20",
+    grad: "from-emerald-500 to-teal-400 af-accent-grad",
+    text: "text-emerald-500 af-accent-text",
+    text400: "text-emerald-400 af-accent-text400",
+    textStrong: "text-emerald-600 af-accent-textStrong",
+    solidBtn: "bg-emerald-600 hover:bg-emerald-500 af-accent-solid",
+    activeBg: "bg-emerald-500/15 af-accent-bg15",
+    activeBg10: "bg-emerald-500/10 af-accent-bg10",
+    activeBg20: "bg-emerald-500/20 af-accent-bg20",
     swatch: "bg-emerald-500"
   },
   teal: {
     name: "Teal",
-    grad: "from-teal-500 to-cyan-400",
-    text: "text-teal-500",
-    text400: "text-teal-400",
-    textStrong: "text-teal-600",
-    solidBtn: "bg-teal-600 hover:bg-teal-500",
-    activeBg: "bg-teal-500/15",
-    activeBg10: "bg-teal-500/10",
-    activeBg20: "bg-teal-500/20",
+    grad: "from-teal-500 to-cyan-400 af-accent-grad",
+    text: "text-teal-500 af-accent-text",
+    text400: "text-teal-400 af-accent-text400",
+    textStrong: "text-teal-600 af-accent-textStrong",
+    solidBtn: "bg-teal-600 hover:bg-teal-500 af-accent-solid",
+    activeBg: "bg-teal-500/15 af-accent-bg15",
+    activeBg10: "bg-teal-500/10 af-accent-bg10",
+    activeBg20: "bg-teal-500/20 af-accent-bg20",
     swatch: "bg-teal-500"
   },
   blue: {
     name: "Blue",
-    grad: "from-blue-500 to-indigo-400",
-    text: "text-blue-500",
-    text400: "text-blue-400",
-    textStrong: "text-blue-600",
-    solidBtn: "bg-blue-600 hover:bg-blue-500",
-    activeBg: "bg-blue-500/15",
-    activeBg10: "bg-blue-500/10",
-    activeBg20: "bg-blue-500/20",
+    grad: "from-blue-500 to-indigo-400 af-accent-grad",
+    text: "text-blue-500 af-accent-text",
+    text400: "text-blue-400 af-accent-text400",
+    textStrong: "text-blue-600 af-accent-textStrong",
+    solidBtn: "bg-blue-600 hover:bg-blue-500 af-accent-solid",
+    activeBg: "bg-blue-500/15 af-accent-bg15",
+    activeBg10: "bg-blue-500/10 af-accent-bg10",
+    activeBg20: "bg-blue-500/20 af-accent-bg20",
     swatch: "bg-blue-500"
   },
   violet: {
     name: "Violet",
-    grad: "from-violet-500 to-purple-400",
-    text: "text-violet-500",
-    text400: "text-violet-400",
-    textStrong: "text-violet-600",
-    solidBtn: "bg-violet-600 hover:bg-violet-500",
-    activeBg: "bg-violet-500/15",
-    activeBg10: "bg-violet-500/10",
-    activeBg20: "bg-violet-500/20",
+    grad: "from-violet-500 to-purple-400 af-accent-grad",
+    text: "text-violet-500 af-accent-text",
+    text400: "text-violet-400 af-accent-text400",
+    textStrong: "text-violet-600 af-accent-textStrong",
+    solidBtn: "bg-violet-600 hover:bg-violet-500 af-accent-solid",
+    activeBg: "bg-violet-500/15 af-accent-bg15",
+    activeBg10: "bg-violet-500/10 af-accent-bg10",
+    activeBg20: "bg-violet-500/20 af-accent-bg20",
     swatch: "bg-violet-500"
   },
   amber: {
     name: "Amber",
-    grad: "from-amber-500 to-orange-400",
-    text: "text-amber-500",
-    text400: "text-amber-400",
-    textStrong: "text-amber-600",
-    solidBtn: "bg-amber-600 hover:bg-amber-500",
-    activeBg: "bg-amber-500/15",
-    activeBg10: "bg-amber-500/10",
-    activeBg20: "bg-amber-500/20",
+    grad: "from-amber-500 to-orange-400 af-accent-grad",
+    text: "text-amber-500 af-accent-text",
+    text400: "text-amber-400 af-accent-text400",
+    textStrong: "text-amber-600 af-accent-textStrong",
+    solidBtn: "bg-amber-600 hover:bg-amber-500 af-accent-solid",
+    activeBg: "bg-amber-500/15 af-accent-bg15",
+    activeBg10: "bg-amber-500/10 af-accent-bg10",
+    activeBg20: "bg-amber-500/20 af-accent-bg20",
     swatch: "bg-amber-500"
   },
   rose: {
     name: "Rose",
-    grad: "from-rose-500 to-pink-400",
-    text: "text-rose-500",
-    text400: "text-rose-400",
-    textStrong: "text-rose-600",
-    solidBtn: "bg-rose-600 hover:bg-rose-500",
-    activeBg: "bg-rose-500/15",
-    activeBg10: "bg-rose-500/10",
-    activeBg20: "bg-rose-500/20",
+    grad: "from-rose-500 to-pink-400 af-accent-grad",
+    text: "text-rose-500 af-accent-text",
+    text400: "text-rose-400 af-accent-text400",
+    textStrong: "text-rose-600 af-accent-textStrong",
+    solidBtn: "bg-rose-600 hover:bg-rose-500 af-accent-solid",
+    activeBg: "bg-rose-500/15 af-accent-bg15",
+    activeBg10: "bg-rose-500/10 af-accent-bg10",
+    activeBg20: "bg-rose-500/20 af-accent-bg20",
     swatch: "bg-rose-500"
   }
 };
@@ -553,6 +553,9 @@ const saveRates = e => {
 useEffect(() => {
   document.documentElement.classList.toggle("dark", darkMode);
 }, [darkMode]);
+useEffect(() => {
+  document.documentElement.dataset.afAccent = settings.accentColor || "emerald";
+}, [settings.accentColor]);
 const [history, setHistory] = useState([]);
 const [redoStack, setRedoStack] = useState([]);
 const saveStateToHistory = () => {
