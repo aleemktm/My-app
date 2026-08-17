@@ -222,6 +222,42 @@ var ACCENT_PALETTE = {
     activeBg20: "bg-violet-500/20 af-accent-bg20",
     swatch: "bg-violet-500"
   },
+  indigo: {
+    name: "Indigo",
+    grad: "from-indigo-500 to-blue-400 af-accent-grad",
+    text: "text-indigo-500 af-accent-text",
+    text400: "text-indigo-400 af-accent-text400",
+    textStrong: "text-indigo-600 af-accent-textStrong",
+    solidBtn: "bg-indigo-600 hover:bg-indigo-500 af-accent-solid",
+    activeBg: "bg-indigo-500/15 af-accent-bg15",
+    activeBg10: "bg-indigo-500/10 af-accent-bg10",
+    activeBg20: "bg-indigo-500/20 af-accent-bg20",
+    swatch: "bg-indigo-500"
+  },
+  sky: {
+    name: "Sky",
+    grad: "from-sky-500 to-cyan-400 af-accent-grad",
+    text: "text-sky-500 af-accent-text",
+    text400: "text-sky-400 af-accent-text400",
+    textStrong: "text-sky-600 af-accent-textStrong",
+    solidBtn: "bg-sky-600 hover:bg-sky-500 af-accent-solid",
+    activeBg: "bg-sky-500/15 af-accent-bg15",
+    activeBg10: "bg-sky-500/10 af-accent-bg10",
+    activeBg20: "bg-sky-500/20 af-accent-bg20",
+    swatch: "bg-sky-500"
+  },
+  pink: {
+    name: "Pink",
+    grad: "from-pink-500 to-fuchsia-400 af-accent-grad",
+    text: "text-pink-500 af-accent-text",
+    text400: "text-pink-400 af-accent-text400",
+    textStrong: "text-pink-600 af-accent-textStrong",
+    solidBtn: "bg-pink-600 hover:bg-pink-500 af-accent-solid",
+    activeBg: "bg-pink-500/15 af-accent-bg15",
+    activeBg10: "bg-pink-500/10 af-accent-bg10",
+    activeBg20: "bg-pink-500/20 af-accent-bg20",
+    swatch: "bg-pink-500"
+  },
   amber: {
     name: "Amber",
     grad: "from-amber-500 to-orange-400 af-accent-grad",
@@ -348,7 +384,7 @@ React.useEffect(() => {
 }, [settings.pinLockEnabled, settings.pinHash]);
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
-const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";
+const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber", "indigo", "sky", "pink"].includes(settings.accentColor) ? settings.accentColor : "emerald";
 if (settings.accentColor !== safeAccentColor) {
   try { updateSettings({ accentColor: safeAccentColor }); } catch (e) {}
 }
