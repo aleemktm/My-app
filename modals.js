@@ -493,15 +493,57 @@
       return () => { document.body.style.overflow = prevOverflow; document.body.style.touchAction = prevTouch; };
     }, []);
 
+    // Keep the loan sheet above the iOS/WKWebView software keyboard.
+    // visualViewport shrinks when the keyboard appears, while a normal fixed
+    // inset sheet can otherwise remain positioned against the hidden layout viewport.
+    const [viewport, setViewport] = React.useState(() => {
+      const vv = window.visualViewport;
+      return {
+        height: vv ? vv.height : window.innerHeight,
+        top: vv ? vv.offsetTop : 0
+      };
+    });
+
+    React.useEffect(() => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const syncViewport = () => {
+        setViewport({ height: vv.height, top: vv.offsetTop });
+        requestAnimationFrame(() => {
+          const active = document.activeElement;
+          if (active && sheetRef.current && sheetRef.current.contains(active) && typeof active.scrollIntoView === "function") {
+            active.scrollIntoView({ block: "nearest", inline: "nearest" });
+          }
+        });
+      };
+      syncViewport();
+      vv.addEventListener("resize", syncViewport);
+      vv.addEventListener("scroll", syncViewport);
+      return () => {
+        vv.removeEventListener("resize", syncViewport);
+        vv.removeEventListener("scroll", syncViewport);
+      };
+    }, []);
+
     return ReactDOM.createPortal(
       React.createElement("div", {
         className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${closing ? "is-closing" : ""}`,
+        style: {
+          "--sheet-viewport-height": `${viewport.height}px`,
+          top: `${viewport.top}px`,
+          bottom: "auto",
+          height: `${viewport.height}px`,
+          right: 0
+        },
         onClick: e => { if (e.target === e.currentTarget) dismiss(); }
       },
         React.createElement("div", {
           ref: sheetRef,
           className: `ios-form-bottom-sheet w-full max-w-md rounded-t-[30px] border border-b-0 p-5 pb-6 shadow-2xl max-h-[92vh] overflow-y-auto md:rounded-3xl md:border-b md:max-h-[90vh] ${darkMode ? "is-dark" : ""} ${closing ? "is-closing" : ""} ${dragging ? "is-dragging" : ""}`,
-          style: { "--sheet-offset": `${offsetY}px` },
+          style: {
+            "--sheet-offset": `${offsetY}px`,
+            "--sheet-viewport-height": `${viewport.height}px`
+          },
           onClick: e => e.stopPropagation()
         },
           React.createElement("div", { className: "ios-form-sheet-handle md:hidden" }),
