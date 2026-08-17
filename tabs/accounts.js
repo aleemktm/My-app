@@ -1,68 +1,84 @@
 // tabs/accounts.js — Accounts tab.
 (function () {
+  const h = React.createElement;
+
   function Accounts(props) {
-    const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal } = props;
-    return /* @__PURE__ */React.createElement("div", {
-    className: "space-y-4 max-w-2xl mx-auto w-full"
-  }, /* @__PURE__ */React.createElement("div", {
-    className: "flex justify-between items-center px-1"
-  }, /* @__PURE__ */React.createElement("h2", {
-    className: "text-sm font-bold uppercase tracking-wider text-teal-500"
-  }, "Bank & Wallets"), /* @__PURE__ */React.createElement("button", {
-    onClick: () => openAddModal("account"),
-    className: "px-3 py-1.5 bg-teal-600 text-white rounded-xl text-xs font-semibold"
-  }, "+ New Account")), /* @__PURE__ */React.createElement("div", {
-    className: "space-y-2.5"
-  }, accounts.map(acc => {
-    const inflow = getLastInflow(acc.id);
-    const outflow = getLastOutflow(acc.id);
-    const inflowInfo = inflow ? describeAccountMovement(inflow, acc) : null;
-    const outflowInfo = outflow ? describeAccountMovement(outflow, acc) : null;
-    return /* @__PURE__ */React.createElement("div", {
-      key: acc.id,
-      className: `p-4 rounded-2xl border bg-gradient-to-br ${acc.color || "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20"} space-y-2.5`
-    }, /* @__PURE__ */React.createElement("div", {
-      className: "flex justify-between items-center"
-    }, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("span", {
-      className: "text-[10px] font-bold uppercase tracking-wider opacity-60"
-    }, acc.type || "Bank Account"), /* @__PURE__ */React.createElement("h3", {
-      className: "font-bold text-base mt-0.5"
-    }, acc.name)), /* @__PURE__ */React.createElement("div", {
-      className: "flex items-center space-x-2"
-    }, /* @__PURE__ */React.createElement("div", {
-      className: "text-right mr-1"
-    }, /* @__PURE__ */React.createElement("span", {
-      className: "text-[10px] font-bold opacity-60 block"
-    }, acc.currency), /* @__PURE__ */React.createElement("span", {
-      className: `font-extrabold text-base ${darkMode ? "text-emerald-400" : "text-emerald-600"}`
-    }, numFmt(acc.balance))), /* @__PURE__ */React.createElement("button", {
-      onClick: () => openEditModal("account", acc),
-      title: "Edit",
-      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10 active:scale-95"
-    }, /* @__PURE__ */React.createElement(Icons.IconEdit, {
-      className: "w-4 h-4"
-    })), /* @__PURE__ */React.createElement("button", {
-      onClick: () => askDeleteAccount(acc),
-      title: "Delete",
-      className: "p-2 -m-0.5 rounded-xl text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 active:scale-95"
-    }, /* @__PURE__ */React.createElement(Icons.IconTrash, {
-      className: "w-4 h-4"
-    })))), /* @__PURE__ */React.createElement("div", {
-      className: "pt-2 border-t border-black/10 space-y-1.5"
-    }, /* @__PURE__ */React.createElement("div", {
-      className: "flex items-center gap-1.5 text-[10px] opacity-70"
-    }, /* @__PURE__ */React.createElement(Icons.IconInflow, {
-      className: "w-3.5 h-3.5 text-emerald-500 shrink-0"
-    }), inflowInfo ? /* @__PURE__ */React.createElement("span", null, "Last inflow: ", /* @__PURE__ */React.createElement("strong", {
-      className: "text-emerald-500"
-    }, "+", inflowInfo.cur, " ", numFmt(inflowInfo.amt)), " on ", dateFmt(inflow.date), inflowInfo.note) : /* @__PURE__ */React.createElement("span", null, "No inflow recorded for this account yet.")), /* @__PURE__ */React.createElement("div", {
-      className: "flex items-center gap-1.5 text-[10px] opacity-70"
-    }, /* @__PURE__ */React.createElement(Icons.IconInflow, {
-      className: "w-3.5 h-3.5 text-rose-500 shrink-0 rotate-180"
-    }), outflowInfo ? /* @__PURE__ */React.createElement("span", null, "Last outflow: ", /* @__PURE__ */React.createElement("strong", {
-      className: "text-rose-500"
-    }, "-", outflowInfo.cur, " ", numFmt(outflowInfo.amt)), " on ", dateFmt(outflow.date), outflowInfo.note) : /* @__PURE__ */React.createElement("span", null, "No outflow recorded for this account yet."))));
-  })));
+    const { accounts, askDeleteAccount, darkMode, dateFmt, describeAccountMovement, getLastInflow, getLastOutflow, numFmt, openAddModal, openEditModal, selectionKey, settings, convertToBaseCurrency } = props;
+    const baseCurrency = settings?.defaultCurrency || "AED";
+    const accountColor = acc => {
+      const name = String(acc.name || "").toLowerCase();
+      if (name.includes("fiverr")) return "#3B82F6";
+      if (name.includes("paypal")) return "#6366F1";
+      if (name.includes("ubl")) return "#F59E0B";
+      if (name.includes("dib")) return "#1DBF73";
+      if (name.includes("cash") || String(acc.type || "").toLowerCase() === "cash") return "#8E8E93";
+      return acc.color || "#1DBF73";
+    };
+    const total = accounts.reduce((sum, a) => sum + convertToBaseCurrency(Number(a.balance || 0), a.currency), 0);
+
+    return h("div", { className: "accounts-native space-y-4 max-w-2xl mx-auto w-full" },
+      h("section", { className: `accounts-header-card ${darkMode ? "accounts-header-dark" : ""}` },
+        h("div", { className: "accounts-header-top" },
+          h("div", null,
+            h("span", { className: "accounts-eyebrow" }, "YOUR MONEY"),
+            h("h2", { className: "accounts-title" }, "Accounts"),
+            h("p", { className: "accounts-subtitle" }, `${accounts.length} account${accounts.length === 1 ? "" : "s"} · ${accounts.length ? "All balances in your account currencies" : "Add an account to get started"}`)
+          ),
+          h("button", { onClick: () => openAddModal("account"), className: "accounts-add-button", "aria-label": "Add account" }, h(Icons.IconPlus, { className: "w-4 h-4" }), h("span", null, "Add"))
+        ),
+        accounts.length > 0 && h("div", { className: "accounts-total-row" },
+          h("span", null, "Combined balance"),
+          h("strong", null, baseCurrency, " ", numFmt(total))
+        )
+      ),
+      h("div", { className: "accounts-list" }, accounts.map(acc => {
+        const inflow = getLastInflow(acc.id);
+        const outflow = getLastOutflow(acc.id);
+        const inflowInfo = inflow ? describeAccountMovement(inflow, acc) : null;
+        const outflowInfo = outflow ? describeAccountMovement(outflow, acc) : null;
+        return h(window.SwipeRow, {
+          key: acc.id,
+          onEdit: () => openEditModal("account", acc),
+          onDelete: () => askDeleteAccount(acc),
+          selectionKey: selectionKey("account", acc.id)
+        }, h("div", {
+          className: `account-native-card ${darkMode ? "account-native-dark" : ""}`
+        },
+          h("div", { className: "account-card-head" },
+            h("div", { className: "account-identity" },
+              h("div", { className: "account-heading" },
+                h("span", { className: "account-type" }, acc.type || "Bank Account"),
+                h("div", { className: "account-title-row" },
+                  h("span", { className: "account-color-dot", style: { backgroundColor: accountColor(acc), boxShadow: `0 0 0 3px ${accountColor(acc)}22` }, title: `${acc.name} color identity` }),
+                  h("span", { className: "account-icon", "aria-hidden": "true" }, acc.type === "Bank" ? h(Icons.IconAccounts, { className: "w-4 h-4" }) : h(Icons.IconWallet, { className: "w-4 h-4" })),
+                  h("h3", { className: "account-name" }, acc.name)
+                )
+              )
+            ),
+            h("div", { className: "account-balance-block" },
+              h("span", { className: "account-currency" }, acc.currency),
+              h("strong", { className: "account-balance" }, numFmt(acc.balance))
+            )
+          ),
+          h("div", { className: "account-card-meta" },
+            h("span", null, acc.currency),
+            h("span", null, acc.type || "Account")
+          ),
+          (inflowInfo || outflowInfo) && h("div", { className: "account-flow-list" },
+            inflowInfo && h("div", { className: "account-flow-row account-flow-income" },
+              h(Icons.IconInflow, { className: "w-4 h-4 account-flow-in" }),
+              h("div", { className: "min-w-0" }, h("span", null, "Last inflow"), h("small", null, `${dateFmt(inflow.date)}${inflowInfo.note || ""}`)),
+              h("strong", null, "+", inflowInfo.cur, " ", numFmt(inflowInfo.amt))
+            ),
+            outflowInfo && h("div", { className: "account-flow-row account-flow-expense" },
+              h(Icons.IconInflow, { className: "w-4 h-4 account-flow-out" }),
+              h("div", { className: "min-w-0" }, h("span", null, "Last outflow"), h("small", null, `${dateFmt(outflow.date)}${outflowInfo.note || ""}`)),
+              h("strong", null, "-", outflowInfo.cur, " ", numFmt(outflowInfo.amt))
+            )
+          )
+        ));
+      }))
+    );
   }
 
   window.Tabs = window.Tabs || {};
