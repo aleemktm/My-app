@@ -5,6 +5,7 @@ const DEFAULT_SETTINGS = {
   theme: "dark",
   accentColor: "emerald",
   heroMetric: "liquid",
+  heroCardTheme: "dark",
   dashboardCards: ["accounts", "vault", "loans", "analytics"],
   hiddenDashboardCards: [],
   liveRateSync: true,
