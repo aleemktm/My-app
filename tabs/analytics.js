@@ -17,6 +17,31 @@
     return `${Math.round(value)}%`;
   }
 
+  function calculateMonthlyLoanChange(loans = [], transactions = [], monthPrefix, convertTxToAED) {
+    if (!monthPrefix || typeof convertTxToAED !== "function") return { changeAED: 0, hasData: false };
+    const monthStart = `${monthPrefix}-01`;
+    let current = 0;
+    let opening = 0;
+    let hasLoanData = false;
+    (loans || []).forEach(loan => {
+      const outstanding = Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0));
+      current += convertTxToAED({ amount: outstanding, currency: loan.currency || "AED", rateToAED: 1 });
+      const loanTxns = (transactions || []).filter(t => t && String(t.loanId) === String(loan.id) && t.date && t.date < monthStart && (t.category === "Loan" || t.category === "Loan Repayment"));
+      if (loanTxns.length) {
+        hasLoanData = true;
+        const openingOutstanding = loanTxns.reduce((sum, t) => {
+          const value = Number(t.accountAmount != null ? t.accountAmount : t.amount) || 0;
+          const aed = convertTxToAED({ ...t, amount: value, accountAmount: value });
+          return sum + (t.category === "Loan Repayment" ? -Math.abs(aed) : Math.abs(aed));
+        }, 0);
+        opening += Math.max(0, openingOutstanding);
+      } else if ((loan.date || "") < monthStart) {
+        opening += convertTxToAED({ amount: Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0)), currency: loan.currency || "AED", rateToAED: 1 });
+      }
+    });
+    return { changeAED: current - opening, hasData: hasLoanData || current !== 0 };
+  }
+
   function scoreFor({ savingsRate, emergencyRunwayMonths, monthlySavingsAED, monthlyIncomeAED }) {
     const runway = emergencyRunwayMonths === "12+" ? 12 : Number(emergencyRunwayMonths || 0);
     const savings = savingsRate == null ? 0 : Math.max(0, Math.min(100, savingsRate));
@@ -176,8 +201,36 @@
     );
   }
 
+  function WhatChangedCard({ darkMode, fmt, monthlySavingsAED = 0, goldChangeAED = 0, currentMonthPrefix, loans = [], transactions = [], convertTxToAED, netWorthTotal = 0 }) {
+    const loanChange = calculateMonthlyLoanChange(loans, transactions, currentMonthPrefix, convertTxToAED);
+    const drivers = [];
+    if (Math.abs(monthlySavingsAED) >= 0.01) drivers.push({ label: monthlySavingsAED >= 0 ? "Savings" : "Cash flow shortfall", value: monthlySavingsAED, tone: monthlySavingsAED >= 0 ? "positive" : "negative" });
+    if (Math.abs(goldChangeAED) >= 0.01) drivers.push({ label: goldChangeAED >= 0 ? "Gold gained" : "Gold fell", value: goldChangeAED, tone: goldChangeAED >= 0 ? "positive" : "negative" });
+    if (loanChange.hasData && Math.abs(loanChange.changeAED) >= 0.01) drivers.push({ label: loanChange.changeAED >= 0 ? "Loans increased" : "Loans reduced", value: loanChange.changeAED, tone: loanChange.changeAED >= 0 ? "negative" : "positive" });
+    const wealthDriver = monthlySavingsAED + goldChangeAED;
+    const base = Math.max(1, Math.abs(netWorthTotal - wealthDriver));
+    const wealthPct = wealthDriver / base * 100;
+    const hasMeaningfulData = drivers.length > 0;
+    const headline = !hasMeaningfulData
+      ? "Keep recording to reveal what changed."
+      : wealthDriver >= 0
+        ? `Your financial position improved ${Math.abs(wealthPct) < 0.1 ? "this month" : `by ${Math.abs(wealthPct).toFixed(1)}%`}.`
+        : `Your financial position slipped ${Math.abs(wealthPct) < 0.1 ? "this month" : `by ${Math.abs(wealthPct).toFixed(1)}%`}.`;
+    return h("section", { className: `insight-panel insight-ai-panel insight-what-changed ${darkMode ? "insight-panel-dark" : ""}`, "aria-label": "What changed in your financial life" },
+      h("div", { className: "insight-ai-label" }, "✦ WHAT CHANGED"),
+      h("h2", null, headline),
+      h("p", null, hasMeaningfulData ? "Here’s what moved your financial life this month." : "Once you have more activity recorded, AleemFin will turn it into a clearer explanation."),
+      hasMeaningfulData && h("div", { className: "insight-change-list" },
+        drivers.slice(0, 3).map((item, index) => h("div", { key: `${item.label}-${index}`, className: "insight-change-row" },
+          h("span", null, item.label),
+          h("strong", { className: item.tone === "positive" ? "insight-positive" : "insight-negative" }, moneyDelta(item.value, fmt))
+        ))
+      ),
+      h("div", { className: "insight-note-pill" }, "Based on recorded activity • transfers excluded"));
+  }
+
   function Analytics(props) {
-    const { cardCls, categoryBreakdown = [], currentMonthLabel, darkMode, fmt, goldAssets = [], goldHistory = [], settings = {}, exchangeRates = { AED: 1 }, monthlyExpenseAED = 0, monthlyHistory = [], monthlyIncomeAED = 0, monthlySavingsAED = 0, savingsRate, emergencyRunwayMonths = 0, runwayStatus = { label: "—" }, biggestExpenseThisMonth, totalLiquidAED = 0, totalPhysicalAED = 0, totalLoansLentAED = 0, totalLoansBorrowedAED = 0 } = props;
+    const { cardCls, categoryBreakdown = [], currentMonthLabel, currentMonthPrefix, darkMode, fmt, goldAssets = [], goldHistory = [], settings = {}, exchangeRates = { AED: 1 }, monthlyExpenseAED = 0, monthlyHistory = [], monthlyIncomeAED = 0, monthlySavingsAED = 0, savingsRate, emergencyRunwayMonths = 0, runwayStatus = { label: "—" }, biggestExpenseThisMonth, totalLiquidAED = 0, totalPhysicalAED = 0, totalLoansLentAED = 0, totalLoansBorrowedAED = 0, loans = [], transactions = [], goldChangeAED = 0 } = props;
     const top = categoryBreakdown[0];
     const categoryTotal = Math.max(1, monthlyExpenseAED);
     const categories = categoryBreakdown.slice(0, 5);
@@ -187,6 +240,7 @@
     ];
     return h("div", { className: "insight-page" },
       h(InsightHero, props),
+      h(WhatChangedCard, { darkMode, fmt, monthlySavingsAED, goldChangeAED, currentMonthPrefix, loans, transactions, convertTxToAED: props.convertTxToAED, netWorthTotal: totalLiquidAED + totalPhysicalAED + totalLoansLentAED - totalLoansBorrowedAED }),
       h("div", { className: "insight-two-col" },
         h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
           h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SPENDING"), h("h2", null, `${currentMonthLabel} mix`)), h("span", { className: "insight-panel-total" }, fmt(monthlyExpenseAED))),
