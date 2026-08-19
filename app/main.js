@@ -2582,7 +2582,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
         className: "text-[10px] leading-none"
       }, "Settings"));
     })()))),
-moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), categoryManagerOpen && React.createElement(Modals.CategoryManagerSheet, tabProps), securitySheetOpen && React.createElement(Modals.SecuritySheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps), securityLocked && React.createElement(Modals.SecurityLockOverlay, tabProps))
+moreSheetOpen && React.createElement(Modals.MoreSheet, tabProps), dashboardCardsSheetOpen && React.createElement(Modals.DashboardCardsSheet, tabProps), categoryManagerOpen && React.createElement(Modals.CategoryManagerSheet, tabProps), securitySheetOpen && React.createElement(Modals.SecuritySheet, tabProps), deleteTarget && Modals.DeleteConfirm(tabProps), ratesModalOpen && Modals.RatesModal(tabProps), repaymentModalLoan && Modals.RepaymentModal(tabProps), loanAddMoreTarget && Modals.LoanAddMoreModal(tabProps), planningEditor === "budget" && Modals.BudgetFormSheet(tabProps), planningEditor === "goal" && Modals.GoalFormSheet(tabProps), recurringEditor && Modals.RecurringFormSheet(tabProps), modalOpen && React.createElement(Modals.MainFormModal, tabProps), securityLocked && React.createElement(Modals.SecurityLockOverlay, tabProps))
     );
   }
 
