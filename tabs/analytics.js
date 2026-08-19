@@ -229,14 +229,14 @@
     );
   }
 
-  function WhatChangedCard({ darkMode, fmt, monthlySavingsAED = 0, goldChangeAED = 0, currentMonthPrefix, loans = [], transactions = [], convertTxToAED, netWorthTotal = 0 }) {
+  function WhatChangedCard({ darkMode, fmt, monthlySavingsAED = 0, goldChangeAED = 0, currentMonthPrefix, loans = [], transactions = [], convertTxToAED, netWorthTotal = 0, totalLoansLentAED = 0 }) {
     const loanChange = calculateMonthlyLoanChange(loans, transactions, currentMonthPrefix, convertTxToAED);
     const drivers = [];
     if (Math.abs(monthlySavingsAED) >= 0.01) drivers.push({ label: monthlySavingsAED >= 0 ? "Savings" : "Cash flow shortfall", value: monthlySavingsAED, tone: monthlySavingsAED >= 0 ? "positive" : "negative" });
     if (Math.abs(goldChangeAED) >= 0.01) drivers.push({ label: goldChangeAED >= 0 ? "Gold gained" : "Gold fell", value: goldChangeAED, tone: goldChangeAED >= 0 ? "positive" : "negative" });
     if (loanChange.hasData && Math.abs(loanChange.changeAED) >= 0.01) {
       const label = loanChange.type === "lent"
-        ? (loanChange.changeAED >= 0 ? "Money lent out" : "Money recovered")
+        ? (loanChange.changeAED >= 0 ? "Lent out this month" : "Money recovered")
         : loanChange.type === "borrowed"
           ? (loanChange.changeAED >= 0 ? "Borrowing reduced" : "Borrowing increased")
           : (loanChange.changeAED >= 0 ? "Loans improved" : "Loans increased");
@@ -261,6 +261,10 @@
           h("strong", { className: item.tone === "positive" ? "insight-positive" : "insight-negative" }, moneyDelta(item.value, fmt))
         ))
       ),
+      totalLoansLentAED > 0.009 && h("div", { className: "insight-change-row" },
+        h("span", null, "People owe you"),
+        h("strong", { className: "insight-positive" }, fmt(totalLoansLentAED))
+      ),
       h("div", { className: "insight-note-pill" }, "Based on recorded activity • transfers excluded"));
   }
 
@@ -275,7 +279,7 @@
     ];
     return h("div", { className: "insight-page" },
       h(InsightHero, props),
-      h(WhatChangedCard, { darkMode, fmt, monthlySavingsAED, goldChangeAED, currentMonthPrefix, loans, transactions, convertTxToAED: props.convertTxToAED, netWorthTotal: totalLiquidAED + totalPhysicalAED + totalLoansLentAED - totalLoansBorrowedAED }),
+      h(WhatChangedCard, { darkMode, fmt, monthlySavingsAED, goldChangeAED, currentMonthPrefix, loans, transactions, convertTxToAED: props.convertTxToAED, netWorthTotal: totalLiquidAED + totalPhysicalAED + totalLoansLentAED - totalLoansBorrowedAED, totalLoansLentAED }),
       h("div", { className: "insight-two-col" },
         h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
           h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SPENDING"), h("h2", null, `${currentMonthLabel} mix`)), h("span", { className: "insight-panel-total" }, fmt(monthlyExpenseAED))),
