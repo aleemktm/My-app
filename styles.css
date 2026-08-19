@@ -2225,3 +2225,11 @@ html.dark .swipe-action-edit, html.dark .swipe-action-delete { color: #fff !impo
   transform: translate3d(0, var(--sheet-offset), 0) !important;
   max-height: min(92vh, calc(var(--sheet-viewport-height, 100dvh) * .92)) !important;
 }
+
+/* v51.1 requested refinement — swipe actions only. */
+.swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF !important; }
+html.dark .swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF !important; }
+.swipe-action-record { background: var(--af-accent) !important; color: #FFFFFF !important; border: 0 !important; }
+.swipe-action-add-more { background: #2C2C2E !important; color: #FFFFFF !important; border: 0 !important; }
+html.dark .swipe-action-record { background: var(--af-accent) !important; color: #FFFFFF !important; }
+html.dark .swipe-action-add-more { background: #2C2C2E !important; color: #FFFFFF !important; }
