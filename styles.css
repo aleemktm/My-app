@@ -180,7 +180,7 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 .home-health-row>span:last-child { font-size:11px; }
 .home-hero-ring {
   --ring-progress: 49%;
-  background: conic-gradient(from -90deg, var(--af-accent) 0%, #14b8a6 38%, #22c55e var(--ring-progress), color-mix(in srgb, var(--af-accent) 10%, transparent) var(--ring-progress), color-mix(in srgb, var(--af-accent) 5%, transparent) 100%);
+  background: conic-gradient(from -90deg, var(--af-accent) 0%, color-mix(in srgb, var(--af-accent) 65%, #14b8a6) 38%, color-mix(in srgb, var(--af-accent) 55%, #22c55e) var(--ring-progress), color-mix(in srgb, var(--af-accent) 10%, transparent) var(--ring-progress), color-mix(in srgb, var(--af-accent) 5%, transparent) 100%);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--af-accent) 13%, transparent), 0 14px 34px color-mix(in srgb, var(--af-accent) 13%, transparent);
 }
 .home-ring-inner { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 6%, transparent); }
@@ -242,7 +242,7 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 .home-hero .home-subtitle.home-quote-of-day,
 .home-hero .home-rate-strip { color:#a1a1aa !important; }
 .home-hero .home-metric { color:#fafafa !important; }
-.home-hero .home-health-row > span:last-child { color:#34d399; }
+.home-hero .home-health-row > span:last-child { color: color-mix(in srgb, var(--af-accent) 78%, #ffffff); }
 .home-hero .home-month-pill {
   background: rgba(255,255,255,.045) !important;
   border-color: rgba(255,255,255,.07) !important;
@@ -314,6 +314,37 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .mobile-nav-swipe { scroll-behavior:auto; scroll-snap-type:none; }
+}
+
+/* Floating capsule tab bar with glass effect */
+.af-floating-tabbar-wrap {
+  padding: 0 12px calc(10px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.af-floating-tabbar-wrap > * { pointer-events: auto; }
+.af-floating-tabbar {
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.68);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 14px 34px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.55);
+}
+html.dark .af-floating-tabbar {
+  background: rgba(28,28,30,.58);
+  border-color: rgba(255,255,255,.09);
+  box-shadow: 0 16px 38px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.af-floating-tabbar .mobile-settings-fixed { border-left: 1px solid rgba(0,0,0,.06); }
+html.dark .af-floating-tabbar .mobile-settings-fixed { border-left-color: rgba(255,255,255,.09); }
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab {
+  border-radius: 999px !important;
+  border: 1.5px solid transparent;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  border-color: color-mix(in srgb, var(--af-accent) 45%, transparent) !important;
 }
 
 /* Apple-native typography + controlled selection */
@@ -736,7 +767,7 @@ main button:active, main a:active { transform: scale(.985); }
 .tx-category-expense-text{color:var(--af-red)}
 .tx-category-transfer{color:var(--af-blue)}
 .tx-category-transfer-text{color:var(--af-blue)}
-@media (hover:hover){.tx-category-icon:hover{transform:scale(1.08)}}}
+@media (hover:hover){.tx-category-icon:hover{transform:scale(1.08)}}
 
 /* AleemFin brand green — exact var(--af-accent) across semantic success/income UI. */
 :root{--af-green:var(--af-accent) !important}
@@ -1552,3 +1583,537 @@ html[data-af-accent="amber"] {
 }
 .home-positive, .insight-positive { color: var(--af-green) !important; }
 .home-negative, .insight-negative { color: var(--af-red) !important; }
+
+/* Settings — compact iOS-style grouped list with drill-down subpages */
+.settings-native { gap: 12px !important; }
+.settings-card {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(60,60,67,.10);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(15,23,42,.035);
+}
+html.dark .settings-card { background: var(--af-dark-card) !important; border-color: var(--af-dark-border) !important; box-shadow: none !important; }
+.settings-card-pad { padding: 12px 13px; }
+.settings-native > h3 { margin-top: 2px; margin-bottom: 5px; }
+.settings-native > h3:not(:first-child) { margin-top: 4px; }
+.settings-nav-row { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .12s ease; }
+.settings-nav-row:active { background: rgba(118,118,128,.08); }
+html.dark .settings-nav-row:active { background: rgba(255,255,255,.05); }
+.settings-nav-value { color: #8e8e93; }
+.settings-nav-value svg { opacity: .55; }
+.settings-subpage-header { display:flex; flex-direction:column; gap:2px; padding: 2px 1px 6px; }
+.settings-back-button {
+  display: inline-flex; align-items: center; gap: 2px; align-self: flex-start;
+  font-size: 12px; font-weight: 700; color: var(--af-accent); padding: 4px 6px 4px 2px; margin-left: -6px;
+  border-radius: 10px;
+}
+.settings-back-chevron { transform: rotate(180deg); }
+.settings-subpage-title { font-size: 22px; font-weight: 900; letter-spacing: -.04em; margin-top: 2px; }
+
+
+/* Accounts — Apple Wallet-style gradient cards, tap to expand recent activity */
+.account-wallet-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 16px 17px 15px;
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 14px 30px -8px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.22);
+  transition: transform .18s ease, box-shadow .25s ease;
+}
+.account-wallet-card:active { transform: scale(.985); }
+.account-wallet-card.is-expanded { box-shadow: 0 18px 38px -8px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.22); }
+.account-wallet-sheen {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 90% at 8% -10%, rgba(255,255,255,.38), transparent 55%),
+              radial-gradient(80% 60% at 105% 115%, rgba(0,0,0,.18), transparent 60%);
+}
+.account-wallet-top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.account-wallet-identity { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.account-wallet-icon { width: 26px; height: 26px; border-radius: 9px; background: rgba(255,255,255,.22); display: grid; place-items: center; flex: none; backdrop-filter: blur(6px); }
+.account-wallet-type { font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.86); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-wallet-chevron { color: rgba(255,255,255,.85); flex: none; transition: transform .3s cubic-bezier(.22,1,.36,1); transform: rotate(90deg); }
+.account-wallet-chevron.is-open { transform: rotate(-90deg); }
+.account-wallet-balance-block { position: relative; margin-top: 14px; }
+.account-wallet-currency { display: block; font-size: 9px; font-weight: 800; color: rgba(255,255,255,.78); letter-spacing: .04em; }
+.account-wallet-balance { display: block; margin-top: 2px; font-size: 25px; font-weight: 900; letter-spacing: -.03em; text-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.account-wallet-bottom { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.account-wallet-name { font-size: 12px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.account-wallet-hint { font-size: 8px; font-weight: 750; color: rgba(255,255,255,.72); white-space: nowrap; }
+
+.account-wallet-expand {
+  position: relative;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .38s cubic-bezier(.22,1,.36,1);
+}
+.account-wallet-card.is-expanded .account-wallet-expand { grid-template-rows: 1fr; }
+.account-wallet-expand-inner { overflow: hidden; }
+.account-wallet-expand-head {
+  padding-top: 14px; margin-top: 14px; border-top: 1px solid rgba(255,255,255,.22);
+}
+.account-wallet-expand-head span { font-size: 8px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.78); }
+.account-wallet-tx-list { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; padding-bottom: 2px; }
+.account-wallet-tx-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 12px;
+  background: rgba(255,255,255,.14); backdrop-filter: blur(8px);
+}
+.account-wallet-tx-row span { display: block; font-size: 9px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-wallet-tx-row small { display: block; font-size: 8px; color: rgba(255,255,255,.72); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-wallet-tx-row strong { font-size: 9px; white-space: nowrap; flex: none; }
+.account-wallet-tx-in { color: #baffd6; }
+.account-wallet-tx-out { color: #ffd0d0; }
+.account-wallet-empty { font-size: 9px; color: rgba(255,255,255,.75); padding: 10px 2px 2px; }
+
+@media (max-width: 520px) {
+  .account-wallet-card { padding: 14px 14px 13px; border-radius: 18px; }
+  .account-wallet-balance { font-size: 22px; }
+}
+
+/* Loans — top summary cards get a corner-anchored subtle gradient */
+.loan-native-summary-card.loan-native-lent {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--af-accent) 18%, transparent) 0%, transparent 72%), rgba(255,255,255,.76) !important;
+}
+.loan-native-summary-card.loan-native-borrowed {
+  background: linear-gradient(135deg, rgba(229,72,77,.18) 0%, transparent 72%), rgba(255,255,255,.76) !important;
+}
+html.dark .loan-native-summary-card.loan-native-lent {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--af-accent) 24%, transparent) 0%, transparent 72%), rgba(24,24,27,.72) !important;
+}
+html.dark .loan-native-summary-card.loan-native-borrowed {
+  background: linear-gradient(135deg, rgba(229,72,77,.24) 0%, transparent 72%), rgba(24,24,27,.72) !important;
+}
+
+/* Loans — per-person cards get a left accent border by direction */
+.loan-native-card.loan-card-lent { border-left: 3px solid var(--af-accent) !important; }
+.loan-native-card.loan-card-borrowed { border-left: 3px solid #e5484d !important; }
+
+/* FX & Convert — solid accent-connected result panel */
+.rates-result {
+  background: linear-gradient(135deg, var(--af-accent) 0%, color-mix(in srgb, var(--af-accent) 68%, #0f172a) 100%) !important;
+  border-color: transparent !important;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--af-accent) 30%, transparent);
+}
+.rates-result span, .rates-result small { color: rgba(255,255,255,.82) !important; }
+.rates-result strong { color: #fff !important; }
+
+/* Final UI refinement: floating mobile navigation */
+.af-floating-tabbar-wrap {
+  background: transparent !important;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  transform: translateY(5%);
+}
+.af-floating-tabbar {
+  background: rgba(255,255,255,.72) !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  box-shadow: 0 14px 34px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.55) !important;
+}
+html.dark .af-floating-tabbar {
+  background: rgba(28,28,30,.72) !important;
+  box-shadow: 0 16px 38px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+.mobile-bottom-bar,
+.mobile-nav-swipe,
+.mobile-settings-fixed {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.mobile-nav-swipe {
+  position: relative;
+  isolation: isolate;
+}
+.mobile-nav-active-pill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--af-accent) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 10%, transparent), 0 2px 10px color-mix(in srgb, var(--af-accent) 9%, transparent);
+  transform: translate3d(0,-50%,0);
+  transition: transform .22s cubic-bezier(.22,1,.36,1), width .22s cubic-bezier(.22,1,.36,1), height .22s cubic-bezier(.22,1,.36,1);
+  will-change: transform, width, height;
+}
+html.dark .mobile-nav-active-pill {
+  background: color-mix(in srgb, var(--af-accent) 19%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 12%, transparent), 0 2px 12px color-mix(in srgb, var(--af-accent) 12%, transparent);
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #8e8e93 !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: color .16s ease, transform .16s ease !important;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--af-accent) !important;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab:not(.mobile-nav-tab-active):hover,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab:not(.mobile-nav-tab-active):hover,
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab:focus,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab:focus {
+  background: transparent !important;
+  color: #8e8e93 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab:active,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: scale(.97) !important;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active .mobile-nav-icon-active,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active .mobile-nav-icon-active {
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+
+/* Final UI refinement: Apple Wallet-style stacked bank cards */
+.accounts-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible !important;
+  padding: 4px 0 8px;
+}
+.accounts-list > .swipe-row {
+  position: relative;
+  overflow: visible !important;
+  border-radius: 20px;
+  isolation: isolate;
+  transition: margin-top .46s cubic-bezier(.22,1,.36,1), height .46s cubic-bezier(.22,1,.36,1), transform .46s cubic-bezier(.22,1,.36,1);
+}
+.accounts-list.is-stacked > .swipe-row:not(:first-child) {
+  margin-top: -82px;
+}
+.accounts-list.is-stacked > .swipe-row:nth-child(1) { z-index: 1; }
+.accounts-list.is-stacked > .swipe-row:nth-child(2) { z-index: 2; }
+.accounts-list.is-stacked > .swipe-row:nth-child(3) { z-index: 3; }
+.accounts-list.is-stacked > .swipe-row:nth-child(4) { z-index: 4; }
+.accounts-list.is-stacked > .swipe-row:nth-child(5) { z-index: 5; }
+.accounts-list.is-stacked > .swipe-row:nth-child(n+6) { z-index: 6; }
+.accounts-list.is-expanded > .swipe-row { margin-top: 0; z-index: auto; }
+.accounts-list .swipe-content {
+  overflow: visible !important;
+  background: transparent !important;
+}
+.account-stack-inner {
+  position: relative;
+  overflow: visible;
+  padding-bottom: 0;
+}
+.account-wallet-card {
+  min-height: 104px;
+  height: 104px;
+  padding: 14px 16px !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 16px 34px -9px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.24) !important;
+  transition: transform .46s cubic-bezier(.22,1,.36,1), box-shadow .34s ease, height .46s cubic-bezier(.22,1,.36,1);
+}
+.accounts-list.is-stacked .account-wallet-card {
+  cursor: pointer;
+}
+.accounts-list.is-stacked .account-wallet-card:active {
+  transform: scale(.985);
+}
+.account-wallet-layout {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+}
+.account-wallet-left,
+.account-wallet-right {
+  min-width: 0;
+}
+.account-wallet-left { flex: 1 1 auto; }
+.account-wallet-right {
+  flex: 0 0 auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.account-wallet-top { margin: 0 !important; }
+.account-wallet-identity { gap: 9px; }
+.account-wallet-bank-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.account-wallet-name {
+  display: block;
+  font-size: 16px !important;
+  line-height: 1.05;
+  font-weight: 850 !important;
+  letter-spacing: -.025em;
+  color: #fff !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-wallet-details {
+  display: block;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 650;
+  color: rgba(255,255,255,.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-wallet-currency {
+  font-size: 9px !important;
+  color: rgba(255,255,255,.76) !important;
+  margin-bottom: 2px;
+}
+.account-wallet-balance {
+  font-size: 16px !important;
+  line-height: 1.05;
+  font-weight: 850 !important;
+  letter-spacing: -.025em;
+  text-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+.account-wallet-footer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.account-wallet-hint {
+  font-size: 7px !important;
+  font-weight: 750;
+  color: rgba(255,255,255,.62) !important;
+}
+.account-wallet-sheen { z-index: 1; }
+
+/* Activity deliberately sits behind the bank card, like a frosted glass layer emerging from underneath it. */
+.account-activity-card {
+  position: relative;
+  z-index: 1;
+  margin: -10px 9px 0;
+  padding: 18px 12px 11px;
+  border-radius: 0 0 18px 18px;
+  color: #1c1c1e;
+  background: rgba(255,255,255,.60);
+  border: 1px solid rgba(255,255,255,.58);
+  border-top: 0;
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+  backdrop-filter: blur(20px) saturate(155%);
+  box-shadow: 0 12px 26px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.50);
+  animation: accountActivityReveal .34s cubic-bezier(.22,1,.36,1) both;
+}
+.account-activity-card-dark {
+  color: #f2f2f7;
+  background: rgba(39,39,42,.62);
+  border-color: rgba(255,255,255,.10);
+  box-shadow: 0 14px 30px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.06);
+}
+@keyframes accountActivityReveal {
+  from { opacity: 0; transform: translateY(-8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.account-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.account-activity-head > div { min-width: 0; }
+.account-activity-eyebrow {
+  display: block;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  color: #8e8e93;
+}
+.account-activity-head strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-activity-count {
+  flex: none;
+  font-size: 7px;
+  font-weight: 750;
+  color: #8e8e93;
+}
+.account-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+  max-height: 151px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+.account-activity-list::-webkit-scrollbar { width: 4px; }
+.account-activity-list::-webkit-scrollbar-track { background: transparent; }
+.account-activity-list::-webkit-scrollbar-thumb { background: rgba(118,118,128,.28); border-radius: 999px; }
+html.dark .account-activity-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); }
+.account-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 5px 7px;
+  border-radius: 11px;
+  background: rgba(118,118,128,.07);
+}
+.account-activity-direction {
+  width: 23px;
+  height: 23px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
+.account-activity-direction.is-inflow { color: #1dbf73; background: rgba(29,191,115,.12); }
+.account-activity-direction.is-outflow { color: #e5484d; background: rgba(229,72,77,.10); }
+.account-activity-row > div { min-width: 0; }
+.account-activity-row span:not(.account-activity-direction) {
+  display: block;
+  font-size: 8px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-activity-row small {
+  display: block;
+  margin-top: 1px;
+  font-size: 7px;
+  color: #8e8e93;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-activity-row strong {
+  flex: none;
+  font-size: 8px;
+  white-space: nowrap;
+}
+.account-activity-in { color: #1dbf73; }
+.account-activity-out { color: #e5484d; }
+.account-activity-empty {
+  margin-top: 7px;
+  font-size: 8px;
+  color: #8e8e93;
+}
+html.dark .account-activity-row { background: rgba(255,255,255,.045); }
+
+@media (max-width: 520px) {
+  .account-wallet-card { min-height: 100px; height: 100px; padding: 13px 14px !important; }
+  .accounts-list.is-stacked > .swipe-row:not(:first-child) { margin-top: -79px; }
+  .account-wallet-name { font-size: 15px !important; }
+  .account-wallet-balance { font-size: 15px !important; }
+  .account-wallet-footer { left: 14px; right: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-active-pill,
+  .accounts-list > .swipe-row,
+  .account-wallet-card,
+  .account-activity-card { transition: none !important; animation: none !important; }
+}
+
+.account-stack-inner { display: flex; flex-direction: column; }
+.account-wallet-card { order: 1; z-index: 2; }
+.account-activity-card { order: 2; }
+
+/* Loan card refinement: clean front card + stacked history + bidirectional actions */
+.loan-card-stack{position:relative;transition:padding .24s cubic-bezier(.22,1,.36,1)}
+.loan-card-stack.is-expanded{padding-top:14px}
+.loan-native-front{position:relative;z-index:2;cursor:pointer;transition:box-shadow .24s ease,transform .24s ease}
+.loan-card-stack.is-expanded .loan-native-front{box-shadow:0 18px 38px rgba(15,23,42,.11)}
+html.dark .loan-card-stack.is-expanded .loan-native-front{box-shadow:0 18px 38px rgba(0,0,0,.28)}
+.loan-history-card{position:relative;z-index:1;margin:0 7px -2px;padding:12px 12px 13px;border:1px solid rgba(60,60,67,.10);border-radius:18px 18px 14px 14px;background:rgba(250,250,250,.96);box-shadow:0 5px 16px rgba(15,23,42,.055)}
+.loan-history-card-dark{background:rgba(31,31,34,.96);border-color:rgba(255,255,255,.08);box-shadow:0 7px 20px rgba(0,0,0,.20)}
+.loan-history-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.loan-history-card-head>div:first-child span{display:block;font-size:7px;font-weight:900;letter-spacing:.13em;color:#8e8e93}
+.loan-history-card-head>div:first-child strong{display:block;margin-top:2px;font-size:9px;letter-spacing:-.01em}
+.loan-history-actions{display:flex;gap:5px;flex:none}
+.loan-history-action{min-height:29px;padding:0 8px;border-radius:9px;border:1px solid rgba(60,60,67,.10);background:rgba(118,118,128,.07);color:#3a3a3c;font-size:8px;font-weight:850;white-space:nowrap}
+.loan-history-action-primary{background:color-mix(in srgb,var(--af-accent) 11%,transparent);border-color:color-mix(in srgb,var(--af-accent) 20%,transparent);color:var(--af-accent)}
+html.dark .loan-history-action{color:#f2f2f7;border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.055)}
+html.dark .loan-history-action-primary{color:#73ddb0;background:color-mix(in srgb,var(--af-accent) 15%,transparent)}
+.loan-history-list{display:flex;flex-direction:column;gap:5px;max-height:230px;overflow:auto;padding-right:1px}
+.loan-history-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;background:rgba(118,118,128,.055);font-size:8px}
+.loan-history-main{min-width:0}.loan-history-main strong{display:block;font-size:9px;font-weight:850;color:#3a3a3c}.loan-history-main span{display:block;margin-top:2px;font-size:8px;color:#8e8e93}
+.loan-history-value{display:flex;align-items:center;gap:6px;flex:none}.loan-history-value>strong{font-size:9px;white-space:nowrap}
+.loan-history-undo{width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:8px;background:rgba(118,118,128,.09);color:#8e8e93}
+.loan-history-undo:active{transform:scale(.94)}
+.loan-history-empty{text-align:center;font-size:8px;color:#8e8e93;padding:8px 4px 4px}
+.loan-date-line{display:flex;align-items:center;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(60,60,67,.08);font-size:8px;color:#8e8e93}
+.loan-date-line span{display:inline-flex;align-items:center;gap:4px}.loan-date-line .is-overdue{color:#e5484d;font-weight:800}
+.loan-tap-hint{display:flex;justify-content:center;align-items:center;gap:5px;margin-top:11px;padding-top:9px;border-top:1px dashed rgba(118,118,128,.16);font-size:8px;font-weight:750;color:#8e8e93;letter-spacing:.01em}
+.loan-tap-hint svg{opacity:.75}
+html.dark .loan-date-line{border-color:rgba(255,255,255,.07)}
+html.dark .loan-tap-hint{border-color:rgba(255,255,255,.10)}
+html.dark .loan-history-main strong{color:#f2f2f7}
+html.dark .loan-history-row{background:rgba(255,255,255,.045)}
+
+/* Bidirectional swipe actions. Existing right-to-left Edit/Delete remains unchanged visually. */
+.swipe-actions-left{left:0;right:auto;width:184px;display:grid;grid-template-columns:1fr 1fr}
+.swipe-actions-right{right:0;left:auto;width:144px;display:grid;grid-template-columns:1fr 1fr}
+.swipe-action-record,.swipe-action-add-more{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:17px}
+.swipe-action-record span,.swipe-action-add-more span{font-size:7px;font-weight:850;line-height:1.1;letter-spacing:-.01em}
+.swipe-action-record{background:color-mix(in srgb,var(--af-accent) 13%,transparent);color:var(--af-accent)}
+.swipe-action-add-more{background:rgba(118,118,128,.11);color:#3a3a3c}
+html.dark .swipe-action-add-more{color:#f2f2f7;background:rgba(255,255,255,.07)}
+@media(max-width:520px){
+  .loan-history-card{margin-left:5px;margin-right:5px}
+  .loan-history-actions{gap:4px}
+  .loan-history-action{padding:0 7px;font-size:7.5px}
+  .loan-tap-hint{font-size:7.5px}
+}
+
+/* v42.1 loan-card cleanup: history expands downward, no horizontal separators,
+   no accent side rail, and no action buttons inside the rear history card. */
+.loan-card-stack{display:flex;flex-direction:column;padding-top:0!important}
+.loan-card-stack.is-expanded{padding-bottom:0!important}
+.loan-native-front{order:1}
+.loan-history-card{order:2;margin:-8px 7px 0!important;padding-top:16px;border-radius:14px 14px 18px 18px;box-shadow:0 5px 16px rgba(15,23,42,.055)}
+.loan-date-line{border-top:0!important;padding-top:0!important;margin-top:10px!important}
+.loan-tap-hint{border-top:0!important;padding-top:0!important;margin-top:8px!important;font-size:16px!important;line-height:1!important;font-weight:500!important;min-height:10px}
+.loan-tap-hint svg{display:none!important}
+.loan-native-card.loan-card-lent,.loan-native-card.loan-card-borrowed{border-left:0!important}
+.loan-history-actions{display:none!important}
+.loan-history-card-head{margin-bottom:9px}
+html.dark .loan-date-line,html.dark .loan-tap-hint{border-color:transparent!important}
+html.dark .loan-due-date{color:#a7a7ad}
