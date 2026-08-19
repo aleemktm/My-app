@@ -18,28 +18,56 @@
   }
 
   function calculateMonthlyLoanChange(loans = [], transactions = [], monthPrefix, convertTxToAED) {
-    if (!monthPrefix || typeof convertTxToAED !== "function") return { changeAED: 0, hasData: false };
+    if (!monthPrefix || typeof convertTxToAED !== "function") return { changeAED: 0, hasData: false, type: null };
     const monthStart = `${monthPrefix}-01`;
-    let current = 0;
-    let opening = 0;
-    let hasLoanData = false;
+    let changeAED = 0;
+    let hasData = false;
+    let hasLent = false;
+    let hasBorrowed = false;
     (loans || []).forEach(loan => {
-      const outstanding = Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0));
-      current += convertTxToAED({ amount: outstanding, currency: loan.currency || "AED", rateToAED: 1 });
-      const loanTxns = (transactions || []).filter(t => t && String(t.loanId) === String(loan.id) && t.date && t.date < monthStart && (t.category === "Loan" || t.category === "Loan Repayment"));
-      if (loanTxns.length) {
-        hasLoanData = true;
-        const openingOutstanding = loanTxns.reduce((sum, t) => {
-          const value = Number(t.accountAmount != null ? t.accountAmount : t.amount) || 0;
-          const aed = convertTxToAED({ ...t, amount: value, accountAmount: value });
-          return sum + (t.category === "Loan Repayment" ? -Math.abs(aed) : Math.abs(aed));
-        }, 0);
-        opening += Math.max(0, openingOutstanding);
-      } else if ((loan.date || "") < monthStart) {
-        opening += convertTxToAED({ amount: Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0)), currency: loan.currency || "AED", rateToAED: 1 });
+      const principal = Math.max(0, Number(loan.amount || 0));
+      const repaid = Math.max(0, Number(loan.repaid || 0));
+      const currentOutstanding = Math.max(0, principal - repaid);
+      const currentAED = convertTxToAED({ amount: currentOutstanding, currency: loan.currency || "AED", rateToAED: 1 });
+      const loanDate = loan.date || "";
+      const movements = Array.isArray(loan.movements) ? loan.movements : [];
+      let openingOutstanding = 0;
+      let hasOpening = false;
+      if (loanDate < monthStart) {
+        openingOutstanding = currentAED;
+        hasOpening = true;
+      }
+      const priorMovements = movements.filter(m => m && m.date && m.date < monthStart);
+      if (priorMovements.length) {
+        let balance = 0;
+        priorMovements.forEach(m => {
+          const value = Number(m.amount) || 0;
+          const aed = convertTxToAED({ amount: value, currency: loan.currency || "AED", rateToAED: 1 });
+          if (m.kind === "repayment") balance = Math.max(0, balance - aed);
+          else balance += aed;
+        });
+        openingOutstanding = balance;
+        hasOpening = true;
+      }
+      const priorTxns = (transactions || []).filter(t => t && String(t.loanId) === String(loan.id) && t.date && t.date < monthStart && t.category === "Loan Repayment");
+      if (priorTxns.length && !priorMovements.length) {
+        const repayments = priorTxns.reduce((sum, t) => sum + Math.abs(convertTxToAED({ ...t, amount: Number(t.accountAmount != null ? t.accountAmount : t.amount) || 0 })), 0);
+        openingOutstanding = Math.max(0, currentAED + repayments);
+        hasOpening = true;
+      }
+      if (!hasOpening) openingOutstanding = 0;
+      const deltaOutstanding = currentAED - openingOutstanding;
+      if (Math.abs(deltaOutstanding) < 0.01) return;
+      hasData = true;
+      if (loan.type === "lent") {
+        hasLent = true;
+        changeAED += deltaOutstanding;
+      } else if (loan.type === "borrowed") {
+        hasBorrowed = true;
+        changeAED -= deltaOutstanding;
       }
     });
-    return { changeAED: current - opening, hasData: hasLoanData || current !== 0 };
+    return { changeAED, hasData, type: hasLent && hasBorrowed ? "mixed" : hasLent ? "lent" : hasBorrowed ? "borrowed" : null };
   }
 
   function scoreFor({ savingsRate, emergencyRunwayMonths, monthlySavingsAED, monthlyIncomeAED }) {
@@ -206,7 +234,14 @@
     const drivers = [];
     if (Math.abs(monthlySavingsAED) >= 0.01) drivers.push({ label: monthlySavingsAED >= 0 ? "Savings" : "Cash flow shortfall", value: monthlySavingsAED, tone: monthlySavingsAED >= 0 ? "positive" : "negative" });
     if (Math.abs(goldChangeAED) >= 0.01) drivers.push({ label: goldChangeAED >= 0 ? "Gold gained" : "Gold fell", value: goldChangeAED, tone: goldChangeAED >= 0 ? "positive" : "negative" });
-    if (loanChange.hasData && Math.abs(loanChange.changeAED) >= 0.01) drivers.push({ label: loanChange.changeAED >= 0 ? "Loans increased" : "Loans reduced", value: loanChange.changeAED, tone: loanChange.changeAED >= 0 ? "negative" : "positive" });
+    if (loanChange.hasData && Math.abs(loanChange.changeAED) >= 0.01) {
+      const label = loanChange.type === "lent"
+        ? (loanChange.changeAED >= 0 ? "Money lent out" : "Money recovered")
+        : loanChange.type === "borrowed"
+          ? (loanChange.changeAED >= 0 ? "Borrowing reduced" : "Borrowing increased")
+          : (loanChange.changeAED >= 0 ? "Loans improved" : "Loans increased");
+      drivers.push({ label, value: loanChange.changeAED, tone: loanChange.changeAED >= 0 ? "positive" : "negative" });
+    }
     const wealthDriver = monthlySavingsAED + goldChangeAED;
     const base = Math.max(1, Math.abs(netWorthTotal - wealthDriver));
     const wealthPct = wealthDriver / base * 100;
