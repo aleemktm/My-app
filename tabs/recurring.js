@@ -33,8 +33,13 @@
           h("b", { className:item.type === "income" ? "recurring-amount-income" : "recurring-amount-expense" }, `${item.type === "income" ? "+" : "-"}${item.currency} ${numFmt(item.amount)}`)
         )))
       ),
-      recurringEditor && h("form", { onSubmit: saveRecurringItem, className: "recurring-editor" },
-        h("div", { className:"recurring-editor-head" }, h("div",null,h("span",null,"SCHEDULE"),h("strong",null,recurringForm.id ? "Edit recurring item" : "New recurring item")), h("button",{type:"button",onClick:()=>setRecurringEditor(null),className:"recurring-icon-button","aria-label":"Close"},h(Icons.IconClose,{className:"w-4 h-4"}))),
+      recurringEditor && window.Modals && window.Modals.LoanFormSheet && h(window.Modals.LoanFormSheet, {
+        accent, accounts, darkMode, inputCls,
+        title: recurringForm.id ? "Edit recurring item" : "New recurring item",
+        submitLabel: recurringForm.id ? "Save changes" : "Create schedule",
+        onClose: () => setRecurringEditor(null),
+        onSubmit: saveRecurringItem
+      },
         h("div", { className:"recurring-type-toggle", role:"tablist" }, [ ["expense","Expense",Icons.IconArrowUp45],["income","Income",Icons.IconArrowDown45] ].map(([value,label,Icon])=>h("button",{key:value,type:"button",role:"tab","aria-selected":recurringForm.type===value,onClick:()=>setRecurringForm({...recurringForm,type:value,category:(value==="income"?settings.customCategories.income:settings.customCategories.expense||[""])[0]||""}),className:`recurring-type-button ${recurringForm.type===value?"is-active":""}`},h(Icon,{className:"w-4 h-4"}),label))),
         h("div",{className:"recurring-form-grid"},
           h("label",null,h("span",null,"Title"),h("input",{required:true,value:recurringForm.title,onChange:e=>setRecurringForm({...recurringForm,title:e.target.value}),placeholder:"Salary, Rent, Internet…",className:inputCls})),
@@ -43,8 +48,7 @@
           h("label",null,h("span",null,"Next date"),h("input",{type:"date",required:true,value:recurringForm.nextDate,onChange:e=>setRecurringForm({...recurringForm,nextDate:e.target.value}),className:inputCls})),
           h("label",null,h("span",null,"Account"),h("select",{required:true,value:recurringForm.accountId,onChange:e=>{const nextAccount=accounts.find(a=>a.id===e.target.value);setRecurringForm({...recurringForm,accountId:e.target.value,currency:(nextAccount&&nextAccount.currency)||recurringForm.currency});},className:inputCls},accounts.map(a=>h("option",{key:a.id,value:a.id},`${a.name} (${a.currency})`)))),
           h("label",null,h("span",null,"Category"),h("select",{value:recurringForm.category,onChange:e=>setRecurringForm({...recurringForm,category:e.target.value}),className:inputCls},categoryList.map(name=>h("option",{key:name,value:name},name))))
-        ),
-        h("div",{className:"recurring-editor-actions"},h("button",{type:"button",onClick:()=>setRecurringEditor(null),className:"recurring-secondary"},"Cancel"),h("button",{type:"submit",className:"recurring-primary"},recurringForm.id?"Save changes":"Create schedule"))
+        )
       ),
       h("section", { className:"recurring-list-section" },
         h("div",{className:"recurring-section-head"},h("div",null,h("span",null,"YOUR SCHEDULES"),h("strong",null,`${recurringItems.length} item${recurringItems.length===1?"":"s"}`))),

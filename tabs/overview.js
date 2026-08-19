@@ -63,7 +63,7 @@
     }, h("span", { className: "home-action-icon" }, h(icon, { className: "w-4 h-4" })), h("span", null, label));
 
     return h("div", { className: "home-dashboard" },
-      h("section", { className: `home-hero ${darkMode ? "home-hero-dark" : ""}`, "data-hero-flash": isPositive ? "gain" : "loss" },
+      h("section", { className: `home-hero ${settings.heroCardTheme !== "light" ? "home-hero-dark" : ""}`, "data-hero-flash": isPositive ? "gain" : "loss" },
         h("div", { className: "home-hero-glow" }),
         h("div", { className: "home-hero-top" },
           h("div", null,

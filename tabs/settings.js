@@ -123,6 +123,9 @@
           h(SettingsRow, { key: "hero-metric", icon: Icons.IconWallet, title: "Hero card metric", detail: "Choose the main wealth figure shown at the top of Home." },
             h("select", { value: settings.heroMetric || "liquid", onChange: e => updateSettings({ heroMetric: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "liquid" }, "Available wealth"), h("option", { value: "networth" }, "Net worth"))),
+          h(SettingsRow, { key: "hero-style", icon: Icons.IconTune, title: "Hero card style", detail: "Choose a light white-and-accent card or keep the current dark accent style." },
+            h("select", { value: settings.heroCardTheme || "dark", onChange: e => updateSettings({ heroCardTheme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
+              h("option", { value: "dark" }, "Dark"), h("option", { value: "light" }, "Light"))),
           h(SettingsRow, { key: "greeting", icon: Icons.IconTune, title: "Greeting", detail: "Show the personalized greeting above the Home hero card." },
             IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" }))
         ])
