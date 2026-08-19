@@ -425,7 +425,7 @@
   function LoanFormSheet(props) {
     const {
       accent, accounts, darkMode, inputCls, numFmt, title,
-      onSubmit, onClose, children, submitLabel
+      onSubmit, onClose, children, submitLabel, variant
     } = props;
     const [offsetY, setOffsetY] = React.useState(0);
     const [dragging, setDragging] = React.useState(false);
@@ -547,12 +547,12 @@
 
     return ReactDOM.createPortal(
       React.createElement("div", {
-        className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${closing ? "is-closing" : ""}`,
+        className: `ios-form-sheet-backdrop fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-3 ${variant === "planning" ? "planning-form-sheet-backdrop" : ""} ${closing ? "is-closing" : ""}`,
         style: {
           "--sheet-viewport-height": `${viewport.height}px`,
           "--keyboard-offset": `${viewport.keyboard}px`,
           top: 0,
-          bottom: 0,
+          bottom: variant === "planning" ? viewport.keyboard : 0,
           height: "auto",
           right: 0
         },
@@ -658,6 +658,7 @@
     return React.createElement(LoanFormSheet, {
       accent, darkMode, inputCls,
       title: budgetForm.id ? "Edit budget" : "New budget",
+      variant: "planning",
       submitLabel: "Save budget",
       onClose: () => setPlanningEditor(null),
       onSubmit: saveBudget
@@ -690,6 +691,7 @@
     return React.createElement(LoanFormSheet, {
       accent, darkMode, inputCls,
       title: goalForm.id ? "Edit goal" : "New goal",
+      variant: "planning",
       submitLabel: "Save goal",
       onClose: () => setPlanningEditor(null),
       onSubmit: saveGoal

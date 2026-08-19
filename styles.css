@@ -2212,3 +2212,16 @@ html.dark .planning-hero:not(.is-dark) .planning-title{color:#18181b}
 .ios-form-secondary,.ios-form-primary{min-height:42px;padding:0 14px;border-radius:12px;font-size:10px;font-weight:850;border:0}
 .ios-form-secondary{background:rgba(118,118,128,.10);color:#71717a}.ios-form-primary{background:var(--af-accent);color:#fff}
 html.dark .ios-form-sheet-close{background:rgba(255,255,255,.07);color:#a1a1aa}html.dark .ios-form-sheet-header h3{color:#f2f2f7}html.dark .ios-form-sheet-body label>span{color:#a1a1aa}
+
+/* Requested UI refinement: solid swipe actions using the active accent. */
+.swipe-action-edit { background: var(--af-accent) !important; color: #fff !important; }
+.swipe-action-delete { background: #ff3b30 !important; color: #fff !important; }
+html.dark .swipe-action-edit, html.dark .swipe-action-delete { color: #fff !important; }
+.swipe-action-edit:hover, .swipe-action-delete:hover { filter: brightness(.96) !important; }
+
+/* Planning form sheets: anchor the sheet to the visual viewport so iOS keyboard
+   cannot cover the bottom action buttons. The existing non-planning sheets are untouched. */
+.planning-form-sheet-backdrop .ios-form-bottom-sheet {
+  transform: translate3d(0, var(--sheet-offset), 0) !important;
+  max-height: min(92vh, calc(var(--sheet-viewport-height, 100dvh) * .92)) !important;
+}
