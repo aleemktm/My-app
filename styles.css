@@ -2089,7 +2089,7 @@ html.dark .loan-history-main strong{color:#f2f2f7}
 html.dark .loan-history-row{background:rgba(255,255,255,.045)}
 
 /* Bidirectional swipe actions. Existing right-to-left Edit/Delete remains unchanged visually. */
-.swipe-actions-left{left:0;right:auto;width:184px;display:grid;grid-template-columns:1fr 1fr}
+.swipe-actions-left{left:0;right:auto;width:144px;display:grid;grid-template-columns:1fr 1fr}
 .swipe-actions-right{right:0;left:auto;width:144px;display:grid;grid-template-columns:1fr 1fr}
 .swipe-action-record,.swipe-action-add-more{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:17px}
 .swipe-action-record span,.swipe-action-add-more span{font-size:7px;font-weight:850;line-height:1.1;letter-spacing:-.01em}
@@ -2226,6 +2226,13 @@ html.dark .swipe-action-edit, html.dark .swipe-action-delete { color: #fff !impo
   max-height: min(92vh, calc(var(--sheet-viewport-height, 100dvh) * .92)) !important;
 }
 
+/* v51.2 requested refinement — swipe action consistency only. */
+.swipe-action-edit { background: var(--af-accent) !important; color: #FFFFFF !important; }
+.swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF !important; }
+html.dark .swipe-action-edit { background: var(--af-accent) !important; color: #FFFFFF !important; }
+html.dark .swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF !important; }
+.swipe-actions-left { width: 144px !important; }
+.swipe-actions-left, .swipe-actions-right { grid-template-columns: 1fr 1fr !important; }
 /* v51.1 requested refinement — swipe actions only. */
 .swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF !important; }
 html.dark .swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF !important; }
