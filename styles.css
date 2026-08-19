@@ -2118,34 +2118,17 @@ html.dark .swipe-action-add-more{color:#f2f2f7;background:rgba(255,255,255,.07)}
 html.dark .loan-date-line,html.dark .loan-tap-hint{border-color:transparent!important}
 html.dark .loan-due-date{color:#a7a7ad}
 
-/* Final cleanup: keep only the floating capsule visible. The older full-width
-   bottom-bar layers must remain completely transparent and square. */
-.af-floating-tabbar-wrap,
-.af-floating-tabbar-wrap::before,
-.af-floating-tabbar-wrap::after,
-.af-floating-tabbar,
-.af-floating-tabbar::before,
-.af-floating-tabbar::after,
-.af-floating-tabbar .mobile-bottom-bar,
-.af-floating-tabbar .mobile-nav-swipe,
-.af-floating-tabbar .mobile-settings-fixed {
-  background: transparent !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
-}
-.af-floating-tabbar {
-  background: rgba(255,255,255,.72) !important;
-  border-radius: 999px !important;
-}
-html.dark .af-floating-tabbar {
-  background: rgba(28,28,30,.72) !important;
-}
-.af-floating-tabbar .mobile-bottom-bar,
-.af-floating-tabbar .mobile-nav-swipe,
-.af-floating-tabbar .mobile-settings-fixed {
-  border: 0 !important;
-  box-shadow: none !important;
-}
-.af-floating-tabbar .mobile-settings-fixed {
-  border-left: 0 !important;
-}
+/* v42 Planning & Recurring refinement */
+.planning-premium,.recurring-native{overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y;max-width:42rem}
+.planning-subtabs{margin:0 0 2px}
+.planning-hero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 16px;border:1px solid rgba(60,60,67,.10);border-radius:20px;background:rgba(255,255,255,.82);box-shadow:0 10px 28px rgba(15,23,42,.045)}
+.planning-hero.is-dark{background:#222225;border-color:rgba(255,255,255,.09);box-shadow:0 10px 28px rgba(0,0,0,.12)}
+.planning-eyebrow{margin:0;font-size:8px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;color:#8e8e93}
+.planning-title{margin:3px 0 0;font-size:19px;font-weight:900;letter-spacing:-.035em;color:#18181b}
+.planning-hero.is-dark .planning-title{color:#f2f2f7}
+.planning-subtitle{margin:4px 0 0;font-size:9px;line-height:1.45;color:#8e8e93;max-width:420px}
+.planning-hero-mark{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:13px;background:color-mix(in srgb,var(--af-accent) 11%,transparent);color:var(--af-accent)}
+@media(max-width:560px){.planning-hero{padding:14px;border-radius:18px}.planning-title{font-size:17px}.planning-subtitle{font-size:8.5px}.planning-hero-mark{width:34px;height:34px;border-radius:11px}}
+html.dark .planning-hero{background:#222225;border-color:rgba(255,255,255,.09)}
+html.dark .planning-hero:not(.is-dark){background:#fff;color:#18181b;border-color:rgba(60,60,67,.10)}
+html.dark .planning-hero:not(.is-dark) .planning-title{color:#18181b}
