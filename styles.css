@@ -2199,3 +2199,16 @@ html.dark .planning-hero:not(.is-dark) .planning-title{color:#18181b}
 .home-hero:not(.home-hero-dark) .home-ring-inner { background: rgba(255,255,255,.94) !important; }
 .home-hero:not(.home-hero-dark) .home-ring-inner span,
 .home-hero:not(.home-hero-dark) .home-ring-inner small { color: #94a3b8 !important; }
+/* Planning/Recurring form sheets — reuse the app's established iOS sheet language. */
+.ios-form-sheet-backdrop{position:fixed;inset:0;z-index:1000003;display:flex;align-items:flex-end;justify-content:center}
+.ios-form-bottom-sheet{width:100%;max-width:560px;border:1px solid rgba(60,60,67,.12);border-bottom:0;border-radius:28px 28px 0 0;padding:12px 16px calc(18px + env(safe-area-inset-bottom));overflow:auto}
+.ios-form-sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0 10px}
+.ios-form-sheet-header h3{font-size:16px;font-weight:850;letter-spacing:-.02em;margin-top:2px}
+.ios-form-sheet-header p{font-size:8px;font-weight:850;letter-spacing:.13em;color:#8e8e93}
+.ios-form-sheet-close{width:36px;height:36px;border:0;border-radius:11px;background:rgba(118,118,128,.10);display:grid;place-items:center;color:#71717a}
+.ios-form-sheet-body{display:flex;flex-direction:column;gap:12px;max-height:min(58dvh,520px);overflow-y:auto;overflow-x:hidden;padding:4px 0}
+.ios-form-sheet-body label>span{display:block;font-size:10px;font-weight:750;color:#71717a;margin-bottom:5px}
+.ios-form-sheet-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:12px}
+.ios-form-secondary,.ios-form-primary{min-height:42px;padding:0 14px;border-radius:12px;font-size:10px;font-weight:850;border:0}
+.ios-form-secondary{background:rgba(118,118,128,.10);color:#71717a}.ios-form-primary{background:var(--af-accent);color:#fff}
+html.dark .ios-form-sheet-close{background:rgba(255,255,255,.07);color:#a1a1aa}html.dark .ios-form-sheet-header h3{color:#f2f2f7}html.dark .ios-form-sheet-body label>span{color:#a1a1aa}
