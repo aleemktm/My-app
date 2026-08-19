@@ -650,6 +650,110 @@
     );
   }
 
+  function BudgetFormSheet(props) {
+    const { accent, budgetForm, darkMode, inputCls, planningEditor, saveBudget, setBudgetForm, setPlanningEditor, settings } = props;
+    if (planningEditor !== "budget") return null;
+    const expenseCategories = settings.customCategories.expense || ["Groceries"];
+    const currencies = ["AED","USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"];
+    return React.createElement(LoanFormSheet, {
+      accent, darkMode, inputCls,
+      title: budgetForm.id ? "Edit budget" : "New budget",
+      submitLabel: "Save budget",
+      onClose: () => setPlanningEditor(null),
+      onSubmit: saveBudget
+    },
+      React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Category"),
+          React.createElement("select", { value: budgetForm.category, onChange: e => setBudgetForm({ ...budgetForm, category: e.target.value }), className: inputCls },
+            expenseCategories.map(name => React.createElement("option", { key: name, value: name }, name))
+          )
+        ),
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Monthly limit"),
+          React.createElement("input", { type: "number", inputMode: "decimal", min: "0.01", step: "0.01", required: true, autoFocus: true, value: budgetForm.amount, onChange: e => setBudgetForm({ ...budgetForm, amount: e.target.value }), className: inputCls })
+        ),
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Currency"),
+          React.createElement("select", { value: budgetForm.currency, onChange: e => setBudgetForm({ ...budgetForm, currency: e.target.value }), className: inputCls },
+            currencies.map(c => React.createElement("option", { key: c, value: c }, c))
+          )
+        )
+      )
+    );
+  }
+
+  function GoalFormSheet(props) {
+    const { accent, darkMode, goalForm, inputCls, planningEditor, saveGoal, setGoalForm, setPlanningEditor } = props;
+    if (planningEditor !== "goal") return null;
+    const currencies = ["AED","USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"];
+    return React.createElement(LoanFormSheet, {
+      accent, darkMode, inputCls,
+      title: goalForm.id ? "Edit goal" : "New goal",
+      submitLabel: "Save goal",
+      onClose: () => setPlanningEditor(null),
+      onSubmit: saveGoal
+    },
+      React.createElement("label", null,
+        React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Goal name"),
+        React.createElement("input", { required: true, autoFocus: true, value: goalForm.name, onChange: e => setGoalForm({ ...goalForm, name: e.target.value }), placeholder: "Emergency fund, travel…", className: inputCls })
+      ),
+      React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Target"),
+          React.createElement("input", { type: "number", inputMode: "decimal", min: "0.01", step: "0.01", required: true, value: goalForm.targetAmount, onChange: e => setGoalForm({ ...goalForm, targetAmount: e.target.value }), className: inputCls })
+        ),
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Saved"),
+          React.createElement("input", { type: "number", inputMode: "decimal", min: "0", step: "0.01", required: true, value: goalForm.currentAmount, onChange: e => setGoalForm({ ...goalForm, currentAmount: e.target.value }), className: inputCls })
+        )
+      ),
+      React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Currency"),
+          React.createElement("select", { value: goalForm.currency, onChange: e => setGoalForm({ ...goalForm, currency: e.target.value }), className: inputCls },
+            currencies.map(c => React.createElement("option", { key: c, value: c }, c))
+          )
+        ),
+        React.createElement("label", null,
+          React.createElement("span", { className: "block text-[11px] font-medium mb-1" }, "Target date · optional"),
+          React.createElement("input", { type: "date", value: goalForm.targetDate, onChange: e => setGoalForm({ ...goalForm, targetDate: e.target.value }), className: inputCls })
+        )
+      )
+    );
+  }
+
+  function RecurringFormSheet(props) {
+    const { accent, accounts, darkMode, inputCls, recurringEditor, recurringForm, saveRecurringItem, setRecurringEditor, setRecurringForm, settings } = props;
+    if (!recurringEditor) return null;
+    const categoryList = recurringForm.type === "income" ? (settings.customCategories.income || ["Salary"]) : (settings.customCategories.expense || ["Groceries"]);
+    return React.createElement(LoanFormSheet, {
+      accent, accounts, darkMode, inputCls,
+      title: recurringForm.id ? "Edit recurring item" : "New recurring item",
+      submitLabel: recurringForm.id ? "Save changes" : "Create schedule",
+      onClose: () => setRecurringEditor(null),
+      onSubmit: saveRecurringItem
+    },
+      React.createElement("div", { className: "recurring-type-toggle", role: "tablist" },
+        [["expense","Expense",Icons.IconArrowUp45],["income","Income",Icons.IconArrowDown45]].map(([value,label,Icon]) =>
+          React.createElement("button", {
+            key: value, type: "button", role: "tab", "aria-selected": recurringForm.type === value,
+            onClick: () => setRecurringForm({ ...recurringForm, type: value, category: (value === "income" ? settings.customCategories.income : settings.customCategories.expense || [""])[0] || "" }),
+            className: `recurring-type-button ${recurringForm.type === value ? "is-active" : ""}`
+          }, React.createElement(Icon, { className: "w-4 h-4" }), label)
+        )
+      ),
+      React.createElement("div", { className: "recurring-form-grid" },
+        React.createElement("label", null, React.createElement("span", null, "Title"), React.createElement("input", { required: true, autoFocus: true, value: recurringForm.title, onChange: e => setRecurringForm({ ...recurringForm, title: e.target.value }), placeholder: "Salary, Rent, Internet…", className: inputCls })),
+        React.createElement("label", null, React.createElement("span", null, "Amount"), React.createElement("input", { type: "number", inputMode: "decimal", min: "0.01", step: "0.01", required: true, value: recurringForm.amount, onChange: e => setRecurringForm({ ...recurringForm, amount: e.target.value }), className: inputCls })),
+        React.createElement("label", null, React.createElement("span", null, "Frequency"), React.createElement("select", { value: recurringForm.frequency, onChange: e => setRecurringForm({ ...recurringForm, frequency: e.target.value }), className: inputCls }, React.createElement("option", { value: "monthly" }, "Monthly"), React.createElement("option", { value: "weekly" }, "Weekly"), React.createElement("option", { value: "yearly" }, "Yearly"))),
+        React.createElement("label", null, React.createElement("span", null, "Next date"), React.createElement("input", { type: "date", required: true, value: recurringForm.nextDate, onChange: e => setRecurringForm({ ...recurringForm, nextDate: e.target.value }), className: inputCls })),
+        React.createElement("label", null, React.createElement("span", null, "Account"), React.createElement("select", { required: true, value: recurringForm.accountId, onChange: e => { const nextAccount = accounts.find(a => a.id === e.target.value); setRecurringForm({ ...recurringForm, accountId: e.target.value, currency: (nextAccount && nextAccount.currency) || recurringForm.currency }); }, className: inputCls }, accounts.map(a => React.createElement("option", { key: a.id, value: a.id }, `${a.name} (${a.currency})`)))),
+        React.createElement("label", null, React.createElement("span", null, "Category"), React.createElement("select", { value: recurringForm.category, onChange: e => setRecurringForm({ ...recurringForm, category: e.target.value }), className: inputCls }, categoryList.map(name => React.createElement("option", { key: name, value: name }, name))))
+      )
+    );
+  }
+
   function MainFormModal(props) {
     const { accent, accounts, closeMainFormModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, modalClosing, numFmt, setFormInput, settings } = props;
     const CURRENCY_OPTIONS = ["AED", "USD", "EUR", "GBP", "SAR", "INR", "PKR", "CAD", "AUD"];
@@ -1074,5 +1178,8 @@
   window.Modals.RatesModal = RatesModal;
   window.Modals.RepaymentModal = RepaymentModal;
   window.Modals.LoanAddMoreModal = LoanAddMoreModal;
+  window.Modals.BudgetFormSheet = BudgetFormSheet;
+  window.Modals.GoalFormSheet = GoalFormSheet;
+  window.Modals.RecurringFormSheet = RecurringFormSheet;
   window.Modals.MainFormModal = MainFormModal;
 })();
