@@ -2118,6 +2118,39 @@ html.dark .swipe-action-add-more{color:#f2f2f7;background:rgba(255,255,255,.07)}
 html.dark .loan-date-line,html.dark .loan-tap-hint{border-color:transparent!important}
 html.dark .loan-due-date{color:#a7a7ad}
 
+/* Final cleanup: keep only the floating capsule visible. The older full-width
+   bottom-bar layers must remain completely transparent and square. */
+.af-floating-tabbar-wrap,
+.af-floating-tabbar-wrap::before,
+.af-floating-tabbar-wrap::after,
+.af-floating-tabbar,
+.af-floating-tabbar::before,
+.af-floating-tabbar::after,
+.af-floating-tabbar .mobile-bottom-bar,
+.af-floating-tabbar .mobile-nav-swipe,
+.af-floating-tabbar .mobile-settings-fixed {
+  background: transparent !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+.af-floating-tabbar {
+  background: rgba(255,255,255,.72) !important;
+  border-radius: 999px !important;
+}
+html.dark .af-floating-tabbar {
+  background: rgba(28,28,30,.72) !important;
+}
+.af-floating-tabbar .mobile-bottom-bar,
+.af-floating-tabbar .mobile-nav-swipe,
+.af-floating-tabbar .mobile-settings-fixed {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.af-floating-tabbar .mobile-settings-fixed {
+  border-left: 0 !important;
+}
+
+
 /* v42 Planning & Recurring refinement */
 .planning-premium,.recurring-native{overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y;max-width:42rem}
 .planning-subtabs{margin:0 0 2px}
@@ -2132,3 +2165,37 @@ html.dark .loan-due-date{color:#a7a7ad}
 html.dark .planning-hero{background:#222225;border-color:rgba(255,255,255,.09)}
 html.dark .planning-hero:not(.is-dark){background:#fff;color:#18181b;border-color:rgba(60,60,67,.10)}
 html.dark .planning-hero:not(.is-dark) .planning-title{color:#18181b}
+
+
+/* v42 Hero Dashboard appearance — Light mode must override the legacy always-dark hero rules. */
+.home-hero:not(.home-hero-dark) {
+  background:
+    radial-gradient(circle at 82% 16%, color-mix(in srgb, var(--af-accent) 10%, transparent), transparent 30%),
+    linear-gradient(145deg, #ffffff 0%, #f8fbfa 52%, #f7f8ff 100%) !important;
+  border-color: color-mix(in srgb, var(--af-accent) 20%, transparent) !important;
+  box-shadow: 0 20px 48px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.95) !important;
+  color: #18181b !important;
+}
+.home-hero:not(.home-hero-dark) .home-metric-label,
+.home-hero:not(.home-hero-dark) .home-secondary-metric,
+.home-hero:not(.home-hero-dark) .home-subtitle.home-quote-of-day,
+.home-hero:not(.home-hero-dark) .home-rate-strip {
+  color: #64748b !important;
+}
+.home-hero:not(.home-hero-dark) .home-metric { color: #111827 !important; }
+.home-hero:not(.home-hero-dark) .home-month-pill {
+  background: rgba(255,255,255,.82) !important;
+  border-color: rgba(0,0,0,.06) !important;
+  color: #64748b !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 1px 2px rgba(15,23,42,.03) !important;
+}
+.home-hero:not(.home-hero-dark) .home-currency select,
+.home-hero:not(.home-hero-dark) .home-rate-button {
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(0,0,0,.08) !important;
+  color: #374151 !important;
+}
+.home-hero:not(.home-hero-dark) .home-rate-strip { border-top-color: rgba(0,0,0,.07) !important; }
+.home-hero:not(.home-hero-dark) .home-ring-inner { background: rgba(255,255,255,.94) !important; }
+.home-hero:not(.home-hero-dark) .home-ring-inner span,
+.home-hero:not(.home-hero-dark) .home-ring-inner small { color: #94a3b8 !important; }

@@ -1065,7 +1065,6 @@
   }
 
   window.Modals = window.Modals || {};
-  window.Modals.LoanFormSheet = LoanFormSheet;
   window.Modals.MoreSheet = MoreSheet;
   window.Modals.DashboardCardsSheet = DashboardCardsSheet;
   window.Modals.CategoryManagerSheet = CategoryManagerSheet;
