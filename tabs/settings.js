@@ -2,7 +2,7 @@
 // grouped list with drill-down subpages (Settings.app pattern).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
     const h = React.createElement;
     const [settingsPage, setSettingsPage] = React.useState(null);
 
@@ -161,8 +161,16 @@
             return h(React.Fragment, null,
               h(SettingsRow, { key: "auto-backup", icon: Icons.IconDownload, title: "Automatic transaction backup", detail: settings.automaticTransactionBackupEnabled !== false ? `Enabled · Last backup: ${last}` : "Disabled · No automatic backups will be created." },
                 IOSSwitch({ checked: settings.automaticTransactionBackupEnabled !== false, onChange: () => updateSettings({ automaticTransactionBackupEnabled: settings.automaticTransactionBackupEnabled === false }), label: "Automatic transaction backup" })),
-              autoBackup ? h(SettingsRow, { key: "auto-backup-export", icon: Icons.IconDownload, title: "Last automatic backup", detail: "Stored securely on this device. Export a copy when you want a backup file." },
-                h("button", { onClick: exportAutomaticBackup, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export")) : null
+              (() => {
+                const fileMeta = typeof getAutomaticFileBackupMeta === "function" ? getAutomaticFileBackupMeta() : null;
+                const fileLast = fileMeta && fileMeta.createdAt ? new Date(fileMeta.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "No automatic file backup yet";
+                return h(React.Fragment, null,
+                  h(SettingsRow, { key: "auto-file-backup", icon: Icons.IconDownload, title: "Automatic file backup", detail: settings.automaticFileBackupEnabled !== false ? `Enabled · Latest file: ${fileLast}` : "Disabled · The JSON file will not be updated automatically." },
+                    IOSSwitch({ checked: settings.automaticFileBackupEnabled !== false, onChange: () => updateSettings({ automaticFileBackupEnabled: settings.automaticFileBackupEnabled === false }), label: "Automatic file backup" })),
+                  h(SettingsRow, { key: "auto-file-backup-info", icon: Icons.IconDownload, title: "AleemFin_Auto_Backup.json", detail: "Automatically updated after each new Inflow or Outflow in the AleemFin app's Documents folder. Export remains available for a separate copy." },
+                    autoBackup ? h("button", { onClick: exportAutomaticBackup, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export") : null)
+                );
+              })()
             );
           })(),
           h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Replace this device's data with a previous AleemFin backup." },
