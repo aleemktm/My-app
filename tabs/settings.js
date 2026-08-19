@@ -2,7 +2,7 @@
 // grouped list with drill-down subpages (Settings.app pattern).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
     const h = React.createElement;
     const [settingsPage, setSettingsPage] = React.useState(null);
 
@@ -155,6 +155,16 @@
         Group(null, [
           h(SettingsRow, { key: "backup", icon: Icons.IconDownload, title: "Backup data", detail: `${accounts.length} accounts · ${transactions.length} transactions · ${budgets.length} budgets · ${goals.length} goals · ${dataSizeLabel}` },
             h("button", { onClick: exportBackup, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Backup")),
+          (() => {
+            const autoBackup = typeof getAutomaticBackup === "function" ? getAutomaticBackup() : null;
+            const last = autoBackup && autoBackup.createdAt ? new Date(autoBackup.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "No automatic backup yet";
+            return h(React.Fragment, null,
+              h(SettingsRow, { key: "auto-backup", icon: Icons.IconDownload, title: "Automatic transaction backup", detail: settings.automaticTransactionBackupEnabled !== false ? `Enabled · Last backup: ${last}` : "Disabled · No automatic backups will be created." },
+                IOSSwitch({ checked: settings.automaticTransactionBackupEnabled !== false, onChange: () => updateSettings({ automaticTransactionBackupEnabled: settings.automaticTransactionBackupEnabled === false }), label: "Automatic transaction backup" })),
+              autoBackup ? h(SettingsRow, { key: "auto-backup-export", icon: Icons.IconDownload, title: "Last automatic backup", detail: "Stored securely on this device. Export a copy when you want a backup file." },
+                h("button", { onClick: exportAutomaticBackup, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export")) : null
+            );
+          })(),
           h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Replace this device's data with a previous AleemFin backup." },
             h("label", { className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500 cursor-pointer" }, "Restore", h("input", { type: "file", accept: ".json", onChange: importBackup, className: "hidden" }))),
           h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file." },
