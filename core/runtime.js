@@ -62,7 +62,7 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, editL
   const isSelected = key ? !!(window.__aleemSelection && window.__aleemSelection.has(key)) : false;
   const hasLeftActions = !!(onLeftAction || onLeftAction2);
   const RIGHT_ACTION_WIDTH = 144;
-  const LEFT_ACTION_WIDTH = hasLeftActions ? 184 : 0;
+  const LEFT_ACTION_WIDTH = hasLeftActions ? 144 : 0;
 
   const clearLongPress = () => { if (longPress.current) { clearTimeout(longPress.current); longPress.current = null; } };
   const widthForSide = s => s === -1 ? LEFT_ACTION_WIDTH : RIGHT_ACTION_WIDTH;
