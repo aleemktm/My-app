@@ -94,7 +94,7 @@
         ),
         budgetSheet,
         goalSheet
-      ) : h(Tabs.Recurring, { ...rest, accounts:props.accounts, accent, darkMode, dateFmt, inputCls, numFmt, openRecurringEditor:props.openRecurringEditor, recordRecurringOccurrence:props.recordRecurringOccurrence, recurringEditor:props.recurringEditor, recurringForm:props.recurringForm, recurringItems, saveRecurringItem:props.saveRecurringItem, setRecurringEditor:props.setRecurringEditor, setRecurringForm:props.setRecurringForm, settings, updateRecurringItem:props.updateRecurringItem, selectionKey })
+      ) : (window.Tabs && window.Tabs.Recurring ? h(window.Tabs.Recurring, { ...rest, accounts:props.accounts, accent, darkMode, dateFmt, inputCls, numFmt, openRecurringEditor:props.openRecurringEditor, recordRecurringOccurrence:props.recordRecurringOccurrence, recurringEditor:props.recurringEditor, recurringForm:props.recurringForm, recurringItems, saveRecurringItem:props.saveRecurringItem, setRecurringEditor:props.setRecurringEditor, setRecurringForm:props.setRecurringForm, settings, updateRecurringItem:props.updateRecurringItem, selectionKey }) : h("div", { className:"planning-empty" }, h("strong", null, "Recurring section unavailable"), h("p", null, "Please reload AleemFin.")))
     );
   }
   window.Tabs = window.Tabs || {};
