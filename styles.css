@@ -2240,3 +2240,13 @@ html.dark .swipe-action-delete { background: #2C2C2E !important; color: #FFFFFF 
 .swipe-action-add-more { background: #2C2C2E !important; color: #FFFFFF !important; border: 0 !important; }
 html.dark .swipe-action-record { background: var(--af-accent) !important; color: #FFFFFF !important; }
 html.dark .swipe-action-add-more { background: #2C2C2E !important; color: #FFFFFF !important; }
+
+/* Insights intelligence: keep the existing visual language while making the narrative actionable. */
+.insight-change-list{display:flex;flex-direction:column;gap:0;margin-top:12px;border-top:1px solid rgba(60,60,67,.09)}
+.insight-change-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid rgba(60,60,67,.09)}
+.insight-change-row:last-child{border-bottom:0}
+.insight-change-row span{font-size:10px;color:#71717A}
+.insight-change-row strong{font-size:11px;white-space:nowrap}
+.insight-panel-dark .insight-change-list{border-color:rgba(255,255,255,.08)}
+.insight-panel-dark .insight-change-row{border-color:rgba(255,255,255,.08)}
+.insight-panel-dark .insight-change-row span{color:#A1A1AA}
