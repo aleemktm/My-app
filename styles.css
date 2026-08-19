@@ -2117,3 +2117,35 @@ html.dark .swipe-action-add-more{color:#f2f2f7;background:rgba(255,255,255,.07)}
 .loan-history-card-head{margin-bottom:9px}
 html.dark .loan-date-line,html.dark .loan-tap-hint{border-color:transparent!important}
 html.dark .loan-due-date{color:#a7a7ad}
+
+/* Final cleanup: keep only the floating capsule visible. The older full-width
+   bottom-bar layers must remain completely transparent and square. */
+.af-floating-tabbar-wrap,
+.af-floating-tabbar-wrap::before,
+.af-floating-tabbar-wrap::after,
+.af-floating-tabbar,
+.af-floating-tabbar::before,
+.af-floating-tabbar::after,
+.af-floating-tabbar .mobile-bottom-bar,
+.af-floating-tabbar .mobile-nav-swipe,
+.af-floating-tabbar .mobile-settings-fixed {
+  background: transparent !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+.af-floating-tabbar {
+  background: rgba(255,255,255,.72) !important;
+  border-radius: 999px !important;
+}
+html.dark .af-floating-tabbar {
+  background: rgba(28,28,30,.72) !important;
+}
+.af-floating-tabbar .mobile-bottom-bar,
+.af-floating-tabbar .mobile-nav-swipe,
+.af-floating-tabbar .mobile-settings-fixed {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.af-floating-tabbar .mobile-settings-fixed {
+  border-left: 0 !important;
+}
