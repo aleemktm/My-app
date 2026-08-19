@@ -198,11 +198,11 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Notifications" }),
         Group(null, [
-          h(SettingsRow, { key: "notif", icon: Icons.IconSettings, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : standalonePWA ? "Allow AleemFin to send reminders and important updates." : "Install AleemFin on the iPhone Home Screen to enable web notifications." },
+          h(SettingsRow, { key: "notif", icon: Icons.IconBell, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : standalonePWA ? "Allow AleemFin to send reminders and important updates." : "Install AleemFin on the iPhone Home Screen to enable web notifications." },
             IOSSwitch({ checked: settings.notificationsEnabled === true, onChange: enableNotifications, label: "Notifications" })),
-          h(SettingsRow, { key: "loan-rem", icon: Icons.IconSettings, title: "Loan reminders", detail: "Remind you about upcoming loan repayments." },
+          h(SettingsRow, { key: "loan-rem", icon: Icons.IconBell, title: "Loan reminders", detail: "Remind you about upcoming loan repayments." },
             IOSSwitch({ checked: settings.loanRemindersEnabled !== false, onChange: () => updateSettings({ loanRemindersEnabled: settings.loanRemindersEnabled === false }), label: "Loan reminders" })),
-          h(SettingsRow, { key: "recur-rem", icon: Icons.IconSettings, title: "Recurring reminders", detail: "Remind you about recurring entries when they are due." },
+          h(SettingsRow, { key: "recur-rem", icon: Icons.IconBell, title: "Recurring reminders", detail: "Remind you about recurring entries when they are due." },
             IOSSwitch({ checked: settings.recurringRemindersEnabled !== false, onChange: () => updateSettings({ recurringRemindersEnabled: settings.recurringRemindersEnabled === false }), label: "Recurring reminders" }))
         ])
       );
@@ -210,7 +210,7 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Security" }),
         Group(null, [
-          h(SettingsRow, { key: "bio", icon: Icons.IconSettings, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : biometricsAvailable ? "Tap the switch to authenticate with Face ID / Touch ID and enable app unlock." : "Face ID / Touch ID is available in the native iOS app. Safari/PWA cannot access the native biometric plugin." },
+          h(SettingsRow, { key: "bio", icon: Icons.IconLock, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : biometricsAvailable ? "Tap the switch to authenticate with Face ID / Touch ID and enable app unlock." : "Face ID / Touch ID is available in the native iOS app. Safari/PWA cannot access the native biometric plugin." },
             IOSSwitch({
               checked: settings.biometricEnabled === true, onChange: async () => {
                 if (!biometricsAvailable) { alert("Face ID / Touch ID is available when you run AleemFin as the native iOS app. Safari and the PWA cannot use AleemFin's native biometric plugin."); return; }
@@ -220,7 +220,7 @@
                 else alert("Face ID / Touch ID could not be enabled. Check that Face ID is set up and AleemFin has permission to use it.");
               }, label: "Biometrics"
             })),
-          h(SettingsRow, { key: "pin", icon: Icons.IconSettings, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." },
+          h(SettingsRow, { key: "pin", icon: Icons.IconLock, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." },
             h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up"))
         ])
       );
@@ -241,8 +241,8 @@
           h("p", { className: "text-xs text-zinc-400 mt-1" }, "Preferences and data stored on this device.")
         ),
         Group(null, [
-          h(NavRow, { key: "appearance", icon: Icons.IconTune, title: "Appearance", value: themeLabel, onClick: () => setSettingsPage("appearance") }),
-          h(NavRow, { key: "home", icon: Icons.IconWallet, title: "Home Screen", value: `${selectedDashboardCards.length}/4 cards`, onClick: () => setSettingsPage("home") }),
+          h(NavRow, { key: "appearance", icon: Icons.IconPaint, title: "Appearance", value: themeLabel, onClick: () => setSettingsPage("appearance") }),
+          h(NavRow, { key: "home", icon: Icons.IconHome, title: "Home Screen", value: `${selectedDashboardCards.length}/4 cards`, onClick: () => setSettingsPage("home") }),
           h(NavRow, { key: "formats", icon: Icons.IconTune, title: "Formats & Currency", value: currency, onClick: () => setSettingsPage("formats") })
         ]),
         Group(null, [
@@ -252,11 +252,11 @@
         ]),
         Group(null, [
           h(NavRow, { key: "interaction", icon: Icons.IconTune, title: "Interaction", onClick: () => setSettingsPage("interaction") }),
-          h(NavRow, { key: "notifications", icon: Icons.IconSettings, title: "Notifications", value: notificationsOn ? "On" : "Off", onClick: () => setSettingsPage("notifications") }),
-          h(NavRow, { key: "security", icon: Icons.IconSettings, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
+          h(NavRow, { key: "notifications", icon: Icons.IconBell, title: "Notifications", value: notificationsOn ? "On" : "Off", onClick: () => setSettingsPage("notifications") }),
+          h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconSettings, title: "About AleemFin", value: "1.0.0", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.0", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
