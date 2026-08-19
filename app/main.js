@@ -14,8 +14,7 @@ const DEFAULT_SETTINGS = {
   notificationsEnabled: false,
   loanRemindersEnabled: true,
   recurringRemindersEnabled: true,
-  automaticTransactionBackupEnabled: true,
-  automaticFileBackupEnabled: true,
+  automaticICloudBackupEnabled: true,
   pinLockEnabled: false,
   pinHash: "",
   showGreeting: true,
@@ -240,50 +239,42 @@ const toggleHeroWealthVisibility = () => setHeroWealthHidden(prev => { const nex
 const [currency, setCurrency] = useState(() => settings.defaultCurrency || "AED");
 const STORAGE_KEY = "aleemfin_data_v8";
 const AUTO_BACKUP_KEY = "aleemfin_auto_backup_v1";
-const AUTO_FILE_BACKUP_META_KEY = "aleemfin_auto_file_backup_meta_v1";
-const encodeBase64Utf8 = text => {
+const AUTO_ICLOUD_BACKUP_META_KEY = "aleemfin_auto_icloud_backup_meta_v1";
+const ICLOUD_BACKUP_FILE = "AleemFin_Backup.json";
+const ICLOUD_BACKUP_FOLDER = "AleemFin";
+const writeAutomaticICloudBackup = async backup => {
   try {
-    const bytes = new TextEncoder().encode(text);
-    let binary = "";
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-    return btoa(binary);
-  } catch (_) {
-    try { return btoa(unescape(encodeURIComponent(text))); } catch (e) { return null; }
-  }
-};
-const writeAutomaticBackupFile = async backup => {
-  try {
-    if (settings.automaticFileBackupEnabled === false) return false;
-    const filesystem = getNativePlugin("Filesystem");
-    if (!filesystem || typeof filesystem.writeFile !== "function") return false;
+    if (settings.automaticICloudBackupEnabled === false) return false;
     const json = JSON.stringify(backup, null, 2);
-    const data = encodeBase64Utf8(json);
-    if (!data) return false;
-    await filesystem.writeFile({
-      path: "AleemFin_Auto_Backup.json",
-      data,
-      directory: "DOCUMENTS",
-      recursive: true
+    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iCloudBackup;
+    if (!handler || typeof handler.postMessage !== "function") return false;
+    handler.postMessage({
+      action: "save",
+      folder: ICLOUD_BACKUP_FOLDER,
+      fileName: ICLOUD_BACKUP_FILE,
+      data: json
     });
     try {
-      localStorage.setItem(AUTO_FILE_BACKUP_META_KEY, JSON.stringify({ createdAt: backup.createdAt, fileName: "AleemFin_Auto_Backup.json" }));
+      localStorage.setItem(AUTO_ICLOUD_BACKUP_META_KEY, JSON.stringify({
+        createdAt: backup.createdAt,
+        fileName: ICLOUD_BACKUP_FILE,
+        location: "iCloud Drive/AleemFin/"
+      }));
     } catch (_) {}
     return true;
   } catch (_) { return false; }
 };
-const getAutomaticFileBackupMeta = () => {
+const getAutomaticICloudBackupMeta = () => {
   try {
-    const saved = localStorage.getItem(AUTO_FILE_BACKUP_META_KEY);
+    const saved = localStorage.getItem(AUTO_ICLOUD_BACKUP_META_KEY);
     return saved ? JSON.parse(saved) : null;
   } catch (_) { return null; }
 };
 const saveAutomaticBackup = (data) => {
   try {
-    const backup = { version: 2, createdAt: new Date().toISOString(), ...data };
-    const json = JSON.stringify(backup);
-    localStorage.setItem(AUTO_BACKUP_KEY, json);
-    void writeAutomaticBackupFile(backup);
+    const backup = { version: 3, createdAt: new Date().toISOString(), ...data };
+    localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(backup));
+    void writeAutomaticICloudBackup(backup);
     return backup;
   } catch (_) { return null; }
 };
@@ -1500,7 +1491,7 @@ const handleFormSubmit = e => {
     setTransactions(updatedTxns);
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
-  if (["income", "expense"].includes(modalType) && !editingId && settings.automaticTransactionBackupEnabled !== false) {
+  if (["income", "expense"].includes(modalType) && !editingId) {
     saveAutomaticBackup({
       accounts: updatedAccs,
       assets: updatedAsts,
