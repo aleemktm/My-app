@@ -2149,3 +2149,58 @@ html.dark .af-floating-tabbar {
 .af-floating-tabbar .mobile-settings-fixed {
   border-left: 0 !important;
 }
+
+/* Clean floating capsule navigation: remove legacy full-width mobile-nav shell */
+@media (max-width: 767px) {
+  nav.af-floating-tabbar-wrap,
+  nav.af-floating-tabbar-wrap.fixed.bottom-0 {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+
+  nav.af-floating-tabbar-wrap .af-floating-tabbar {
+    width: 100% !important;
+    max-width: 1180px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    min-height: 64px !important;
+    height: 64px !important;
+    background: rgba(255,255,255,.68) !important;
+    border: 1px solid rgba(0,0,0,.06) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 14px 34px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.55) !important;
+    overflow: hidden !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+  }
+
+  html.dark nav.af-floating-tabbar-wrap .af-floating-tabbar {
+    background: rgba(28,28,30,.58) !important;
+    border-color: rgba(255,255,255,.09) !important;
+    box-shadow: 0 16px 38px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05) !important;
+  }
+
+  /* Legacy nav containers are layout-only; they must never paint a second bar. */
+  nav.af-floating-tabbar-wrap .mobile-bottom-bar,
+  nav.af-floating-tabbar-wrap .mobile-nav-swipe,
+  nav.af-floating-tabbar-wrap .mobile-settings-fixed {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  nav.af-floating-tabbar-wrap .mobile-settings-fixed {
+    border-left: 0 !important;
+  }
+}
