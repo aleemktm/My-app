@@ -153,27 +153,29 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Data & Backup" }),
         Group(null, [
-          h(SettingsRow, { key: "backup", icon: Icons.IconDownload, title: "Backup data", detail: `${accounts.length} accounts · ${transactions.length} transactions · ${budgets.length} budgets · ${goals.length} goals · ${dataSizeLabel}` },
+          h(SettingsRow, { key: "backup", icon: Icons.IconDownload, title: "Manual backup", detail: `${accounts.length} accounts · ${transactions.length} transactions · ${budgets.length} budgets · ${goals.length} goals · ${dataSizeLabel}` },
             h("button", { onClick: exportBackup, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Backup")),
           (() => {
             const autoBackup = typeof getAutomaticBackup === "function" ? getAutomaticBackup() : null;
-            const last = autoBackup && autoBackup.createdAt ? new Date(autoBackup.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "No automatic backup yet";
-            return h(React.Fragment, null,
-              h(SettingsRow, { key: "auto-backup", icon: Icons.IconDownload, title: "Automatic transaction backup", detail: settings.automaticTransactionBackupEnabled !== false ? `Enabled · Last backup: ${last}` : "Disabled · No automatic backups will be created." },
-                IOSSwitch({ checked: settings.automaticTransactionBackupEnabled !== false, onChange: () => updateSettings({ automaticTransactionBackupEnabled: settings.automaticTransactionBackupEnabled === false }), label: "Automatic transaction backup" })),
-              (() => {
-                const fileMeta = typeof getAutomaticFileBackupMeta === "function" ? getAutomaticFileBackupMeta() : null;
-                const fileLast = fileMeta && fileMeta.createdAt ? new Date(fileMeta.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "No automatic file backup yet";
-                return h(React.Fragment, null,
-                  h(SettingsRow, { key: "auto-file-backup", icon: Icons.IconDownload, title: "Automatic file backup", detail: settings.automaticFileBackupEnabled !== false ? `Enabled · Latest file: ${fileLast}` : "Disabled · The JSON file will not be updated automatically." },
-                    IOSSwitch({ checked: settings.automaticFileBackupEnabled !== false, onChange: () => updateSettings({ automaticFileBackupEnabled: settings.automaticFileBackupEnabled === false }), label: "Automatic file backup" })),
-                  h(SettingsRow, { key: "auto-file-backup-info", icon: Icons.IconDownload, title: "AleemFin_Auto_Backup.json", detail: "Automatically updated after each new Inflow or Outflow in the AleemFin app's Documents folder. Export remains available for a separate copy." },
-                    autoBackup ? h("button", { onClick: exportAutomaticBackup, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export") : null)
-                );
-              })()
+            const meta = typeof getAutomaticICloudBackupMeta === "function" ? getAutomaticICloudBackupMeta() : null;
+            const last = (meta && meta.createdAt) || (autoBackup && autoBackup.createdAt);
+            const lastLabel = last ? new Date(last).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "No backup yet";
+            return h(SettingsRow, {
+              key: "auto-icloud",
+              icon: Icons.IconDownload,
+              title: "Automatic iCloud backup",
+              detail: settings.automaticICloudBackupEnabled !== false
+                ? `ON · iCloud Drive / AleemFin / AleemFin_Backup.json · Last backup: ${lastLabel}`
+                : "OFF · Your data will not be backed up automatically to iCloud."
+            },
+              IOSSwitch({
+                checked: settings.automaticICloudBackupEnabled !== false,
+                onChange: () => updateSettings({ automaticICloudBackupEnabled: settings.automaticICloudBackupEnabled === false }),
+                label: "Automatic iCloud backup"
+              })
             );
           })(),
-          h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Replace this device's data with a previous AleemFin backup." },
+          h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Restore your latest AleemFin backup from iCloud Drive or another backup file." },
             h("label", { className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500 cursor-pointer" }, "Restore", h("input", { type: "file", accept: ".json", onChange: importBackup, className: "hidden" }))),
           h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file." },
             h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export"))
