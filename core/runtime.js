@@ -262,17 +262,9 @@ var NAV_ITEMS = [{
   label: "Loans",
   icon: Icons.IconLoan
 }, {
-  id: "analytics",
-  label: "Insights",
-  icon: Icons.IconAnalytics
-}, {
   id: "planning",
   label: "Planning",
   icon: Icons.IconTarget
-}, {
-  id: "rates",
-  label: "FX & Convert",
-  icon: Icons.IconRates
 }, {
   id: "settings",
   label: "Settings",
