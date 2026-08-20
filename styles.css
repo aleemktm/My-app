@@ -2085,7 +2085,7 @@ html.dark .loan-history-action-primary{color:#73ddb0;background:color-mix(in srg
 .loan-tap-hint svg{opacity:.75}
 html.dark .loan-date-line{border-color:rgba(255,255,255,.07)}
 html.dark .loan-tap-hint{border-color:rgba(255,255,255,.10)}
-html.dark .loan-history-main strong{color:var(--af-bg)}
+html.dark .loan-history-main strong{color:#F2F2F7!important}
 html.dark .loan-history-row{background:rgba(255,255,255,.045)}
 
 /* Bidirectional swipe actions. Existing right-to-left Edit/Delete remains unchanged visually. */

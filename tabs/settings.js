@@ -257,7 +257,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.65 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.66 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -284,7 +284,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.65", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.66", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
