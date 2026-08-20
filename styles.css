@@ -2250,3 +2250,237 @@ html.dark .swipe-action-add-more { background: #2C2C2E !important; color: var(--
 .insight-panel-dark .insight-change-list{border-color:rgba(255,255,255,.08)}
 .insight-panel-dark .insight-change-row{border-color:rgba(255,255,255,.08)}
 .insight-panel-dark .insight-change-row span{color:#A1A1AA}
+
+
+/* =========================================================
+   AleemFin v56 — Apple-native consistency pass
+   One type scale, one radius scale, one sheet language.
+   Additive overrides: finance logic and existing data styling untouched.
+   ========================================================= */
+:root {
+  --af-type-caption: 11px;
+  --af-type-footnote: 12px;
+  --af-type-body: 15px;
+  --af-type-callout: 16px;
+  --af-type-headline: 17px;
+  --af-type-title3: 20px;
+  --af-type-title2: 24px;
+  --af-type-title1: 28px;
+  --af-type-large: 34px;
+
+  --af-radius-xs: 8px;
+  --af-radius-sm: 10px;
+  --af-radius-md: 13px;
+  --af-radius-lg: 16px;
+  --af-radius-card: 20px;
+  --af-radius-sheet: 28px;
+  --af-radius-pill: 999px;
+
+  --af-control-height: 44px;
+  --af-icon-button-size: 44px;
+  --af-divider: rgba(60,60,67,.12);
+  --af-control-fill: rgba(118,118,128,.10);
+  --af-sheet-shadow: 0 -18px 50px rgba(0,0,0,.16);
+}
+html.dark {
+  --af-divider: rgba(84,84,88,.48);
+  --af-control-fill: rgba(118,118,128,.18);
+  --af-sheet-shadow: 0 -18px 50px rgba(0,0,0,.34);
+}
+
+/* Segmented controls: same geometry everywhere; swipeable on touch. */
+.loan-filter-segment,
+.home-subtabs,
+.planning-subtabs,
+.insight-segment {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.loan-filter-segment {
+  border-radius: var(--af-radius-md) !important;
+  padding: 2px !important;
+}
+.loan-filter-tab {
+  min-height: 36px;
+  border: 0 !important;
+  border-radius: 11px !important;
+  font-size: var(--af-type-footnote) !important;
+  font-weight: 700 !important;
+  letter-spacing: -.01em;
+  transition: background .22s ease, color .22s ease, transform .16s ease;
+}
+.loan-filter-tab:active { transform: scale(.985); }
+
+/* Home: segmented control now lives immediately beneath the hero. */
+.overview-shell { display: block; }
+.home-subtabs-under-hero {
+  position: relative;
+  z-index: 2;
+  margin: 12px 0 14px !important;
+}
+.home-subtab-content { min-width: 0; }
+.home-insights-content {
+  animation: afSubtabIn .24s cubic-bezier(.22,1,.36,1) both;
+}
+.home-subtab-content > * {
+  animation: afSubtabIn .24s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes afSubtabIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Cards: restrained Apple-like radii; avoid decorative borders unless they convey grouping. */
+.home-hero,
+.home-panel,
+.planning-hero,
+.insight-hero,
+.insight-panel,
+.account-wallet-card,
+.account-activity-card,
+.loan-native-card,
+.loan-history-card,
+.ios-dashboard-cards-panel {
+  border-radius: var(--af-radius-card) !important;
+}
+.home-panel,
+.insight-panel,
+.account-activity-card {
+  border-color: var(--af-divider) !important;
+}
+.loan-native-card,
+.account-wallet-card {
+  border-color: var(--af-divider) !important;
+}
+
+/* Typography: semantic hierarchy rather than dozens of arbitrary sizes. */
+.home-section-heading h2,
+.home-panel-heading h2 {
+  font-size: var(--af-type-headline) !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.02em !important;
+}
+.home-section-heading > div > span,
+.home-panel-heading > div > span,
+.home-stat-label,
+.home-stat-note {
+  font-size: var(--af-type-caption) !important;
+}
+.home-stat strong { font-size: var(--af-type-callout) !important; }
+.home-metric { font-size: clamp(30px, 8vw, 38px) !important; line-height: 1.04 !important; }
+.home-metric-label { font-size: var(--af-type-footnote) !important; }
+.home-secondary-metric { font-size: var(--af-type-caption) !important; }
+.home-quote-of-day { font-size: var(--af-type-footnote) !important; }
+.planning-title { font-size: var(--af-type-title3) !important; }
+.insight-hero h1,
+.insight-hero h2 { letter-spacing: -.025em; }
+.home-action { min-height: var(--af-control-height); border-radius: var(--af-radius-md) !important; }
+.home-action-icon { width: 30px; height: 30px; border-radius: var(--af-radius-sm) !important; }
+
+/* Buttons and icon buttons: borders only when they define a control boundary. */
+.home-action,
+.home-rate-icon-button,
+.home-rate-button,
+.home-text-link,
+.loan-history-action,
+.ios-form-secondary,
+.ios-form-primary,
+.ios-form-sheet-close,
+.ios-settings-sheet-scroll button,
+.ios-settings-switch {
+  -webkit-tap-highlight-color: transparent;
+}
+.home-rate-icon-button,
+.home-rate-button,
+.ios-form-sheet-close {
+  border: 0 !important;
+  border-radius: var(--af-radius-sm) !important;
+}
+.home-rate-icon-button {
+  width: 36px;
+  height: 36px;
+}
+.home-rate-button {
+  min-height: 36px;
+  padding: 0 11px;
+}
+.ios-form-secondary,
+.ios-form-primary {
+  min-height: var(--af-control-height) !important;
+  border: 0 !important;
+  border-radius: var(--af-radius-md) !important;
+  font-size: var(--af-type-footnote) !important;
+  font-weight: 750 !important;
+}
+.ios-form-primary { background: var(--af-accent) !important; color: #fff !important; }
+.ios-form-secondary { background: var(--af-control-fill) !important; color: var(--af-secondary) !important; }
+
+/* Sheets: one iOS presentation language across every bottom sheet implementation. */
+.ios-bottom-sheet,
+.ios-form-bottom-sheet,
+.ios-settings-sheet-panel,
+.ledger-statement-sheet {
+  border-radius: var(--af-radius-sheet) var(--af-radius-sheet) 0 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: var(--af-sheet-shadow);
+}
+.ios-bottom-sheet,
+.ios-form-bottom-sheet {
+  padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+}
+.ios-sheet-handle,
+.ios-form-sheet-handle,
+.ios-settings-sheet-handle {
+  width: 36px !important;
+  height: 5px !important;
+  border-radius: var(--af-radius-pill) !important;
+}
+.ios-sheet-handle { margin-bottom: 12px !important; }
+.ios-form-sheet-handle { margin-bottom: 12px !important; }
+.ios-form-sheet-header { padding-bottom: 12px !important; }
+.ios-form-sheet-header h3 { font-size: var(--af-type-callout) !important; }
+.ios-settings-sheet-handle { margin-bottom: 12px !important; }
+.ledger-statement-sheet { padding-top: 12px; }
+
+/* Fields: same height/radius as native controls, no gratuitous outline borders. */
+.ios-form-bottom-sheet input,
+.ios-form-bottom-sheet select,
+.ios-form-bottom-sheet textarea,
+.ios-settings-sheet-scroll input,
+.ios-settings-sheet-scroll select,
+.ledger-statement-sheet input,
+.ledger-statement-sheet select {
+  min-height: var(--af-control-height);
+  border-radius: var(--af-radius-md) !important;
+}
+.ios-form-bottom-sheet input,
+.ios-form-bottom-sheet select,
+.ios-form-bottom-sheet textarea {
+  border-color: var(--af-divider);
+}
+
+/* Swipe actions remain full-bleed action surfaces; regular controls stay quiet. */
+.swipe-action-edit,
+.swipe-action-record { border: 0 !important; }
+.swipe-action-delete,
+.swipe-action-add-more { border: 0 !important; }
+
+/* Consistent interactive icon hit targets. */
+.home-rate-icon-button,
+.ios-form-sheet-close,
+.ios-settings-sheet-scroll button[aria-label],
+.loan-history-undo {
+  min-width: 36px;
+  min-height: 36px;
+}
+@media (max-width: 767px) {
+  .home-subtabs-under-hero { margin-top: 10px !important; }
+  .home-panel,
+  .planning-hero,
+  .insight-panel { border-radius: 18px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-subtab-content > *,
+  .home-insights-content { animation: none !important; }
+}

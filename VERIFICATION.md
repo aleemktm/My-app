@@ -1,8 +1,13 @@
-# AleemFin Planning Tab Verification
+# AleemFin v56 Verification
 
-- Restored the Planning tab to a stable render path and rebuilt the Planning/Recurring split without the broken form-sheet dependency.
-- Planning and Recurring are separate sub-tabs inside the Planning tab.
-- Planning add/edit forms use the established iOS-style bottom-sheet classes.
-- Horizontal overflow is locked on the Planning/Recurring container and sheet.
-- JavaScript syntax check: 17/17 files passed with Node.js `new Function` parsing.
-- No other project files were intentionally modified except `tabs/planning.js`, `styles.css`, and this verification note.
+- Home / Insights tabs now sit directly below the Home hero dashboard card.
+- Home / Insights support left/right swipe navigation.
+- All app tablists receive the same horizontal swipe behavior with vertical scrolling taking priority.
+- Consolidated semantic type scale and radius scale using a single additive iOS-native design layer.
+- Standardized segmented controls, cards, icon controls, form controls, and bottom-sheet geometry.
+- Bottom sheets retain safe-area padding and existing keyboard-offset behavior.
+- Financial calculations, storage keys, tab data, and native iCloud bridge were not changed.
+- JavaScript syntax check: all project JS files passed `node --check`.
+- Overview render smoke test: passed with a lightweight React-compatible harness.
+- About → Version: 1.0.56.
+- Physical iPhone/Safari/WKWebView final check is still recommended for exact safe-area and keyboard behavior.
