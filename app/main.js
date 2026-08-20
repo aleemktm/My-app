@@ -1,5 +1,40 @@
 (function () {
   function App() {
+    // Native-style horizontal paging for every segmented/tab control.
+    // Vertical scrolling wins; nested action areas are not treated as tab swipes.
+    React.useEffect(() => {
+      const starts = new WeakMap();
+      const onStart = e => {
+        const tablist = e.target && e.target.closest ? e.target.closest('[role="tablist"]') : null;
+        if (!tablist || !e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        starts.set(tablist, { x: t.clientX, y: t.clientY });
+      };
+      const onEnd = e => {
+        const tablist = e.target && e.target.closest ? e.target.closest('[role="tablist"]') : null;
+        if (!tablist || !e.changedTouches || !e.changedTouches.length) return;
+        const start = starts.get(tablist);
+        starts.delete(tablist);
+        if (!start) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+        const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+        if (tabs.length < 2) return;
+        const active = tabs.findIndex(tab => tab.getAttribute("aria-selected") === "true");
+        if (active < 0) return;
+        const next = dx < 0 ? active + 1 : active - 1;
+        if (next >= 0 && next < tabs.length) tabs[next].click();
+      };
+      document.addEventListener("touchstart", onStart, { passive: true });
+      document.addEventListener("touchend", onEnd, { passive: true });
+      return () => {
+        document.removeEventListener("touchstart", onStart);
+        document.removeEventListener("touchend", onEnd);
+      };
+    }, []);
+
 const SETTINGS_KEY = "aleemfin_settings_v1";
 const DEFAULT_SETTINGS = {
   theme: "dark",
