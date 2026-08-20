@@ -261,7 +261,6 @@
     return h("div", { className: "insight-page" },
       h(InsightHero, props),
       h(WhatChangedCard, { darkMode, fmt, monthlySavingsAED, goldChangeAED, currentMonthPrefix, loans, transactions, convertTxToAED: props.convertTxToAED, netWorthTotal: totalLiquidAED + totalPhysicalAED + totalLoansLentAED - totalLoansBorrowedAED }),
-      h(ControlNextCard, { darkMode, fmt, savingsRate, emergencyRunwayMonths, runwayStatus, monthlyExpenseAED, monthlySavingsAED, categoryBreakdown, biggestExpenseThisMonth, setActiveTab: props.setActiveTab }),
       h("div", { className: "insight-two-col" },
         h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
           h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SPENDING"), h("h2", null, `${currentMonthLabel} mix`)), h("span", { className: "insight-panel-total" }, fmt(monthlyExpenseAED))),

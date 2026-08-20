@@ -1,4 +1,4 @@
-# AleemFin v62 — Dark Mode Visibility & Settings Organization Refinement
+# AleemFin v63 — Dark Mode Visibility & Settings Organization Refinement
 
 ## Requested changes
 - Fixed dark-mode visibility for shared sub-tab highlights and active states.
@@ -9,5 +9,5 @@
 - Moved Home dashboard background setting from Settings > Home Screen into Settings > Appearance > Theme.
 - Added clearer spacing between dashboard-card count options in Settings > Home Screen.
 - No unrelated feature, calculation, data, color-system, or typography changes were intentionally made.
-- Version updated to 1.0.62.
+- Version updated to 1.0.63.
 - Closed remaining dark-surface text gaps in Accounts, Assets, Insights, Planning and Loans found during the static visibility audit.

@@ -2846,3 +2846,70 @@ html.dark .planning-summary-budget > strong,
 html.dark .planning-summary-goal > strong { color: var(--af-label) !important; }
 html.dark .loan-native-summary-card.loan-native-lent strong,
 html.dark .loan-native-summary-card.loan-native-borrowed strong { color: var(--af-label) !important; }
+
+
+/* v63 — targeted dark-mode and hierarchy corrections. */
+html.dark .swipe-action-delete { background:#FF3B30 !important; color:#FFFFFF !important; }
+html.dark .swipe-action-delete svg { color:#FFFFFF !important; stroke:currentColor !important; }
+
+/* Ledger search follows the dark surface in dark mode. */
+html.dark .ledger-search-field { background:#222225 !important; border-color:rgba(255,255,255,.10) !important; color:var(--af-label) !important; }
+html.dark .ledger-search-field input { color:var(--af-label) !important; caret-color:var(--af-label) !important; }
+html.dark .ledger-search-field input::placeholder { color:var(--af-secondary) !important; opacity:1 !important; }
+html.dark .ledger-search-field svg { color:var(--af-secondary) !important; }
+
+/* Account rear/activity card title must remain readable on dark surfaces. */
+html.dark .account-activity-card .account-activity-head strong,
+html.dark .account-activity-card .account-activity-eyebrow { color:var(--af-label) !important; }
+
+/* Asset portfolio cards: left accent rail follows the selected accent in both themes. */
+.assets-gold-card, .asset-row-card { border-left:3px solid var(--af-accent) !important; }
+html.dark .assets-gold-card, html.dark .asset-row-card { border-left-color:var(--af-accent) !important; }
+
+/* Loans swipe action text/icons stay readable in dark mode. */
+html.dark .swipe-action-add-more { background:#2C2C2E !important; color:#FFFFFF !important; }
+html.dark .swipe-action-record { color:#FFFFFF !important; }
+html.dark .swipe-action-add-more svg, html.dark .swipe-action-record svg { color:#FFFFFF !important; stroke:currentColor !important; }
+
+/* Total lent / borrowed filtered highlights use their semantic colors, not white. */
+html.dark .loan-native-summary-card.loan-native-lent.is-filtered { border-color:var(--af-green) !important; box-shadow:inset 0 0 0 1px var(--af-green) !important; }
+html.dark .loan-native-summary-card.loan-native-borrowed.is-filtered { border-color:#FF3B30 !important; box-shadow:inset 0 0 0 1px #FF3B30 !important; }
+
+/* Recurring empty state: softer calendar mark and stronger dark-mode hierarchy. */
+.recurring-empty > svg { opacity:.70 !important; }
+html.dark .recurring-empty { color:var(--af-secondary) !important; }
+html.dark .recurring-empty strong { color:var(--af-label) !important; }
+html.dark .recurring-empty span { color:var(--af-secondary) !important; }
+
+/* Dashboard background can explicitly follow the Appearance theme. */
+
+/* v64 — final three visual refinements. */
+/* Destructive swipe action uses a neutral dark-charcoal treatment in every theme. */
+.swipe-action-delete,
+html.dark .swipe-action-delete {
+  background:#2C2C2E !important;
+  color:#FFFFFF !important;
+  border-color:rgba(255,255,255,.08) !important;
+}
+.swipe-action-delete svg { color:#FFFFFF !important; stroke:currentColor !important; }
+
+/* Ledger search field is a dark charcoal surface in dark mode. */
+html.dark .ledger-search-field {
+  background:#222225 !important;
+  border-color:#3A3A3C !important;
+  color:#F2F2F7 !important;
+}
+html.dark .ledger-search-field input {
+  background:transparent !important;
+  color:#F2F2F7 !important;
+  caret-color:#F2F2F7 !important;
+}
+html.dark .ledger-search-field input::placeholder { color:#98989D !important; opacity:1 !important; }
+html.dark .ledger-search-field svg { color:#98989D !important; }
+
+/* Recurring empty-state calendar mark is dark charcoal in dark mode. */
+html.dark .recurring-empty > svg {
+  color:#3A3A3C !important;
+  stroke:#3A3A3C !important;
+  opacity:1 !important;
+}
