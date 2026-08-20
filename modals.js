@@ -67,7 +67,7 @@
 
 
   function DashboardCardsSheet(props) {
-    const { accent, darkMode, dashboardCardOptions, selectedDashboardCardsForSheet, toggleDashboardCardForSheet, setDashboardCardsSheetOpen } = props;
+    const { accent, darkMode, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, toggleDashboardCardForSheet, setDashboardCardsSheetOpen } = props;
     const dashboardOptions = dashboardCardOptions || [];
     const selectedDashboardCards = Array.isArray(selectedDashboardCardsForSheet) ? selectedDashboardCardsForSheet : [];
     const [closing, setClosing] = React.useState(false);
@@ -152,8 +152,8 @@
             React.createElement("div", { className: "mx-auto mb-3 h-1.5 w-11 rounded-full bg-zinc-400/45" }),
             React.createElement("div", { className: "flex items-start justify-between gap-3" },
               React.createElement("div", { className: "min-w-0" },
-                React.createElement("h3", { className: "text-sm font-bold" }, "Choose four cards"),
-                React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1 leading-relaxed" }, `${selectedDashboardCards.length}/4 selected · Choose the cards shown on your Home dashboard.`)
+                React.createElement("h3", { className: "text-sm font-bold" }, `Choose ${dashboardCardCount === 2 ? "two" : "four"} cards`),
+                React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1 leading-relaxed" }, `${selectedDashboardCards.length}/${dashboardCardCount} selected · Tap a card to replace your current selection.`)
               ),
               React.createElement("button", {
                 type: "button", onClick: dismiss, "aria-label": "Close",
@@ -165,7 +165,7 @@
             React.createElement("div", { className: "grid grid-cols-2 gap-3" },
               dashboardOptions.map(option => {
                 const selected = selectedDashboardCards.includes(option.id);
-                const unavailable = !selected && selectedDashboardCards.length >= 4;
+                const unavailable = false;
                 return React.createElement("button", {
                   key: option.id, type: "button",
                   onClick: e => { e.stopPropagation(); toggleDashboardCardForSheet(option.id); },

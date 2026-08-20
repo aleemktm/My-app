@@ -2,7 +2,7 @@
 // grouped list with drill-down subpages (Settings.app pattern).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, dashboardCardCount, setDashboardCardCount, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
     const h = React.createElement;
     const [settingsPage, setSettingsPage] = React.useState(null);
 
@@ -74,7 +74,7 @@
       { id: "gold", label: "24k Gold Rate" }, { id: "rates", label: "FX Rates" }, { id: "gold-performance", label: "Gold Performance" },
       { id: "runway", label: "Cash Buffer" }, { id: "spending", label: "Spending Pace" }
     ];
-    const selectedDashboardCards = Array.isArray(settings.dashboardCards) && settings.dashboardCards.length <= 4 ? settings.dashboardCards : DEFAULT_SETTINGS.dashboardCards;
+    const selectedDashboardCards = (Array.isArray(settings.dashboardCards) && settings.dashboardCards.length <= 4 ? settings.dashboardCards : DEFAULT_SETTINGS.dashboardCards).slice(0, dashboardCardCount === 2 ? 2 : 4);
 
     const themeLabel = settings.theme === "dark" ? "Dark" : settings.theme === "auto" ? "System" : "Light";
     const accentSwatches = [
@@ -106,16 +106,26 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Home Screen" }),
         h("h3", { className: "text-[10px] font-bold uppercase tracking-wider px-1 text-zinc-500" }, "DASHBOARD CARDS"),
-        h("button", {
-          type: "button", onClick: () => setDashboardCardsSheetOpen(true),
-          className: `w-full text-left settings-card settings-card-pad transition-all active:scale-[0.99]`
-        }, h("div", { className: "flex items-center justify-between gap-3" },
-          h("div", { className: "min-w-0" },
-            h("p", { className: "text-xs font-bold" }, "Choose four cards"),
-            h("p", { className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed" }, `${selectedDashboardCards.length}/4 selected · Customize your Home dashboard cards.`)
+        h("div", { className: "settings-card settings-card-pad" },
+          h("div", { className: "flex items-center justify-between gap-3" },
+            h("div", { className: "min-w-0" },
+              h("p", { className: "text-xs font-bold" }, "Dashboard cards"),
+              h("p", { className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed" }, `Show ${dashboardCardCount === 2 ? "two" : "four"} cards of your choice on Home.`)
+            ),
+            h("div", { className: `shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-bold ${accent.activeBg10} ${accent.textStrong}` }, `${dashboardCardCount}`)
           ),
-          h("div", { className: `shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-bold ${accent.activeBg10} ${accent.textStrong}` }, `${selectedDashboardCards.length}/4`)
-        ), h("div", { className: "mt-3 flex flex-wrap gap-1.5" }, selectedDashboardCards.map(id => {
+          h("div", { className: "settings-card-count-picker mt-3", role: "radiogroup", "aria-label": "Number of dashboard cards" },
+            [2,4].map(count => h("button", { key: count, type: "button", role: "radio", "aria-checked": dashboardCardCount === count, onClick: () => setDashboardCardCount(count), className: `settings-card-count-option ${dashboardCardCount === count ? "is-selected" : ""}` }, `${count} cards`))
+          ),
+          h("button", { type: "button", onClick: () => setDashboardCardsSheetOpen(true), className: "settings-card-choice-button mt-3 w-full text-left" },
+            h("div", { className: "flex items-center justify-between gap-3" },
+              h("div", { className: "min-w-0" },
+                h("p", { className: "text-xs font-bold" }, "Choose your cards"),
+                h("p", { className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed" }, `${selectedDashboardCards.length}/${dashboardCardCount} selected`)
+              ),
+              h(Icons.IconChevron, { className: "w-4 h-4 text-zinc-400" })
+            )
+          ), h("div", { className: "mt-3 flex flex-wrap gap-1.5" }, selectedDashboardCards.map(id => {
           const option = dashboardOptions.find(item => item.id === id);
           return option ? h("span", { key: id, className: `px-2.5 py-1 rounded-lg text-[10px] font-semibold ${darkMode ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}` }, option.label) : null;
         }))),
@@ -229,7 +239,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.58 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.59 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -237,12 +247,12 @@
       // Root list — grouped like iOS Settings, tap a row to drill in.
       pageContent = h(React.Fragment, null,
         h("div", { className: "settings-hero" },
-          h("h2", { className: `text-sm font-bold ${accent.textStrong}` }, "App settings"),
+          h("h2", { className: `text-sm font-bold uppercase tracking-wider ${accent.textStrong}` }, "Settings"),
           h("p", { className: "text-xs text-zinc-400 mt-1" }, "Preferences and data stored on this device.")
         ),
         Group(null, [
           h(NavRow, { key: "appearance", icon: Icons.IconPaint, title: "Appearance", value: themeLabel, onClick: () => setSettingsPage("appearance") }),
-          h(NavRow, { key: "home", icon: Icons.IconHome, title: "Home Screen", value: `${selectedDashboardCards.length}/4 cards`, onClick: () => setSettingsPage("home") }),
+          h(NavRow, { key: "home", icon: Icons.IconHome, title: "Home Screen", value: `${dashboardCardCount} cards`, onClick: () => setSettingsPage("home") }),
           h(NavRow, { key: "formats", icon: Icons.IconTune, title: "Formats & Currency", value: currency, onClick: () => setSettingsPage("formats") })
         ]),
         Group(null, [
@@ -256,7 +266,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.58", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.59", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
@@ -265,7 +275,7 @@
     }
 
     return h(React.Fragment, null,
-      h("div", { className: "settings-native" }, pageContent),
+      h("div", { className: "settings-native", "data-settings-scroll-lock": "true" }, pageContent),
       dangerAction && h("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" },
         h("div", { className: `w-full max-w-xs rounded-3xl border p-5 shadow-2xl space-y-4 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}` },
           h("div", { className: "w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center" }, h(Icons.IconTrash, { className: "w-5 h-5" })),

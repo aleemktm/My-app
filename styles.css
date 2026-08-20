@@ -2558,183 +2558,28 @@ html.dark .insight-control-value button { color:var(--af-bg); }
 }
 
 
-/* v58 — ChatGPT/iOS Settings reference pass.
-   The screenshot is treated as the visual reference for grouped cards,
-   screen insets, row rhythm, line icons, dividers and corner geometry.
-   Functional settings behavior remains unchanged. */
-:root {
-  --af-settings-bg: #f2f2f7;
-  --af-settings-card: #ffffff;
-  --af-settings-label: #8e8e93;
-  --af-settings-icon: #111111;
-  --af-settings-chevron: #c7c7cc;
-  --af-settings-divider: #e5e5ea;
-  --af-settings-radius: 18px;
-  --af-settings-inset: 16px;
-  --af-settings-row-height: 52px;
-  --af-settings-row-pad: 18px;
-  --af-settings-icon-size: 24px;
-  --af-settings-icon-column: 28px;
-  --af-settings-icon-gap: 18px;
-}
-
-/* The Settings tab adopts the same calm grouped-list canvas as the reference. */
+/* v59 — restrained consistency pass; preserve existing type and color system. */
+.home-hero { box-shadow: 0 20px 50px rgba(15,23,42,.048) !important; }
+.home-hero-dark { box-shadow: 0 22px 55px rgba(0,0,0,.132) !important; }
+.home-subtab-content { gap: 12px !important; }
+.home-stats-grid { gap: 12px !important; }
+.home-actions-section, .home-panel, .home-stat, .planning-hero, .insight-panel, .settings-card { border-radius: var(--af-radius-card) !important; }
+.home-subtabs-under-hero { margin: 12px 0 12px !important; }
+.assets-subtabs, .planning-subtabs { margin: 0 0 12px !important; }
 .settings-native {
-  width: 100%;
-  max-width: none;
-  gap: 18px !important;
-  margin: 0;
-  padding: 0 0 calc(24px + env(safe-area-inset-bottom));
-  background: var(--af-settings-bg);
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch;
 }
-.settings-hero {
-  padding: 8px 16px 0 !important;
+.settings-native * { max-width: 100%; }
+.settings-card { box-shadow: none !important; }
+.settings-card-pad { padding: 14px 16px !important; }
+.settings-card-count-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.settings-card-count-option {
+  min-height: 36px; border: 1px solid var(--af-divider); border-radius: var(--af-radius-md);
+  display:flex; align-items:center; justify-content:center; font-weight:800;
+  background: transparent;
 }
-.settings-hero h2 {
-  color: var(--af-settings-label) !important;
-  font-size: 22px !important;
-  line-height: 1.2 !important;
-  font-weight: 700 !important;
-  letter-spacing: -.02em !important;
-  text-transform: none !important;
-}
-.settings-hero p { display: none !important; }
-
-/* Grouped cards: no decorative shadow, generous iOS-style inset and exact 18px radius. */
-.settings-card {
-  margin: 0 16px;
-  padding: 0 !important;
-  overflow: hidden;
-  border: 0 !important;
-  border-radius: var(--af-settings-radius) !important;
-  background: var(--af-settings-card) !important;
-  box-shadow: none !important;
-}
-.settings-card-pad {
-  padding: 16px 18px !important;
-}
-
-/* Rows use a 52pt rhythm, with separators beginning at the text column. */
-.settings-row {
-  min-height: var(--af-settings-row-height) !important;
-  padding: 0 var(--af-settings-row-pad) !important;
-  gap: var(--af-settings-icon-gap) !important;
-  border-radius: 0 !important;
-  border-left: 0 !important;
-  border-right: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-.settings-row + .settings-row {
-  border-top: 1px solid var(--af-settings-divider) !important;
-}
-
-/* Reference icon treatment: line icon only — no colored tile behind it. */
-.settings-icon {
-  width: var(--af-settings-icon-column) !important;
-  height: var(--af-settings-icon-column) !important;
-  min-width: var(--af-settings-icon-column) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: var(--af-settings-icon) !important;
-  box-shadow: none !important;
-}
-.settings-icon svg {
-  width: var(--af-settings-icon-size) !important;
-  height: var(--af-settings-icon-size) !important;
-  stroke-width: 1.9 !important;
-}
-.settings-row .text-xs {
-  font-size: 17px !important;
-  line-height: 1.2 !important;
-  font-weight: 400 !important;
-  color: #111111 !important;
-  letter-spacing: -.01em;
-}
-.settings-row .text-\[10px\] {
-  font-size: 12px !important;
-  line-height: 1.35 !important;
-  color: #8e8e93 !important;
-}
-.settings-nav-value {
-  font-size: 13px !important;
-  color: #8e8e93 !important;
-  gap: 7px !important;
-}
-.settings-nav-value svg {
-  width: 20px !important;
-  height: 20px !important;
-  opacity: 1 !important;
-  color: var(--af-settings-chevron) !important;
-  stroke-width: 2.1 !important;
-}
-.settings-nav-row:active { background: rgba(118,118,128,.08) !important; }
-
-/* Section labels follow the reference's secondary gray hierarchy. */
-.settings-native > h3 {
-  margin: 4px 16px -8px !important;
-  padding: 0 !important;
-  font-size: 16px !important;
-  line-height: 1.2 !important;
-  font-weight: 600 !important;
-  letter-spacing: -.01em !important;
-  text-transform: none !important;
-  color: var(--af-settings-label) !important;
-}
-.settings-native > h3 + .settings-card { margin-top: 0; }
-
-/* Root grouped-list rhythm. */
-.settings-native > .settings-card + .settings-card { margin-top: 0; }
-.settings-native > .settings-hero + .settings-card { margin-top: 0; }
-
-/* Subpages keep the same card geometry while preserving their controls/details. */
-.settings-subpage-header {
-  padding: 4px 16px 2px !important;
-}
-.settings-back-button {
-  font-size: 15px !important;
-  font-weight: 500 !important;
-  padding: 4px 6px 4px 0 !important;
-  margin-left: 0 !important;
-  border-radius: 8px !important;
-}
-.settings-back-chevron { width: 16px !important; height: 16px !important; }
-.settings-subpage-title {
-  padding-top: 5px;
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  letter-spacing: -.02em !important;
-}
-
-/* iOS Settings switch stays native-sized and never receives a card border. */
-.ios-settings-switch { flex:none; }
-
-/* Destructive settings still use the same card geometry, but keep their semantic color. */
-.settings-row-danger .settings-icon {
-  background: transparent !important;
-  color: #ff3b30 !important;
-}
-.settings-row-danger .text-xs { color: #ff3b30 !important; }
-
-/* Dark mode equivalent of the same geometry. */
-html.dark .settings-native { background: #000000 !important; }
-html.dark .settings-card {
-  background: #1c1c1e !important;
-  border-color: transparent !important;
-}
-html.dark .settings-hero h2,
-html.dark .settings-native > h3 { color: #8e8e93 !important; }
-html.dark .settings-icon { color: #f5f5f7 !important; }
-html.dark .settings-row .text-xs { color: #f5f5f7 !important; }
-html.dark .settings-row .text-\[10px\],
-html.dark .settings-nav-value { color: #8e8e93 !important; }
-html.dark .settings-nav-value svg { color: #636366 !important; }
-html.dark .settings-row + .settings-row { border-top-color: #38383a !important; }
-
-@media (max-width: 767px) {
-  .settings-native { margin-left: -16px; margin-right: -16px; width: calc(100% + 32px); }
-  .settings-hero { padding-left: 32px !important; padding-right: 32px !important; }
-  .settings-card { margin-left: 16px; margin-right: 16px; }
-  .settings-native > h3 { margin-left: 32px !important; margin-right: 32px !important; }
-  .settings-row { min-height: 52px !important; }
-}
+.settings-card-count-option.is-selected { background: var(--af-control-fill); }
+.settings-card-choice-button { min-height: 44px; padding: 0 12px; border-radius: var(--af-radius-md); border: 1px solid var(--af-divider); background: transparent; }

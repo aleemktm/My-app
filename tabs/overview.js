@@ -126,8 +126,20 @@
         }, "Insights")
       ),
       subTab === "home" ? h("div", { className: "home-subtab-content" },
+            h("section", { className: "home-actions-section" },
+        h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY"), h("h2", null)), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
+        h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
+          action("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
+          action("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
+          action("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
+          action("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
+        )
+      ),
+
+
             h("section", { className: "home-stats-grid" }, (() => {
-        const selected = Array.isArray(settings.dashboardCards) ? settings.dashboardCards : [];
+        const cardCount = settings.dashboardCardCount === 2 ? 2 : 4;
+        const selected = (Array.isArray(settings.dashboardCards) ? settings.dashboardCards : []).slice(0, cardCount);
         const cards = {
           accounts: { label: "Cash & accounts", value: fmt(totalLiquidAED), note: `${accounts.length} account${accounts.length === 1 ? "" : "s"}`, cls: "home-positive", tab: "accounts" },
           vault: { label: "Assets", value: fmt(totalPhysicalAED), note: `${assets.length} holding${assets.length === 1 ? "" : "s"}`, cls: "home-amber", tab: "vault" },
@@ -146,16 +158,6 @@
           return c ? stat(c.label, c.value, c.note, c.cls, () => setActiveTab(c.tab)) : null;
         });
       })()),
-
-            h("section", { className: "home-actions-section" },
-        h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY"), h("h2", null)), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
-        h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
-          action("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
-          action("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
-          action("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
-          action("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
-        )
-      ),
 
       h("div", { className: "home-content-grid" },
         h("section", { className: `home-panel ${darkMode ? "home-panel-dark" : ""}` },
