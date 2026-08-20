@@ -54,6 +54,9 @@
   function Planning(props) {
     const h = React.createElement;
     const [subTab, setSubTab] = React.useState("planning");
+    const touchStartRef = React.useRef(null);
+    const onSubTabTouchStart = e => { if (!e.touches || e.touches.length !== 1) return; const t = e.touches[0]; touchStartRef.current = { x: t.clientX, y: t.clientY }; };
+    const onSubTabTouchEnd = e => { const start = touchStartRef.current; touchStartRef.current = null; if (!start || !e.changedTouches || !e.changedTouches.length) return; const t = e.changedTouches[0]; const dx = t.clientX - start.x; const dy = t.clientY - start.y; if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.35) return; setSubTab(dx < 0 ? "recurring" : "planning"); };
     const safeRecurring = Array.isArray(props.recurringItems) ? props.recurringItems : [];
     const Recurring = window.Tabs && window.Tabs.Recurring;
     const recurringView = typeof Recurring === "function"
@@ -69,7 +72,7 @@
         ),
         h("div", { className: "planning-hero-mark" }, h(Icons.IconTarget, { className: "w-6 h-6" }))
       ),
-      h("div", { className: "loan-filter-segment is-two planning-subtabs", role: "tablist", "aria-label": "Planning sections" },
+      h("div", { className: "loan-filter-segment is-two planning-subtabs", role: "tablist", "aria-label": "Planning sections", onTouchStart: onSubTabTouchStart, onTouchEnd: onSubTabTouchEnd },
         h("button", { type: "button", role: "tab", "aria-selected": subTab === "planning", onClick: () => setSubTab("planning"), className: `loan-filter-tab ${subTab === "planning" ? "is-active" : ""}` }, "Planning"),
         h("button", { type: "button", role: "tab", "aria-selected": subTab === "recurring", onClick: () => setSubTab("recurring"), className: `loan-filter-tab ${subTab === "recurring" ? "is-active" : ""}` }, "Recurring")
       ),

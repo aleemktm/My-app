@@ -72,7 +72,7 @@
     };
     return h("div", { className: "space-y-4 max-w-2xl mx-auto w-full" },
       h("div", { className: "flex justify-between items-center px-1 gap-2" },
-        h("h2", { className: "text-sm font-bold uppercase tracking-wider text-emerald-500" }, "Connected Transactions Ledger"),
+        h("h2", { className: "text-sm font-bold uppercase tracking-wider text-emerald-500" }, "Connected Transactions"),
         h("div", { className: "flex items-center gap-2" },
           h("button", { onClick: exportCSV, title: "Export CSV", className: `p-2 rounded-xl border ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-300" : "bg-white border-zinc-200 text-zinc-700"}` },
             h(Icons.IconCSV, { className: "w-4 h-4" })),

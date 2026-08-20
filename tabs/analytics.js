@@ -217,7 +217,7 @@
         ? `Your financial position improved ${Math.abs(wealthPct) < 0.1 ? "this month" : `by ${Math.abs(wealthPct).toFixed(1)}%`}.`
         : `Your financial position slipped ${Math.abs(wealthPct) < 0.1 ? "this month" : `by ${Math.abs(wealthPct).toFixed(1)}%`}.`;
     return h("section", { className: `insight-panel insight-ai-panel insight-what-changed ${darkMode ? "insight-panel-dark" : ""}`, "aria-label": "What changed in your financial life" },
-      h("div", { className: "insight-ai-label" }, "✦ WHAT CHANGED"),
+      h("div", { className: "insight-ai-label" }, "✦ HOW YOU GOT HERE"),
       h("h2", null, headline),
       h("p", null, hasMeaningfulData ? "Here’s what moved your financial life this month." : "Once you have more activity recorded, AleemFin will turn it into a clearer explanation."),
       hasMeaningfulData && h("div", { className: "insight-change-list" },
@@ -227,6 +227,26 @@
         ))
       ),
       h("div", { className: "insight-note-pill" }, "Based on recorded activity • transfers excluded"));
+  }
+
+  function ControlNextCard({ darkMode, fmt, savingsRate, emergencyRunwayMonths, runwayStatus, monthlyExpenseAED, monthlySavingsAED, categoryBreakdown = [], biggestExpenseThisMonth, setActiveTab }) {
+    const top = categoryBreakdown[0];
+    const savingsText = savingsRate == null ? "Not enough data" : `${Math.round(savingsRate)}% saved`;
+    const runwayText = emergencyRunwayMonths === "12+" ? "12+ months" : `${emergencyRunwayMonths} month${Number(emergencyRunwayMonths) === 1 ? "" : "s"}`;
+    const spendText = top ? `${top[0]} · ${fmt(top[1])}` : "No category data yet";
+    const controls = [
+      { label: "Protect savings", value: savingsText, note: monthlySavingsAED >= 0 ? "Keep this month's surplus intact." : "Bring spending back below income.", action: () => setActiveTab && setActiveTab("planning"), actionLabel: "Plan" },
+      { label: "Watch spending", value: spendText, note: biggestExpenseThisMonth ? `Largest: ${biggestExpenseThisMonth.title}` : `Monthly spend ${fmt(monthlyExpenseAED)}`, action: () => setActiveTab && setActiveTab("transactions"), actionLabel: "Review" },
+      { label: "Build your buffer", value: runwayText, note: runwayStatus && runwayStatus.label ? runwayStatus.label : "Cash runway", action: () => setActiveTab && setActiveTab("planning"), actionLabel: "Improve" }
+    ];
+    return h("section", { className: `insight-panel insight-control-panel ${darkMode ? "insight-panel-dark" : ""}`, "aria-label": "What to control next" },
+      h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "CONTROL NEXT"), h("h2", null, "What you can influence")), h("span", { className: "insight-panel-total" }, "3 levers")),
+      h("div", { className: "insight-control-list" }, controls.map((item, index) => h("div", { key: item.label, className: "insight-control-row" },
+        h("div", { className: "insight-control-index" }, String(index + 1)),
+        h("div", { className: "insight-control-copy" }, h("strong", null, item.label), h("span", null, item.note)),
+        h("div", { className: "insight-control-value" }, h("b", null, item.value), h("button", { type: "button", onClick: item.action }, item.actionLabel))
+      )))
+    );
   }
 
   function Analytics(props) {
@@ -241,6 +261,7 @@
     return h("div", { className: "insight-page" },
       h(InsightHero, props),
       h(WhatChangedCard, { darkMode, fmt, monthlySavingsAED, goldChangeAED, currentMonthPrefix, loans, transactions, convertTxToAED: props.convertTxToAED, netWorthTotal: totalLiquidAED + totalPhysicalAED + totalLoansLentAED - totalLoansBorrowedAED }),
+      h(ControlNextCard, { darkMode, fmt, savingsRate, emergencyRunwayMonths, runwayStatus, monthlyExpenseAED, monthlySavingsAED, categoryBreakdown, biggestExpenseThisMonth, setActiveTab: props.setActiveTab }),
       h("div", { className: "insight-two-col" },
         h("section", { className: `insight-panel ${darkMode ? "insight-panel-dark" : ""}` },
           h("div", { className: "insight-panel-head" }, h("div", null, h("span", { className: "insight-section-kicker" }, "SPENDING"), h("h2", null, `${currentMonthLabel} mix`)), h("span", { className: "insight-panel-total" }, fmt(monthlyExpenseAED))),
