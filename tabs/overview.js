@@ -105,28 +105,7 @@
       ),
 
 
-      h("div", {
-        className: "loan-filter-segment is-two home-subtabs home-subtabs-under-hero",
-        role: "tablist",
-        "aria-label": "Home sections",
-        onTouchStart: onSubTabTouchStart,
-        onTouchEnd: onSubTabTouchEnd
-      },
-        h("button", {
-          type: "button", role: "tab", "aria-selected": subTab === "home",
-          onClick: () => setSubTab("home"),
-          onKeyDown: e => { if (e.key === "ArrowRight") setSubTab("insights"); },
-          className: `loan-filter-tab ${subTab === "home" ? "is-active" : ""}`
-        }, "Home"),
-        h("button", {
-          type: "button", role: "tab", "aria-selected": subTab === "insights",
-          onClick: () => setSubTab("insights"),
-          onKeyDown: e => { if (e.key === "ArrowLeft") setSubTab("home"); },
-          className: `loan-filter-tab ${subTab === "insights" ? "is-active" : ""}`
-        }, "Insights")
-      ),
-      subTab === "home" ? h("div", { className: "home-subtab-content" },
-            h("section", { className: "home-actions-section" },
+      h("section", { className: "home-actions-section" },
         h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY"), h("h2", null)), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
         h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
           action("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
@@ -159,7 +138,27 @@
         });
       })()),
 
-      h("div", { className: "home-content-grid" },
+      h("div", {
+        className: "loan-filter-segment is-two home-subtabs home-subtabs-under-hero",
+        role: "tablist",
+        "aria-label": "Home sections",
+        onTouchStart: onSubTabTouchStart,
+        onTouchEnd: onSubTabTouchEnd
+      },
+        h("button", {
+          type: "button", role: "tab", "aria-selected": subTab === "recent",
+          onClick: () => setSubTab("recent"),
+          onKeyDown: e => { if (e.key === "ArrowRight") setSubTab("insights"); },
+          className: `loan-filter-tab ${subTab === "recent" ? "is-active" : ""}`
+        }, "Recent Activity"),
+        h("button", {
+          type: "button", role: "tab", "aria-selected": subTab === "insights",
+          onClick: () => setSubTab("insights"),
+          onKeyDown: e => { if (e.key === "ArrowLeft") setSubTab("recent"); },
+          className: `loan-filter-tab ${subTab === "insights" ? "is-active" : ""}`
+        }, "Insights")
+      ),
+      subTab === "recent" ? h("div", { className: "home-subtab-content" },
         h("section", { className: `home-panel ${darkMode ? "home-panel-dark" : ""}` },
           selectionToolbar && h("div", { className: "home-selection-toolbar-wrap" }, selectionToolbar),
           h("div", { className: "home-panel-heading" }, h("div", null, h("span", null, "RECENT ACTIVITY"), h("h2", null, "Latest transactions")), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "View all →")),
@@ -173,7 +172,6 @@
             h("span", { className: "home-account-balance" }, numFmt(acc.balance))
           )))
         )
-      )
       ) : h("div", { className: "home-subtab-content home-insights-content" }, insightsView)
     );
   }
@@ -182,7 +180,7 @@
   window.Tabs.OverviewHome = OverviewHome;
 
   function Overview(props) {
-    const [subTab, setSubTab] = React.useState(props.activeTab === "analytics" ? "insights" : "home");
+    const [subTab, setSubTab] = React.useState(props.activeTab === "analytics" ? "insights" : "recent");
     const touchStartRef = React.useRef(null);
     const Analytics = window.Tabs && window.Tabs.Analytics;
     const AnalyticsSummary = window.Tabs && window.Tabs.AnalyticsSummary;
@@ -205,7 +203,7 @@
       const dy = t.clientY - start.y;
       if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
       if (dx < 0) setSubTab("insights");
-      else setSubTab("home");
+      else setSubTab("recent");
     };
 
     const homeProps = Object.assign({}, props, {

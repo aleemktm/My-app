@@ -2646,3 +2646,68 @@ html.dark .insight-control-value button { color:var(--af-bg); }
   border-radius: 0 !important;
 }
 .settings-icon svg { width: 19px !important; height: 19px !important; }
+
+
+/* v61 — dark-mode visibility + Home section hierarchy refinements. */
+html.dark .home-actions-section,
+html.dark .home-panel,
+html.dark .home-stat,
+html.dark .ledger-card,
+html.dark .ledger-card-compact,
+html.dark .ledger-list-card,
+html.dark .loan-native-card,
+html.dark .loan-card,
+html.dark .loan-card-borrowed,
+html.dark .loan-card-lent,
+html.dark .loan-native-summary-card,
+html.dark .planning-card,
+html.dark .planning-editor,
+html.dark .planning-goal-card,
+html.dark .planning-summary-card,
+html.dark .recurring-card,
+html.dark .recurring-next,
+html.dark .recurring-editor,
+html.dark .rates-card,
+html.dark .rates-hero,
+html.dark .vault-card,
+html.dark .insight-card,
+html.dark .insight-ai-card {
+  color: var(--af-bg) !important;
+}
+html.dark .home-section-heading h2,
+html.dark .home-panel-heading h2,
+html.dark .home-actions-section h2 { color: var(--af-bg) !important; }
+html.dark .home-empty strong,
+html.dark .planning-title,
+html.dark .loan-history-main strong,
+html.dark .loan-history-action,
+html.dark .swipe-action-add-more,
+html.dark .settings-plain-info strong { color: var(--af-bg) !important; }
+html.dark .recurring-card-title-row h3,
+html.dark .recurring-editor-head strong,
+html.dark .recurring-section-head strong { color: var(--af-bg); }
+html.dark .planning-close,
+html.dark .planning-secondary,
+html.dark .rates-auto,
+html.dark .selection-toolbar-cancel { color: #A1A1AA !important; }
+
+/* Dashboard-card chooser: explicit inter-card spacing in Settings. */
+.ios-dashboard-cards-list > .grid { gap: 12px !important; }
+.dashboard-card-choice { margin: 0 !important; }
+
+/* Home: segmented tabs sit directly above Recent Activity after the dashboard cards. */
+.home-subtabs-under-hero { margin: 14px 0 0 !important; }
+
+/* Ledger transaction cards use the same app-wide card radius. */
+.ledger-card,
+.ledger-card-compact,
+.ledger-list-card { border-radius: 26px !important; }
+
+/* Loan rear/history card is intentionally softer than the front loan card. */
+.loan-history-card { border-radius: 18px !important; box-shadow: 0 2.5px 8px rgba(15,23,42,.0275) !important; }
+.loan-history-card-dark { border-radius: 18px !important; box-shadow: 0 3.5px 10px rgba(0,0,0,.10) !important; }
+.loan-card-stack.is-expanded .loan-native-front { box-shadow: 0 18px 38px rgba(15,23,42,.055) !important; }
+html.dark .loan-card-stack.is-expanded .loan-native-front { box-shadow: 0 18px 38px rgba(0,0,0,.14) !important; }
+
+/* The Settings Home Screen dashboard-choice controls retain a visible breathing space. */
+.settings-card-count-picker { gap: 10px !important; }
