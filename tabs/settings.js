@@ -5,6 +5,24 @@
     const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, dashboardCardCount, setDashboardCardCount, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
     const h = React.createElement;
     const [settingsPage, setSettingsPage] = React.useState(null);
+    const settingsTouchStartRef = React.useRef(null);
+    const onSettingsTouchStart = e => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      settingsTouchStartRef.current = { x: t.clientX, y: t.clientY };
+    };
+    const onSettingsTouchEnd = e => {
+      const start = settingsTouchStartRef.current;
+      settingsTouchStartRef.current = null;
+      if (!start || !e.changedTouches || !e.changedTouches.length) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (dx > 60 && Math.abs(dx) > Math.abs(dy) * 1.25 && settingsPage) {
+        e.stopPropagation();
+        setSettingsPage(null);
+      }
+    };
 
     const IOSSwitch = ({ checked, onChange, label }) => h("button", { type: "button", role: "switch", "aria-checked": checked, "aria-label": label, onClick: onChange, className: `ios-settings-switch ${checked ? "is-on" : "is-off"}` }, h("span", { className: "ios-settings-switch-thumb" }));
 
@@ -239,7 +257,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.64 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.65 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -266,7 +284,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.64", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.65", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
@@ -275,7 +293,7 @@
     }
 
     return h(React.Fragment, null,
-      h("div", { className: "settings-native", "data-settings-scroll-lock": "true" }, pageContent),
+      h("div", { className: "settings-native", "data-settings-scroll-lock": "true", "data-settings-page": settingsPage || "root", onTouchStart: onSettingsTouchStart, onTouchEnd: onSettingsTouchEnd }, pageContent),
       dangerAction && h("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" },
         h("div", { className: `w-full max-w-xs rounded-3xl border p-5 shadow-2xl space-y-4 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}` },
           h("div", { className: "w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center" }, h(Icons.IconTrash, { className: "w-5 h-5" })),

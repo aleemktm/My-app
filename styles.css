@@ -2913,3 +2913,25 @@ html.dark .recurring-empty > svg {
   stroke:#3A3A3C !important;
   opacity:1 !important;
 }
+
+/* v65 precision dark-mode fixes */
+html.dark .account-activity-card .account-activity-head strong,
+html.dark .account-activity-card .account-activity-head span,
+html.dark .account-activity-card .account-activity-row > div > span,
+html.dark .account-activity-card .account-activity-row > div > small,
+html.dark .account-activity-card .account-activity-count { color: var(--af-label) !important; }
+
+html.dark .loan-history-card,
+html.dark .loan-history-card * { color: var(--af-label); }
+html.dark .loan-history-card-head > div:first-child span { color: var(--af-secondary) !important; }
+html.dark .loan-history-card-head > div:first-child strong { color: var(--af-label) !important; }
+html.dark .loan-history-empty { color: var(--af-secondary) !important; }
+
+html.dark .recurring-next-item > div.min-w-0 > strong,
+html.dark .recurring-next-item > div.min-w-0 > span { color: var(--af-label) !important; }
+html.dark .recurring-section-head strong { color: var(--af-label) !important; }
+html.dark .recurring-card-title-row h3 { color: var(--af-label) !important; }
+html.dark .recurring-card-main p { color: var(--af-secondary) !important; }
+
+html.dark .settings-plain-info span { color: var(--af-secondary) !important; }
+html.dark .settings-plain-info strong { color: var(--af-label) !important; }

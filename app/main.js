@@ -225,6 +225,8 @@ useEffect(() => {
   }
 }, [settings.theme]);
 const [activeTab, setActiveTab] = useState(() => { try { return localStorage.getItem("aleemfin_active_tab") === "recurring" ? "planning" : "overview"; } catch (_) { return "overview"; } });
+const previousActiveTabRef = useRef(activeTab);
+const tabScrollPositionsRef = useRef({});
 React.useEffect(() => {
   const nav = document.querySelector('[data-mobile-nav-scroll="true"]');
   if (!nav) return;
@@ -2422,39 +2424,28 @@ useEffect(() => {
 }, [activeTab]);
 
 useEffect(() => {
-  if (activeTab !== "settings") {
-    if (activeTab) lastNonSettingsTabRef.current = activeTab;
-    return;
+  const previous = previousActiveTabRef.current;
+  if (previous && previous !== activeTab) {
+    const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    tabScrollPositionsRef.current[previous] = y;
   }
-  const main = document.querySelector("main");
-  if (!main) return;
-  let startX = 0;
-  let startY = 0;
-  let tracking = false;
-  const onPointerDown = e => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    startX = e.clientX;
-    startY = e.clientY;
-    tracking = true;
-  };
-  const onPointerUp = e => {
-    if (!tracking) return;
-    tracking = false;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.25) {
-      hapticFeedback(9);
-      setActiveTab(lastNonSettingsTabRef.current || "overview");
-    }
-  };
-  main.addEventListener("pointerdown", onPointerDown, { passive: true });
-  main.addEventListener("pointerup", onPointerUp, { passive: true });
-  main.addEventListener("pointercancel", () => { tracking = false; }, { passive: true });
-  return () => {
-    main.removeEventListener("pointerdown", onPointerDown);
-    main.removeEventListener("pointerup", onPointerUp);
-  };
+  previousActiveTabRef.current = activeTab;
+  const frame = requestAnimationFrame(() => {
+    const y = Number(tabScrollPositionsRef.current[activeTab] || 0);
+    window.scrollTo({ top: y, left: 0, behavior: "auto" });
+  });
+  return () => cancelAnimationFrame(frame);
 }, [activeTab]);
+
+useEffect(() => {
+  const onScroll = () => {
+    tabScrollPositionsRef.current[activeTab] = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  return () => window.removeEventListener("scroll", onScroll);
+}, [activeTab]);
+
+
 
     const selectionToolbar = selectedCount > 0 ? React.createElement("div", { className: "selection-toolbar safe-x", role: "toolbar", "aria-label": "Selection actions" },
   React.createElement("div", { className: "selection-toolbar-inner max-w-5xl mx-auto" },
