@@ -2528,10 +2528,10 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
       className: "w-4 h-4"
     }))))), storageError && /* @__PURE__ */React.createElement("div", {
       className: "bg-rose-600 text-white text-xs font-semibold text-center py-2 px-4 safe-x"
-    }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), activeTab !== "overview" && selectionToolbar,
+    }, "Couldn't save your last change to this device's storage (it may be full or in private-browsing mode). Please export a backup soon so nothing is lost."), activeTab !== "overview" && activeTab !== "analytics" && selectionToolbar,
     React.createElement("main", {
       className: "max-w-5xl mx-auto px-4 py-5 sm:py-6 space-y-5 sm:space-y-6 flex-1 w-full safe-x"
-    }, activeTab === "overview" && Tabs.Overview(tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && React.createElement(Tabs.Accounts, tabProps), activeTab === "vault" && Tabs.Vault(tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "analytics" && Tabs.Analytics(tabProps), activeTab === "analytics" && Tabs.AnalyticsSummary(tabProps), activeTab === "planning" && React.createElement(Tabs.Planning, tabProps), activeTab === "rates" && React.createElement(Tabs.Rates, tabProps), activeTab === "settings" && React.createElement(Tabs.Settings, tabProps)), /* @__PURE__ */React.createElement("nav", {
+    }, (activeTab === "overview" || activeTab === "analytics") && React.createElement(Tabs.Overview, tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && React.createElement(Tabs.Accounts, tabProps), (activeTab === "vault" || activeTab === "rates") && React.createElement(Tabs.Vault, tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "planning" && React.createElement(Tabs.Planning, tabProps), activeTab === "settings" && React.createElement(Tabs.Settings, tabProps)), /* @__PURE__ */React.createElement("nav", {
       className: "af-floating-tabbar-wrap md:hidden fixed bottom-0 left-0 right-0 z-40 safe-bottom",
       style: {
         position: "fixed"
