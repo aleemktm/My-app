@@ -2583,3 +2583,66 @@ html.dark .insight-control-value button { color:var(--af-bg); }
 }
 .settings-card-count-option.is-selected { background: var(--af-control-fill); }
 .settings-card-choice-button { min-height: 44px; padding: 0 12px; border-radius: var(--af-radius-md); border: 1px solid var(--af-divider); background: transparent; }
+
+
+/* v60 — focused visual refinement: no type/color changes. */
+:root { --af-radius-card: 26px; }
+
+/* Home sub-tabs: tighter vertical breathing room, preserving the existing tab geometry. */
+.home-subtabs-under-hero { margin: 6px 0 6px !important; }
+
+/* Hero dashboard: retain the same geometry with a much quieter elevation. */
+.home-hero { box-shadow: 0 20px 50px rgba(15,23,42,.0144) !important; }
+.home-hero-dark { box-shadow: 0 22px 55px rgba(0,0,0,.0396) !important; }
+
+/* Quick Entry is intentionally flat; its actions keep their existing styling. */
+.home-actions-section { box-shadow: none !important; }
+
+/* Cards: 30% larger corner radius, applied consistently across the app. */
+.home-hero,
+.home-panel,
+.home-stat,
+.home-actions-section,
+.insight-hero,
+.insight-panel,
+.insight-card,
+.insight-ai-card,
+.account-wallet-card,
+.account-activity-card,
+.account-native-card,
+.accounts-header-card,
+.asset-row-card,
+.assets-control-card,
+.assets-gold-card,
+.assets-summary-card,
+.ios-dashboard-cards-panel,
+.ios-security-lock-card,
+.ios-security-native-card,
+.ledger-card,
+.ledger-card-compact,
+.ledger-list-card,
+.loan-card,
+.loan-card-borrowed,
+.loan-card-lent,
+.loan-card-stack,
+.loan-history-card,
+.loan-native-card,
+.loan-native-summary-card,
+.loan-overview-card,
+.planning-card,
+.planning-goal-card,
+.planning-summary-card,
+.rates-card,
+.rates-reference-card,
+.recurring-card,
+.vault-card,
+.settings-card,
+.planning-hero { border-radius: 26px !important; }
+
+/* Settings icons: remove the rounded square container while keeping their existing icon colors. */
+.settings-icon {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+.settings-icon svg { width: 19px !important; height: 19px !important; }
