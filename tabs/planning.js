@@ -69,7 +69,7 @@
         ),
         h("div", { className: "planning-hero-mark" }, h(Icons.IconTarget, { className: "w-6 h-6" }))
       ),
-      h("div", { className: "loan-filter-segment planning-subtabs", role: "tablist", "aria-label": "Planning sections" },
+      h("div", { className: "loan-filter-segment is-two planning-subtabs", role: "tablist", "aria-label": "Planning sections" },
         h("button", { type: "button", role: "tab", "aria-selected": subTab === "planning", onClick: () => setSubTab("planning"), className: `loan-filter-tab ${subTab === "planning" ? "is-active" : ""}` }, "Planning"),
         h("button", { type: "button", role: "tab", "aria-selected": subTab === "recurring", onClick: () => setSubTab("recurring"), className: `loan-filter-tab ${subTab === "recurring" ? "is-active" : ""}` }, "Recurring")
       ),

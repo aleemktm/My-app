@@ -1,7 +1,7 @@
 // tabs/vault.js — Native iOS-style Assets tab.
 (function () {
   const h = React.createElement;
-  function Vault(props) {
+  function VaultAssets(props) {
     const { applyLiveGoldRate, assets, darkMode, goldSyncMsg, liveGoldAEDPerGram, numFmt, openAddModal, openEditModal, setDeleteTarget, syncLiveGoldRate, syncingGold, selectionKey, setActiveTab, goldChangeAED, goldChangePct, convertToBaseCurrency, settings } = props;
     const total = assets.reduce((s,a)=>s+convertToBaseCurrency(Number(a.currentPriceAED||0), a.currency||"AED"),0);
     const gain = assets.reduce((s,a)=>s+convertToBaseCurrency(Number(a.currentPriceAED||0)-Number(a.purchasePriceAED||0), a.currency||"AED"),0);
@@ -44,5 +44,22 @@
       )
     );
   }
-  window.Tabs=window.Tabs||{}; window.Tabs.Vault=Vault;
+  window.Tabs=window.Tabs||{}; window.Tabs.VaultAssets=VaultAssets;
+
+  function Vault(props) {
+    const [subTab, setSubTab] = React.useState(props.activeTab === "rates" ? "rates" : "assets");
+    const Rates = window.Tabs && window.Tabs.Rates;
+    const ratesView = typeof Rates === "function"
+      ? h(Rates, props)
+      : h("div", { className: "assets-empty" }, h("strong", null, "FX & Convert is unavailable"), h("span", null, "Please reload AleemFin."));
+    return h("div", { className: `assets-native ${props.darkMode ? "is-dark" : ""}`, style: { overflowX: "hidden" } },
+      h("div", { className: "loan-filter-segment is-two assets-subtabs", role: "tablist", "aria-label": "Assets sections" },
+        h("button", { type: "button", role: "tab", "aria-selected": subTab === "assets", onClick: () => setSubTab("assets"), className: `loan-filter-tab ${subTab === "assets" ? "is-active" : ""}` }, "Assets"),
+        h("button", { type: "button", role: "tab", "aria-selected": subTab === "rates", onClick: () => setSubTab("rates"), className: `loan-filter-tab ${subTab === "rates" ? "is-active" : ""}` }, "Rates")
+      ),
+      subTab === "assets" ? h(VaultAssets, props) : ratesView
+    );
+  }
+
+  window.Tabs.Vault=Vault;
 })();

@@ -2,7 +2,7 @@
 (function () {
   const h = React.createElement;
 
-  function Overview(props) {
+  function OverviewHome(props) {
     const {
       DashCard, accent, accounts, assets, cardCls, currency, currentMonthLabel, darkMode,
       exchangeRates, fmt, greeting, liveGoldAEDPerGram, momDeltaPct, monthlyExpenseAED,
@@ -154,5 +154,24 @@
   }
 
   window.Tabs = window.Tabs || {};
+  window.Tabs.OverviewHome = OverviewHome;
+
+  function Overview(props) {
+    const [subTab, setSubTab] = React.useState(props.activeTab === "analytics" ? "insights" : "home");
+    const Analytics = window.Tabs && window.Tabs.Analytics;
+    const AnalyticsSummary = window.Tabs && window.Tabs.AnalyticsSummary;
+    const insightsView = h(React.Fragment, null,
+      typeof AnalyticsSummary === "function" ? h(AnalyticsSummary, props) : null,
+      typeof Analytics === "function" ? h(Analytics, props) : h("div", { className: "home-empty" }, h("strong", null, "Insights are unavailable"), h("span", null, "Please reload AleemFin."))
+    );
+    return h("div", { className: "max-w-2xl mx-auto w-full", style: { overflowX: "hidden" } },
+      h("div", { className: "loan-filter-segment is-two home-subtabs", role: "tablist", "aria-label": "Home sections" },
+        h("button", { type: "button", role: "tab", "aria-selected": subTab === "home", onClick: () => setSubTab("home"), className: `loan-filter-tab ${subTab === "home" ? "is-active" : ""}` }, "Home"),
+        h("button", { type: "button", role: "tab", "aria-selected": subTab === "insights", onClick: () => setSubTab("insights"), className: `loan-filter-tab ${subTab === "insights" ? "is-active" : ""}` }, "Insights")
+      ),
+      subTab === "home" ? h(OverviewHome, props) : insightsView
+    );
+  }
+
   window.Tabs.Overview = Overview;
 })();
