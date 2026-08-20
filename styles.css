@@ -2711,3 +2711,138 @@ html.dark .loan-card-stack.is-expanded .loan-native-front { box-shadow: 0 18px 3
 
 /* The Settings Home Screen dashboard-choice controls retain a visible breathing space. */
 .settings-card-count-picker { gap: 10px !important; }
+
+/* v62 — dark-mode visibility correction pass. Keep the existing type, spacing and semantic colors. */
+html.dark .loan-filter-tab.is-active {
+  background: color-mix(in srgb, var(--af-accent) 24%, #2C2C2E) !important;
+  color: color-mix(in srgb, var(--af-accent) 62%, #FFFFFF) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 24%, transparent), 0 1px 6px rgba(0,0,0,.22) !important;
+}
+html.dark .loan-filter-tab.is-active span { color: inherit !important; opacity: .82; }
+html.dark .insight-segment button.active,
+html.dark .insight-style-row button.active {
+  background: color-mix(in srgb, var(--af-accent) 24%, #303033) !important;
+  color: color-mix(in srgb, var(--af-accent) 62%, #FFFFFF) !important;
+}
+
+/* Dark cards must inherit the light-on-dark system label instead of the dark page background token. */
+html.dark .home-actions-section,
+html.dark .home-panel,
+html.dark .home-stat,
+html.dark .ledger-card,
+html.dark .ledger-card-compact,
+html.dark .ledger-list-card,
+html.dark .loan-native-card,
+html.dark .loan-card,
+html.dark .loan-card-borrowed,
+html.dark .loan-card-lent,
+html.dark .loan-native-summary-card,
+html.dark .planning-card,
+html.dark .planning-editor,
+html.dark .planning-goal-card,
+html.dark .planning-summary-card,
+html.dark .recurring-card,
+html.dark .recurring-next,
+html.dark .recurring-editor,
+html.dark .rates-card,
+html.dark .rates-hero,
+html.dark .vault-card,
+html.dark .insight-card,
+html.dark .insight-ai-card,
+html.dark .settings-card {
+  color: var(--af-label) !important;
+}
+
+html.dark .home-section-heading h2,
+html.dark .home-panel-heading h2,
+html.dark .home-actions-section h2,
+html.dark .planning-section-head h3,
+html.dark .planning-item-title h4,
+html.dark .planning-item-top > strong,
+html.dark .planning-goal-head h4,
+html.dark .planning-goal-head > strong,
+html.dark .planning-summary-card > strong,
+html.dark .loan-native-summary-card strong,
+html.dark .ledger-title-amount-row h3,
+html.dark .settings-card p.text-xs,
+html.dark .settings-subpage-title,
+html.dark .settings-row p.text-xs,
+html.dark .settings-nav-row p.text-xs {
+  color: var(--af-label) !important;
+}
+
+html.dark .planning-subtitle,
+html.dark .planning-kicker,
+html.dark .planning-item-title p,
+html.dark .planning-item-meta,
+html.dark .planning-summary-card small,
+html.dark .loan-native-summary-card span,
+html.dark .loan-native-summary-card small,
+html.dark .ledger-card .text-zinc-400,
+html.dark .ledger-card-compact .text-zinc-400,
+html.dark .settings-card .text-zinc-400,
+html.dark .settings-row .text-zinc-400 {
+  color: var(--af-secondary) !important;
+}
+
+/* Planning: explicit dark-mode hierarchy for headings and values. */
+html.dark .planning-premium { color: var(--af-label); }
+html.dark .planning-premium .planning-title { color: var(--af-label) !important; }
+html.dark .planning-premium .planning-hero:not(.is-dark) .planning-title { color: var(--af-label) !important; }
+html.dark .planning-premium .planning-section-head h3,
+html.dark .planning-premium .planning-item-title h4,
+html.dark .planning-premium .planning-item-top strong,
+html.dark .planning-premium .planning-goal-head h4,
+html.dark .planning-premium .planning-goal-head > strong,
+html.dark .planning-premium .planning-summary-card strong { color: var(--af-label) !important; }
+html.dark .planning-premium .planning-subtitle,
+html.dark .planning-premium .planning-item-title p,
+html.dark .planning-premium .planning-item-meta,
+html.dark .planning-premium .planning-summary-card small { color: var(--af-secondary) !important; }
+
+/* Ledger search is intentionally white in dark mode for a high-contrast search field. */
+html.dark .ledger-search-field {
+  background: #FFFFFF !important;
+  border-color: rgba(60,60,67,.14) !important;
+  color: #1C1C1E !important;
+}
+html.dark .ledger-search-field input { color: #1C1C1E !important; caret-color: #1C1C1E !important; }
+html.dark .ledger-search-field input::placeholder { color: #8E8E93 !important; opacity: 1 !important; }
+html.dark .ledger-search-field svg { color: #6E6E73 !important; }
+
+/* Bottom sheets and dark panels use the light label token for readable inherited text. */
+html.dark .ios-bottom-sheet.is-dark,
+html.dark .ios-form-bottom-sheet.is-dark,
+html.dark .ios-settings-sheet-panel.is-dark,
+html.dark .ios-dashboard-cards-panel.is-dark,
+html.dark .ios-security-lock-card {
+  color: var(--af-label) !important;
+}
+html.dark .ios-form-sheet-header h3,
+html.dark .ios-settings-sheet-panel h2,
+html.dark .ios-settings-sheet-panel h3,
+html.dark .ios-dashboard-cards-panel h2,
+html.dark .ios-dashboard-cards-panel h3 { color: var(--af-label) !important; }
+
+/* Settings dashboard-card count options keep a clear breathing space in both themes. */
+.settings-card-count-picker { gap: 12px !important; }
+.settings-card-choice-button { margin-top: 12px !important; }
+
+/* v62.1 — close remaining dark-surface text gaps found in the static visibility audit. */
+html.dark .accounts-total-row strong { color: var(--af-label) !important; }
+html.dark .assets-empty strong { color: var(--af-label) !important; }
+html.dark .insight-panel { color: var(--af-label) !important; }
+html.dark .insight-panel-dark .insight-panel-head h2 { color: var(--af-label) !important; }
+html.dark .insight-panel-dark .insight-category-main { color: #E4E4E7 !important; }
+html.dark .insight-panel-dark .insight-ai-panel h2,
+html.dark .insight-panel-dark .insight-trend-hero strong,
+html.dark .insight-panel-dark .insight-trend-last b,
+html.dark .insight-panel-dark .insight-signal-list strong { color: var(--af-label) !important; }
+html.dark .insight-panel-dark .insight-segment button,
+html.dark .insight-panel-dark .insight-style-row button { color: var(--af-secondary) !important; }
+html.dark .insight-panel-dark .insight-segment button.active,
+html.dark .insight-panel-dark .insight-style-row button.active { color: color-mix(in srgb, var(--af-accent) 62%, #FFFFFF) !important; }
+html.dark .planning-summary-budget > strong,
+html.dark .planning-summary-goal > strong { color: var(--af-label) !important; }
+html.dark .loan-native-summary-card.loan-native-lent strong,
+html.dark .loan-native-summary-card.loan-native-borrowed strong { color: var(--af-label) !important; }

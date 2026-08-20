@@ -81,7 +81,7 @@
         )
       ),
       h("div", { className: "flex gap-2" },
-        h("div", { className: `flex-1 flex items-center gap-2 px-3 rounded-xl border ${darkMode ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"}` },
+        h("div", { className: `ledger-search-field flex-1 flex items-center gap-2 px-3 rounded-xl border ${darkMode ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"}` },
           h(Icons.IconSearch, { className: "w-3.5 h-3.5 text-zinc-400 shrink-0" }),
           h("input", { type: "text", placeholder: "Search name, account, title or category…", value: ledgerSearch, onChange: e => setLedgerSearch(e.target.value), className: "w-full py-2 text-[16px] bg-transparent outline-none" })
         ),

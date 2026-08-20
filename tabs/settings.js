@@ -90,11 +90,14 @@
     if (settingsPage === "appearance") {
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Appearance" }),
-        Group("THEME", h(SettingsRow, {
-          icon: Icons.IconTune, title: "Theme", detail: "Choose how AleemFin looks on this device."
-        }, h("select", {
-          value: settings.theme, onChange: e => updateSettings({ theme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold`
-        }, h("option", { value: "light" }, "Light"), h("option", { value: "dark" }, "Dark"), h("option", { value: "auto" }, "System")))),
+        Group("THEME", [
+          h(SettingsRow, { key: "theme", icon: Icons.IconTune, title: "Theme", detail: "Choose how AleemFin looks on this device." }, h("select", {
+            value: settings.theme, onChange: e => updateSettings({ theme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold`
+          }, h("option", { value: "light" }, "Light"), h("option", { value: "dark" }, "Dark"), h("option", { value: "auto" }, "System"))),
+          h(SettingsRow, { key: "hero-style", icon: Icons.IconTune, title: "Dashboard background", detail: "Choose a light white-and-accent or dark accent background for the Home dashboard only." },
+            h("select", { value: settings.heroCardTheme || "dark", onChange: e => updateSettings({ heroCardTheme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
+              h("option", { value: "dark" }, "Dark"), h("option", { value: "light" }, "Light")))
+        ]),
         Group("ACCENT COLOR", h("div", { className: "settings-accent-picker", role: "radiogroup", "aria-label": "Accent color" },
           accentSwatches.map(([id, color, label]) => h("button", {
             key: id, type: "button", role: "radio", "aria-checked": settings.accentColor === id, "aria-label": label, title: label,
@@ -133,9 +136,6 @@
           h(SettingsRow, { key: "hero-metric", icon: Icons.IconWallet, title: "Hero card metric", detail: "Choose the main wealth figure shown at the top of Home." },
             h("select", { value: settings.heroMetric || "liquid", onChange: e => updateSettings({ heroMetric: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "liquid" }, "Available wealth"), h("option", { value: "networth" }, "Net worth"))),
-          h(SettingsRow, { key: "hero-style", icon: Icons.IconTune, title: "Dashboard background", detail: "Choose a light white-and-accent or dark accent background for the Home dashboard only." },
-            h("select", { value: settings.heroCardTheme || "dark", onChange: e => updateSettings({ heroCardTheme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
-              h("option", { value: "dark" }, "Dark"), h("option", { value: "light" }, "Light"))),
           h(SettingsRow, { key: "greeting", icon: Icons.IconTune, title: "Greeting", detail: "Show the personalized greeting above the Home hero card." },
             IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" }))
         ])
@@ -239,7 +239,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.61 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.62 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -266,7 +266,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.61", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.62", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
