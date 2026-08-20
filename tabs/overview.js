@@ -10,7 +10,7 @@
       refreshLiveRates, renderTxRow, runwayStatus, savingsRate, setActiveTab, setCurrency,
       heroWealthHidden, toggleHeroWealthVisibility, settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
       totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
-      goldChangePct, goldChangeAED, selectionToolbar
+      goldChangePct, goldChangeAED, selectionToolbar, subTab, setSubTab, insightsView, onSubTabTouchStart, onSubTabTouchEnd
     } = props;
 
     const isPositive = monthlySavingsAED >= 0;
@@ -104,6 +104,28 @@
         )
       ),
 
+
+      h("div", {
+        className: "loan-filter-segment is-two home-subtabs home-subtabs-under-hero",
+        role: "tablist",
+        "aria-label": "Home sections",
+        onTouchStart: onSubTabTouchStart,
+        onTouchEnd: onSubTabTouchEnd
+      },
+        h("button", {
+          type: "button", role: "tab", "aria-selected": subTab === "home",
+          onClick: () => setSubTab("home"),
+          onKeyDown: e => { if (e.key === "ArrowRight") setSubTab("insights"); },
+          className: `loan-filter-tab ${subTab === "home" ? "is-active" : ""}`
+        }, "Home"),
+        h("button", {
+          type: "button", role: "tab", "aria-selected": subTab === "insights",
+          onClick: () => setSubTab("insights"),
+          onKeyDown: e => { if (e.key === "ArrowLeft") setSubTab("home"); },
+          className: `loan-filter-tab ${subTab === "insights" ? "is-active" : ""}`
+        }, "Insights")
+      ),
+      subTab === "home" ? h("div", { className: "home-subtab-content" },
       h("section", { className: "home-actions-section" },
         h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY"), h("h2", null)), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
         h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
@@ -150,6 +172,7 @@
           )))
         )
       )
+      ) : h("div", { className: "home-subtab-content home-insights-content" }, insightsView)
     );
   }
 
@@ -158,19 +181,39 @@
 
   function Overview(props) {
     const [subTab, setSubTab] = React.useState(props.activeTab === "analytics" ? "insights" : "home");
+    const touchStartRef = React.useRef(null);
     const Analytics = window.Tabs && window.Tabs.Analytics;
     const AnalyticsSummary = window.Tabs && window.Tabs.AnalyticsSummary;
     const insightsView = h(React.Fragment, null,
       typeof AnalyticsSummary === "function" ? h(AnalyticsSummary, props) : null,
       typeof Analytics === "function" ? h(Analytics, props) : h("div", { className: "home-empty" }, h("strong", null, "Insights are unavailable"), h("span", null, "Please reload AleemFin."))
     );
-    return h("div", { className: "max-w-2xl mx-auto w-full", style: { overflowX: "hidden" } },
-      h("div", { className: "loan-filter-segment is-two home-subtabs", role: "tablist", "aria-label": "Home sections" },
-        h("button", { type: "button", role: "tab", "aria-selected": subTab === "home", onClick: () => setSubTab("home"), className: `loan-filter-tab ${subTab === "home" ? "is-active" : ""}` }, "Home"),
-        h("button", { type: "button", role: "tab", "aria-selected": subTab === "insights", onClick: () => setSubTab("insights"), className: `loan-filter-tab ${subTab === "insights" ? "is-active" : ""}` }, "Insights")
-      ),
-      subTab === "home" ? h(OverviewHome, props) : insightsView
-    );
+
+    const onSubTabTouchStart = e => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX, y: t.clientY };
+    };
+    const onSubTabTouchEnd = e => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      if (!start || !e.changedTouches || !e.changedTouches.length) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+      if (dx < 0) setSubTab("insights");
+      else setSubTab("home");
+    };
+
+    const homeProps = Object.assign({}, props, {
+      subTab, setSubTab, insightsView, onSubTabTouchStart, onSubTabTouchEnd
+    });
+
+    return h("div", {
+      className: "max-w-2xl mx-auto w-full overview-shell",
+      style: { overflowX: "hidden" }
+    }, h(OverviewHome, homeProps));
   }
 
   window.Tabs.Overview = Overview;
