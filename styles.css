@@ -2484,3 +2484,75 @@ html.dark {
   .home-subtab-content > *,
   .home-insights-content { animation: none !important; }
 }
+
+/* v57 — Apple-native hierarchy and spacing refinement */
+.home-subtab-content { display:flex; flex-direction:column; gap:16px; }
+.home-stats-grid { gap:12px !important; }
+.home-actions-section { margin-top:0 !important; }
+.home-content-grid { margin-top:0 !important; }
+
+/* The rear activity/history surfaces should read as part of the front card, not as floating cards. */
+.account-activity-card,
+.account-activity-card-dark,
+.loan-history-card,
+.loan-history-card-dark { box-shadow:none !important; }
+
+/* Assets portfolio cards: ~30% more visual presence without making the list feel heavy. */
+.asset-row-card {
+  min-height:116px;
+  padding:16px !important;
+  grid-template-columns:46px 1fr auto;
+  gap:13px;
+  border-radius:20px !important;
+}
+.asset-row-icon { width:44px; height:44px; border-radius:13px; }
+.asset-row-title h3 { font-size:14px; }
+.asset-row-title span { font-size:8px; }
+.asset-row-main p { font-size:9px; margin-top:4px; }
+.asset-row-progress { margin-top:9px; max-width:230px; height:4px; }
+.asset-row-value strong { font-size:13px; }
+.asset-row-value small { font-size:9px; }
+
+.assets-control-card {
+  padding:15px;
+  border:1px solid var(--af-divider);
+  border-radius:20px;
+  background:rgba(255,255,255,.82);
+}
+.assets-control-card.is-dark { background:var(--af-dark-card); border-color:var(--af-dark-border); }
+.assets-control-badge {
+  flex:none; padding:5px 8px; border-radius:999px;
+  background:color-mix(in srgb,var(--af-accent) 10%,transparent);
+  color:var(--af-accent); font-size:9px; font-weight:800;
+}
+.assets-control-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:13px; }
+.assets-control-grid > div { min-width:0; padding-top:10px; border-top:1px solid var(--af-divider); }
+.assets-control-grid span { display:block; font-size:8px; color:var(--af-gray); text-transform:uppercase; letter-spacing:.06em; }
+.assets-control-grid b { display:block; margin-top:4px; font-size:11px; line-height:1.25; }
+.assets-control-grid small { display:block; margin-top:4px; font-size:8px; line-height:1.35; color:var(--af-gray); }
+
+/* Insights: calm hierarchy — current position → how you got here → what to control → detail. */
+.insight-page { display:flex; flex-direction:column; gap:14px; }
+.insight-control-panel { margin-top:0; }
+.insight-control-list { display:flex; flex-direction:column; gap:0; margin-top:6px; }
+.insight-control-row { display:grid; grid-template-columns:26px minmax(0,1fr) auto; align-items:center; gap:10px; padding:12px 0; border-top:1px solid var(--af-divider); }
+.insight-control-index { width:24px; height:24px; display:grid; place-items:center; border-radius:999px; background:var(--af-control-fill); color:var(--af-gray); font-size:9px; font-weight:800; }
+.insight-control-copy { min-width:0; }
+.insight-control-copy strong { display:block; font-size:12px; }
+.insight-control-copy span { display:block; margin-top:3px; font-size:9px; line-height:1.35; color:var(--af-gray); }
+.insight-control-value { display:flex; align-items:center; gap:8px; text-align:right; }
+.insight-control-value b { max-width:110px; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.insight-control-value button { min-height:30px; padding:0 9px; border:0; border-radius:9px; background:var(--af-control-fill); color:var(--af-label); font-size:9px; font-weight:750; }
+html.dark .insight-control-value button { color:var(--af-bg); }
+.insight-what-changed .insight-ai-label { letter-spacing:.08em; }
+
+@media (max-width:600px) {
+  .assets-control-grid { grid-template-columns:1fr; gap:0; }
+  .assets-control-grid > div { padding:11px 0; }
+  .asset-row-card { min-height:110px; grid-template-columns:42px minmax(0,1fr) auto; padding:14px !important; gap:10px; }
+  .asset-row-icon { width:40px; height:40px; }
+  .asset-row-title h3 { font-size:13px; }
+  .asset-row-value strong { font-size:12px; }
+  .insight-control-row { grid-template-columns:24px minmax(0,1fr); }
+  .insight-control-value { grid-column:2; justify-content:space-between; text-align:left; margin-top:3px; }
+}
