@@ -229,7 +229,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.57 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.58 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -237,7 +237,7 @@
       // Root list — grouped like iOS Settings, tap a row to drill in.
       pageContent = h(React.Fragment, null,
         h("div", { className: "settings-hero" },
-          h("h2", { className: `text-sm font-bold uppercase tracking-wider ${accent.textStrong}` }, "Settings"),
+          h("h2", { className: `text-sm font-bold ${accent.textStrong}` }, "App settings"),
           h("p", { className: "text-xs text-zinc-400 mt-1" }, "Preferences and data stored on this device.")
         ),
         Group(null, [
@@ -256,7 +256,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.0", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.58", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
