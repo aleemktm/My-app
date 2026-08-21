@@ -6,7 +6,7 @@
       numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate,
       setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort,
       setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO,
-      todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, undoLoanMovement
+      todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, selectedKeys, undoLoanMovement
     } = props;
     const h = React.createElement;
     const lentCount = sortedLoans.filter(l => l.type === "lent").length;
@@ -109,15 +109,21 @@
               const historyRows = history.map(mv => {
                 const isRepayment = mv.kind === "repayment";
                 const isInitial = mv.kind === "principal" && mv.id === firstPrincipalId;
-                const label = isRepayment ? "Repaid" : isInitial ? (loan.type === "lent" ? "Lent out" : "Borrowed") : "Added more";
-                const sign = isRepayment ? "−" : "+";
-                const amountClass = isRepayment
-                  ? (loan.type === "lent" ? "loan-history-in" : "loan-history-out")
-                  : (loan.type === "lent" ? "loan-history-out" : "loan-history-in");
+                // A lent loan is money OUT when lent and money IN when repaid.
+                // A borrowed loan is the inverse. Keep the history terminology and
+                // arrow direction aligned with AleemFin's app-wide cash-flow rule.
+                const isInflow = loan.type === "lent" ? isRepayment : !isRepayment;
+                const label = isRepayment ? "Repaid" : (loan.type === "lent" ? "Lent out" : "Borrowed");
+                const sign = isInflow ? "+" : "−";
+                const amountClass = isInflow ? "loan-history-in" : "loan-history-out";
+                const FlowIcon = isInflow ? Icons.IconArrowDown45 : Icons.IconArrowUp45;
 
-                return h("div", { key: mv.id, className: "loan-history-row" },
+                return h("div", { key: mv.id, className: `loan-history-row ${isInflow ? "loan-history-row-in" : "loan-history-row-out"}` },
                   h("div", { className: "loan-history-main" },
-                    h("strong", null, label),
+                    h("div", { className: "loan-history-label-wrap" },
+                      h(FlowIcon, { className: `loan-history-flow-icon ${amountClass}` }),
+                      h("strong", null, label)
+                    ),
                     h("span", null, dateFmt(mv.date))
                   ),
                   h("div", { className: "loan-history-value" },
@@ -134,7 +140,16 @@
 
               const frontCard = h("div", {
                 className: `loan-native-card loan-native-front ${darkMode ? "loan-native-dark" : ""} ${typeClass}`,
-                onClick: () => setExpandedLoanHistory(prev => ({ ...prev, [loan.id]: !prev[loan.id] })),
+                onClick: () => {
+                  // In selection mode, tapping a loan selects/deselects it instead of
+                  // expanding its history. This prevents the long-press selection
+                  // gesture from fighting with the normal loan-card expansion tap.
+                  if (selectedKeys && selectedKeys.size > 0) {
+                    window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key: selectionKey("loan", loan.id) } }));
+                    return;
+                  }
+                  setExpandedLoanHistory(prev => ({ ...prev, [loan.id]: !prev[loan.id] }));
+                },
                 role: "button",
                 tabIndex: 0,
                 "aria-expanded": expanded,
@@ -178,13 +193,13 @@
               },
                 h("div", { className: "loan-history-card-head" },
                   h("div", null,
-                    h("span", null, "LOAN HISTORY"),
+                    h("span", { style: { color: darkMode ? "#FFFFFF" : undefined } }, "LOAN HISTORY"),
                     h("strong", null, `${history.length} ${history.length === 1 ? "record" : "records"}`)
                   )
                 ),
                 history.length
                   ? h("div", { className: "loan-history-list" }, historyRows)
-                  : h("p", { className: "loan-history-empty" }, "No payment or added-amount records yet.")
+                  : h("p", { className: "loan-history-empty" }, "No loan history records yet.")
               );
 
               return h(window.SwipeRow, {
@@ -194,7 +209,7 @@
                 onLeftAction: () => openRepayment(loan),
                 onLeftAction2: () => openAddMore(loan),
                 leftActionLabel: "Record payment",
-                leftAction2Label: "Add more",
+                leftAction2Label: loan.type === "lent" ? "Lend more" : "Borrow more",
                 selectionKey: selectionKey("loan", loan.id)
               }, h("div", { className: `loan-card-stack ${expanded ? "is-expanded" : ""}` },
                 frontCard,

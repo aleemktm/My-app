@@ -61,6 +61,18 @@
       h("h2", { className: "settings-subpage-title" }, title)
     );
 
+    const testNotification = async () => {
+      const fn = window.__aleemFinTestNativeNotification;
+      if (typeof fn !== "function") { alert("Native notifications are not available in this version of AleemFin."); return; }
+      const result = await fn();
+      if (result && result.ok) {
+        alert("Test notification scheduled. You should receive it in about 3 seconds.");
+      } else if (result && result.reason === "standalone-required") {
+        alert("Notifications require the native iPhone app for this test.");
+      } else {
+        alert("AleemFin could not schedule the test notification. Please make sure Notifications are allowed for AleemFin in iPhone Settings.");
+      }
+    };
     const enableNotifications = async () => {
       if (settings.notificationsEnabled === true) {
         updateSettings({ notificationsEnabled: false });
@@ -186,27 +198,7 @@
         Group(null, [
           h(SettingsRow, { key: "backup", icon: Icons.IconDownload, title: "Manual backup", detail: `${accounts.length} accounts · ${transactions.length} transactions · ${budgets.length} budgets · ${goals.length} goals · ${dataSizeLabel}` },
             h("button", { onClick: exportBackup, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Backup")),
-          (() => {
-            const autoBackup = typeof getAutomaticBackup === "function" ? getAutomaticBackup() : null;
-            const meta = typeof getAutomaticICloudBackupMeta === "function" ? getAutomaticICloudBackupMeta() : null;
-            const last = (meta && meta.createdAt) || (autoBackup && autoBackup.createdAt);
-            const lastLabel = last ? new Date(last).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "No backup yet";
-            return h(SettingsRow, {
-              key: "auto-icloud",
-              icon: Icons.IconDownload,
-              title: "Automatic iCloud backup",
-              detail: settings.automaticICloudBackupEnabled !== false
-                ? `ON · iCloud Drive / AleemFin / AleemFin_Backup.json · Last backup: ${lastLabel}`
-                : "OFF · Your data will not be backed up automatically to iCloud."
-            },
-              IOSSwitch({
-                checked: settings.automaticICloudBackupEnabled !== false,
-                onChange: () => updateSettings({ automaticICloudBackupEnabled: settings.automaticICloudBackupEnabled === false }),
-                label: "Automatic iCloud backup"
-              })
-            );
-          })(),
-          h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Restore your latest AleemFin backup from iCloud Drive or another backup file." },
+          h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Restore an AleemFin backup file previously saved on this device or shared from another backup location." },
             h("label", { className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500 cursor-pointer" }, "Restore", h("input", { type: "file", accept: ".json", onChange: importBackup, className: "hidden" }))),
           h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file." },
             h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export"))
@@ -226,8 +218,10 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Notifications" }),
         Group(null, [
-          h(SettingsRow, { key: "notif", icon: Icons.IconBell, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : standalonePWA ? "Allow AleemFin to send reminders and important updates." : "Install AleemFin on the iPhone Home Screen to enable web notifications." },
+          h(SettingsRow, { key: "notif", icon: Icons.IconBell, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : nativeApp ? "Allow AleemFin to send reminders and important updates." : standalonePWA ? "Allow AleemFin to send reminders and important updates." : "Install AleemFin on the iPhone Home Screen to enable web notifications." },
             IOSSwitch({ checked: settings.notificationsEnabled === true, onChange: enableNotifications, label: "Notifications" })),
+          nativeApp && h(SettingsRow, { key: "notif-test", icon: Icons.IconBell, title: "Test notification", detail: "Send a native iOS test notification in about 3 seconds." },
+            h("button", { type: "button", onClick: testNotification, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Test")),
           h(SettingsRow, { key: "loan-rem", icon: Icons.IconBell, title: "Loan reminders", detail: "Remind you about upcoming loan repayments." },
             IOSSwitch({ checked: settings.loanRemindersEnabled !== false, onChange: () => updateSettings({ loanRemindersEnabled: settings.loanRemindersEnabled === false }), label: "Loan reminders" })),
           h(SettingsRow, { key: "recur-rem", icon: Icons.IconBell, title: "Recurring reminders", detail: "Remind you about recurring entries when they are due." },

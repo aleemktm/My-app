@@ -206,7 +206,10 @@
     const drivers = [];
     if (Math.abs(monthlySavingsAED) >= 0.01) drivers.push({ label: monthlySavingsAED >= 0 ? "Savings" : "Cash flow shortfall", value: monthlySavingsAED, tone: monthlySavingsAED >= 0 ? "positive" : "negative" });
     if (Math.abs(goldChangeAED) >= 0.01) drivers.push({ label: goldChangeAED >= 0 ? "Gold gained" : "Gold fell", value: goldChangeAED, tone: goldChangeAED >= 0 ? "positive" : "negative" });
-    if (loanChange.hasData && Math.abs(loanChange.changeAED) >= 0.01) drivers.push({ label: loanChange.changeAED >= 0 ? "Loans increased" : "Loans reduced", value: loanChange.changeAED, tone: loanChange.changeAED >= 0 ? "negative" : "positive" });
+    if (loanChange.hasData && Math.abs(loanChange.changeAED) >= 0.01) {
+      const label = loanChange.changeAED >= 0 ? "Loan activity" : "Loan activity reversed";
+      drivers.push({ label, value: loanChange.changeAED, tone: "neutral" });
+    }
     const wealthDriver = monthlySavingsAED + goldChangeAED;
     const base = Math.max(1, Math.abs(netWorthTotal - wealthDriver));
     const wealthPct = wealthDriver / base * 100;
@@ -223,7 +226,7 @@
       hasMeaningfulData && h("div", { className: "insight-change-list" },
         drivers.slice(0, 3).map((item, index) => h("div", { key: `${item.label}-${index}`, className: "insight-change-row" },
           h("span", null, item.label),
-          h("strong", { className: item.tone === "positive" ? "insight-positive" : "insight-negative" }, moneyDelta(item.value, fmt))
+          h("strong", { className: item.tone === "positive" ? "insight-positive" : item.tone === "negative" ? "insight-negative" : "insight-neutral" }, item.tone === "neutral" ? `${item.value >= 0 ? "+" : "−"}${fmt(Math.abs(item.value))}` : moneyDelta(item.value, fmt))
         ))
       ),
       h("div", { className: "insight-note-pill" }, "Based on recorded activity • transfers excluded"));

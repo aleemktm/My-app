@@ -35,14 +35,10 @@
       h("section", { className:"recurring-list-section" },
         h("div",{className:"recurring-section-head"},h("div",null,h("span",null,"YOUR SCHEDULES"),h("strong",null,`${recurringItems.length} item${recurringItems.length===1?"":"s"}`))),
         recurringItems.length===0 ? h("div",{className:"recurring-empty"},h(Icons.IconCalendar,{className:"w-6 h-6"}),h("strong",null,"No recurring items yet"),h("span",null,"Add salary, rent, subscriptions or other predictable money."),h("button",{type:"button",onClick:()=>openRecurringEditor(),className:"recurring-primary"},"Create first schedule")) :
-        h("div",{className:"recurring-list"}, recurringItems.slice().sort((a,b)=>(a.nextDate||"").localeCompare(b.nextDate||"")).map(item=>h(window.SwipeRow,{key:item.id,onEdit:()=>openRecurringEditor(item),onDelete:()=>deleteRecurringItem(item),selectionKey:selectionKey("recurring",item.id)},
+        h("div",{className:"recurring-list"}, recurringItems.slice().sort((a,b)=>(a.nextDate||"").localeCompare(b.nextDate||"")).map(item=>h(window.SwipeRow,{key:item.id,onEdit:()=>openRecurringEditor(item),onDelete:()=>deleteRecurringItem(item),onLeftAction:item.active?()=>recordRecurringOccurrence(item):null,onLeftAction2:()=>updateRecurringItem(item,{active:!item.active}),onLeftAction3:item.active?()=>updateRecurringItem(item,{nextDate:advanceRecurringDate(item.nextDate,item.frequency)}):null,leftActionLabel:"Record now",leftAction2Label:item.active?"Pause":"Resume",leftAction3Label:"Skip next",selectionKey:selectionKey("recurring",item.id)},
           h("article",{className:`recurring-card ${darkMode?"is-dark":""} ${!item.active?"is-paused":""}`},
             h("div",{className:"recurring-card-main"},h("div",{className:`recurring-card-icon ${item.type==="income"?"is-income":"is-expense"}`},item.type==="income"?h(Icons.IconArrowDown45,{className:"w-4 h-4"}):h(Icons.IconArrowUp45,{className:"w-4 h-4"})),h("div",{className:"min-w-0 flex-1"},h("div",{className:"recurring-card-title-row"},h("h3",null,item.title),h("span",{className:item.active?"status-active":"status-paused"},item.active?"Active":"Paused")),h("p",null,`${item.frequency} · Next ${dateFmt(item.nextDate)} · ${item.category}`)),h("div",{className:`recurring-card-amount ${item.type==="income"?"is-income":"is-expense"}`},`${item.type==="income"?"+":"-"}${item.currency} ${numFmt(item.amount)}`)),
-            h("div",{className:"recurring-card-actions"},
-              item.active&&h("button",{type:"button",onClick:()=>recordRecurringOccurrence(item),className:"recurring-action-primary"},h(Icons.IconPlus,{className:"w-3.5 h-3.5"}),"Record now"),
-              h("button",{type:"button",onClick:()=>updateRecurringItem(item,{active:!item.active}),className:"recurring-action-secondary"},item.active?"Pause":"Resume"),
-              item.active&&h("button",{type:"button",onClick:()=>updateRecurringItem(item,{nextDate:advanceRecurringDate(item.nextDate,item.frequency)}),className:"recurring-action-secondary"},"Skip next")
-            )
+
           )
         )))
       )
