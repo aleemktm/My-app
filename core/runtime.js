@@ -11,6 +11,14 @@ var {
 var hapticFeedback = function(duration) {
   try {
     if (window.__aleemFinHapticsEnabled === false) return;
+    var cap = window.Capacitor;
+    var haptics = cap && cap.Plugins && cap.Plugins.Haptics ? cap.Plugins.Haptics : null;
+    if (haptics && typeof haptics.impact === "function") {
+      var d = Number(duration || 10);
+      var style = d >= 16 ? "MEDIUM" : d >= 11 ? "LIGHT" : "LIGHT";
+      haptics.impact({ style: style });
+      return;
+    }
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.hapticFeedback) {
       window.webkit.messageHandlers.hapticFeedback.postMessage({ duration: duration || 10 });
       return;
@@ -50,19 +58,22 @@ if (!window.__aleemFinHapticsInstalled) {
 }
 window.__aleemSelection = window.__aleemSelection || new Set();
 var selectionEvent = "aleem-selection-updated";
-var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, editLabel = "Edit", deleteLabel = "Delete", leftActionLabel = "Record payment", leftAction2Label = "Add more", selectionKey }) => {
+var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLeftAction3, editLabel = "Edit", deleteLabel = "Delete", leftActionLabel = "Record payment", leftAction2Label = "Add more", leftAction3Label = "Skip next", selectionKey }) => {
   const [side, setSide] = useState(0); // -1 = left-side actions, 1 = right-side actions
   const startX = useRef(0);
   const startY = useRef(0);
   const dragging = useRef(false);
   const moved = useRef(false);
   const longPress = useRef(null);
+  const longPressed = useRef(false);
+  const suppressNextClick = useRef(false);
   const contentRef = useRef(null);
   const key = selectionKey || null;
   const isSelected = key ? !!(window.__aleemSelection && window.__aleemSelection.has(key)) : false;
   const hasLeftActions = !!(onLeftAction || onLeftAction2);
   const RIGHT_ACTION_WIDTH = 144;
-  const LEFT_ACTION_WIDTH = hasLeftActions ? 144 : 0;
+  const LEFT_ACTION_COUNT = [onLeftAction, onLeftAction2, onLeftAction3].filter(Boolean).length;
+  const LEFT_ACTION_WIDTH = hasLeftActions ? 72 * Math.max(2, LEFT_ACTION_COUNT) : 0;
 
   const clearLongPress = () => { if (longPress.current) { clearTimeout(longPress.current); longPress.current = null; } };
   const widthForSide = s => s === -1 ? LEFT_ACTION_WIDTH : RIGHT_ACTION_WIDTH;
@@ -73,11 +84,16 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, editL
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const selectionMode = key && window.__aleemSelection && window.__aleemSelection.size > 0;
     startX.current = e.clientX; startY.current = e.clientY;
-    dragging.current = true; moved.current = false; clearLongPress();
+    dragging.current = true; moved.current = false; longPressed.current = false; clearLongPress();
     if (key && !selectionMode) {
       longPress.current = setTimeout(() => {
         if (!dragging.current || moved.current) return;
-        dragging.current = false; clearLongPress(); close(); hapticFeedback(18);
+        longPressed.current = true;
+        suppressNextClick.current = true;
+        dragging.current = false;
+        clearLongPress();
+        close();
+        hapticFeedback(18);
         window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key } }));
       }, 520);
     }
@@ -107,6 +123,12 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, editL
     if (!dragging.current) return;
     dragging.current = false;
     const dx = e.clientX - startX.current;
+    if (longPressed.current) {
+      longPressed.current = false;
+      suppressNextClick.current = true;
+      clearLongPress();
+      return;
+    }
     if (!moved.current && key && window.__aleemSelection && window.__aleemSelection.size > 0) {
       window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key } }));
       moved.current = true; return;
@@ -148,9 +170,10 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, editL
   const action = fn => { close(); if (typeof fn === "function") fn(); };
 
   return React.createElement("div", { className: `swipe-row${isSelected ? " is-selected" : ""}`, "data-selection-key": key || undefined },
-    hasLeftActions && React.createElement("div", { className: `swipe-actions swipe-actions-left${side === -1 ? " is-open" : ""}`, "aria-hidden": side !== -1 },
+    hasLeftActions && React.createElement("div", { className: `swipe-actions swipe-actions-left${LEFT_ACTION_COUNT >= 3 ? " swipe-actions-left-three" : ""}${side === -1 ? " is-open" : ""}`, "aria-hidden": side !== -1 },
       React.createElement("button", { type: "button", className: "swipe-action swipe-action-record", onClick: () => action(onLeftAction), tabIndex: side === -1 ? 0 : -1, "aria-label": leftActionLabel, disabled: !onLeftAction }, "+", React.createElement("span", null, leftActionLabel)),
-      React.createElement("button", { type: "button", className: "swipe-action swipe-action-add-more", onClick: () => action(onLeftAction2), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction2Label, disabled: !onLeftAction2 }, "+", React.createElement("span", null, leftAction2Label))
+      React.createElement("button", { type: "button", className: "swipe-action swipe-action-add-more", onClick: () => action(onLeftAction2), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction2Label, disabled: !onLeftAction2 }, "+", React.createElement("span", null, leftAction2Label)),
+      onLeftAction3 && React.createElement("button", { type: "button", className: "swipe-action swipe-action-skip", onClick: () => action(onLeftAction3), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction3Label }, "→", React.createElement("span", null, leftAction3Label))
     ),
     React.createElement("div", { className: `swipe-actions swipe-actions-right${side === 1 ? " is-open" : ""}`, "aria-hidden": side !== 1 },
       React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", onClick: () => action(onEdit), tabIndex: side === 1 ? 0 : -1, "aria-label": editLabel, disabled: !onEdit }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" })),
@@ -159,13 +182,29 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, editL
     React.createElement("div", {
       ref: contentRef, className: `swipe-content${side ? " is-swiped" : ""}`,
       onPointerDown, onPointerMove, onPointerUp,
-      onPointerCancel: () => { clearLongPress(); dragging.current = false; setOffset(side === -1 ? LEFT_ACTION_WIDTH : side === 1 ? -RIGHT_ACTION_WIDTH : 0); },
-      onClick: e => {
-        if (key && window.__aleemSelection && window.__aleemSelection.size > 0) {
-          e.preventDefault(); e.stopPropagation();
-          if (moved.current) { moved.current = false; return; }
-          window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key } })); return;
+      onPointerCancel: () => { clearLongPress(); dragging.current = false; longPressed.current = false; suppressNextClick.current = false; setOffset(side === -1 ? LEFT_ACTION_WIDTH : side === 1 ? -RIGHT_ACTION_WIDTH : 0); },
+      onClickCapture: e => {
+        // A long press has already selected the item. Suppress the synthetic
+        // click that iOS emits afterwards so it cannot expand the loan or
+        // immediately toggle the selection back off.
+        if (suppressNextClick.current) {
+          suppressNextClick.current = false;
+          e.preventDefault();
+          e.stopPropagation();
+          return;
         }
+        // Capture the tap before child card handlers. Once selection mode is
+        // active, every normal tap is exclusively select/deselect.
+        if (key && window.__aleemSelection && window.__aleemSelection.size > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!moved.current) window.dispatchEvent(new CustomEvent("aleem-select", { detail: { key } }));
+          moved.current = false;
+          return;
+        }
+        if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; }
+      },
+      onClick: e => {
         if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; }
       }
     }, children)
