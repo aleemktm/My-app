@@ -627,31 +627,6 @@ const applyLoanTransactionBalance = (accs, tx, amountInAccountCurrency) => {
     return { ...acc, balance: acc.balance + delta };
   });
 };
-const normalizeLoanFromMovements = loan => {
-  const movements = Array.isArray(loan?.movements) ? loan.movements : [];
-  const principal = movements.filter(m => m.kind === "principal").reduce((sum,m)=>sum+Number(m.amount||0),0);
-  const repaid = movements.filter(m => m.kind === "repayment").reduce((sum,m)=>sum+Number(m.amount||0),0);
-  const first = movements.find(m => m.kind === "principal");
-  return { ...loan, amount: principal, repaid: Math.min(repaid, principal), accountId: first?.accountId || null, date: first?.date || loan.date };
-};
-const removeLoanMovementsForTransactions = (baseLoans, txsToRemove) => {
-  const idsByLoan = new Map();
-  (txsToRemove || []).forEach(tx => {
-    if (!tx?.loanId) return;
-    const key = String(tx.loanId);
-    const set = idsByLoan.get(key) || new Set();
-    set.add(String(tx.movementId || tx.id));
-    idsByLoan.set(key, set);
-  });
-  return baseLoans.reduce((out, loan) => {
-    const ids = idsByLoan.get(String(loan.id));
-    if (!ids) { out.push(loan); return out; }
-    const remaining = (loan.movements || []).filter(m => !ids.has(String(m.id)));
-    if (!remaining.some(m => m.kind === "principal" && Number(m.amount||0) > 1e-9)) return out;
-    out.push(normalizeLoanFromMovements({ ...loan, movements: remaining }));
-    return out;
-  }, []);
-};
 const handleUndo = () => {
   if (history.length === 0) return;
   const previousState = history[history.length - 1];
@@ -685,64 +660,34 @@ const handleRedo = () => {
   persistAllData(nextState.accounts, nextState.assets, nextState.loans, nextState.transactions);
 };
 const undoLoanMovement = (loanId, movementId, legacyTransactionId) => {
-  const loan = loans.find(l => l.id === loanId);
+  const loan = loans.find(l => String(l.id) === String(loanId));
   if (!loan) return;
-  let movement = (loan.movements || []).find(m => m.id === movementId);
-  let linkedTx = legacyTransactionId
-    ? transactions.find(t => t.id === legacyTransactionId && t.loanId === loanId)
-    : transactions.find(t => t.loanId === loanId && t.movementId === movementId);
-
-  if (!movement && linkedTx) {
-    movement = {
-      id: linkedTx.movementId || linkedTx.id,
-      kind: linkedTx.category === "Loan Repayment" ? "repayment" : "principal",
-      amount: loanAmountFromTransaction(linkedTx, loan),
-      accountId: linkedTx.accountId,
-      date: linkedTx.date
-    };
-  }
-  if (!movement) return;
-
   saveStateToHistory();
-
-  const movementAmount = Number(movement.amount || 0);
-  const updatedLoans = loans.map(l => {
-    if (l.id !== loanId) return l;
-    if (movement.kind === "repayment") {
-      return {
-        ...l,
-        repaid: Math.max(0, (l.repaid || 0) - movementAmount),
-        movements: (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id)
-      };
+  try {
+    const movement = (loan.movements || []).find(m => String(m.id) === String(movementId));
+    // Legacy repayment rows without a movement can still be safely reversed,
+    // but the parent Loan is never touched.
+    if (!movement && legacyTransactionId) {
+      const legacyTx = transactions.find(t => String(t.id) === String(legacyTransactionId) && String(t.loanId) === String(loanId));
+      if (legacyTx && legacyTx.category === "Loan Repayment") {
+        const updatedAccs = reverseLoanTransactionBalance(accounts, legacyTx);
+        const updatedTxns = transactions.filter(t => String(t.id) !== String(legacyTx.id));
+        setAccounts(updatedAccs); setTransactions(updatedTxns);
+        persistAllData(updatedAccs, assets, loans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
+      }
+      return;
     }
-    const remainingMovements = (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id);
-    const remainingPrincipal = remainingMovements.filter(m => m.kind === "principal").reduce((sum, m) => sum + Number(m.amount || 0), 0);
-    if (remainingPrincipal <= 1e-9) return null;
-    return {
-      ...l,
-      amount: remainingPrincipal,
-      repaid: Math.min(l.repaid || 0, remainingPrincipal),
-      movements: remainingMovements
-    };
-  });
-
-  let updatedAccs = accounts;
-  let updatedTxns = transactions;
-  if (linkedTx) {
-    const accountImpact = Number(linkedTx.accountAmount != null ? linkedTx.accountAmount : linkedTx.amount || 0) || 0;
-    const delta = linkedTx.type === "income" ? -accountImpact : accountImpact;
-    updatedAccs = accounts.map(a => a.id === linkedTx.accountId
-      ? { ...a, balance: a.balance + delta }
-      : a);
-    updatedTxns = transactions.filter(t => t.id !== linkedTx.id);
+    if (!movement) return;
+    const result = window.AleemFinLoanDomain.removeMovement({ accounts, loans, transactions }, loanId, movementId, {
+      makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts
+    });
+    setLoans(result.loans); setAccounts(result.accounts); setTransactions(result.transactions);
+    persistAllData(result.accounts, assets, result.loans, result.transactions, exchangeRates, budgets, goals, recurringItems);
+  } catch (err) {
+    alert(err && err.message ? err.message : "Unable to undo this loan movement.");
   }
-
-  const cleanedLoans = updatedLoans.filter(Boolean);
-  setLoans(cleanedLoans);
-  setAccounts(updatedAccs);
-  setTransactions(updatedTxns);
-  persistAllData(updatedAccs, assets, cleanedLoans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
 };
+
 const [modalOpen, setModalOpen] = useState(false);
 const [modalClosing, setModalClosing] = useState(false);
 const modalCloseTimerRef = useRef(null);
@@ -809,24 +754,46 @@ const bulkDeleteSelected = () => {
   saveStateToHistory();
   let updatedAccs = [...accounts], updatedAsts = [...assets], updatedLoans = [...loans], updatedTxns = [...transactions];
   let updatedBudgets = [...budgets], updatedGoals = [...goals], updatedRecurring = [...recurringItems];
-  const ids = (type) => new Set(keys.filter(k => k.startsWith(type+":")).map(k => k.split(":")[1]));
-  const txIds = ids("transaction"); if (txIds.size) {
+  const ids = type => new Set(keys.filter(k => k.startsWith(type+":" )).map(k => k.split(":")[1]));
+  const txIds = ids("transaction");
+  if (txIds.size) {
     const removedTxs = transactions.filter(t => txIds.has(String(t.id)));
-    updatedTxns = transactions.filter(t => !txIds.has(String(t.id)));
-    removedTxs.forEach(tx => {
-      if (tx.accountId) updatedAccs = updatedAccs.map(a => a.id === tx.accountId ? { ...a, balance: a.balance + (tx.type === "income" ? -(tx.accountAmount ?? tx.amount) : (tx.type === "expense" ? (tx.accountAmount ?? tx.amount) : 0)) } : a);
+    removedTxs.filter(t => t.loanId && t.movementId).forEach(t => {
+      try {
+        const result = window.AleemFinLoanDomain.removeMovement({ accounts: updatedAccs, loans: updatedLoans, transactions: updatedTxns }, t.loanId, t.movementId, { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts: updatedAccs });
+        updatedAccs = result.accounts; updatedLoans = result.loans; updatedTxns = result.transactions;
+      } catch (err) {}
     });
-    updatedLoans = removeLoanMovementsForTransactions(updatedLoans, removedTxs);
+    removedTxs.filter(t => !t.loanId).forEach(tx => {
+      if (tx.type === "transfer") {
+        updatedAccs = updatedAccs.map(a => a.id === tx.accountId ? { ...a, balance: a.balance + tx.amount } : a.id === tx.toAccountId ? { ...a, balance: a.balance - (tx.toAmount ?? tx.amount) } : a);
+      } else if (tx.accountId) {
+        const raw = tx.accountAmount ?? tx.amount;
+        updatedAccs = updatedAccs.map(a => a.id === tx.accountId ? { ...a, balance: a.balance + (tx.type === "income" ? -raw : tx.type === "expense" ? raw : 0) } : a);
+      }
+      updatedTxns = updatedTxns.filter(t => t.id !== tx.id);
+    });
   }
-  const accountIds = ids("account"); if (accountIds.size) { updatedAccs = updatedAccs.filter(a => !accountIds.has(String(a.id))); updatedTxns = updatedTxns.filter(t => !accountIds.has(String(t.accountId)) && !accountIds.has(String(t.toAccountId))); }
+  const accountIds = ids("account");
+  if (accountIds.size) {
+    const linked = transactions.filter(t => accountIds.has(String(t.accountId)) && t.loanId && t.movementId);
+    linked.forEach(t => {
+      try {
+        const result = window.AleemFinLoanDomain.removeMovement({ accounts: updatedAccs, loans: updatedLoans, transactions: updatedTxns }, t.loanId, t.movementId, { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts: updatedAccs });
+        updatedAccs = result.accounts; updatedLoans = result.loans; updatedTxns = result.transactions;
+      } catch (err) {}
+    });
+    updatedAccs = updatedAccs.filter(a => !accountIds.has(String(a.id)));
+    updatedTxns = updatedTxns.filter(t => !accountIds.has(String(t.accountId)) && !accountIds.has(String(t.toAccountId)));
+  }
   const assetIds=ids("asset"); if(assetIds.size) updatedAsts=updatedAsts.filter(a=>!assetIds.has(String(a.id)));
   const loanIds=ids("loan");
-  if(loanIds.size) {
-    const linkedLoanTxns = transactions.filter(t => t.loanId && loanIds.has(String(t.loanId)));
-    linkedLoanTxns.forEach(tx => { updatedAccs = reverseLoanTransactionBalance(updatedAccs, tx); });
-    updatedTxns = updatedTxns.filter(t => !(t.loanId && loanIds.has(String(t.loanId))));
-    updatedLoans = updatedLoans.filter(l => !loanIds.has(String(l.id)));
-  }
+  if(loanIds.size) loanIds.forEach(id => {
+    try {
+      const result = window.AleemFinLoanDomain.deleteLoan({ accounts: updatedAccs, loans: updatedLoans, transactions: updatedTxns }, id);
+      updatedAccs = result.accounts; updatedLoans = result.loans; updatedTxns = result.transactions;
+    } catch (err) {}
+  });
   const budgetIds=ids("budget"); if(budgetIds.size) updatedBudgets=updatedBudgets.filter(b=>!budgetIds.has(String(b.id)));
   const goalIds=ids("goal"); if(goalIds.size) updatedGoals=updatedGoals.filter(g=>!goalIds.has(String(g.id)));
   const recurringIds=ids("recurring"); if(recurringIds.size) updatedRecurring=updatedRecurring.filter(r=>!recurringIds.has(String(r.id)));
@@ -1566,216 +1533,64 @@ const handleFormSubmit = e => {
     }
     setAssets(updatedAsts);
   } else if (modalType === "loan") {
-    if (editingId) {
-      const existingLoan = loans.find(l => l.id === editingId);
-      if (!existingLoan) return;
-      // When a loan-linked Ledger row is edited, mutate that exact movement.
-      // The Loan card editor still edits the aggregate principal below.
-      if (editingLoanMovementId) {
-        const targetMovement = (existingLoan.movements || []).find(m => String(m.id) === String(editingLoanMovementId));
-        if (targetMovement) {
-          const oldCurrency = existingLoan.currency || "AED";
-          const selectedAccount = formInput.accountId ? accounts.find(a => String(a.id) === String(formInput.accountId)) : null;
-          const effectiveCurrency = selectedAccount ? selectedAccount.currency : (formInput.currency || oldCurrency);
-          const convertAmount = value => oldCurrency === effectiveCurrency ? Number(value || 0) : convertFromAED(convertToAED(Number(value || 0), oldCurrency), effectiveCurrency);
-          const nextAmount = Number(amt);
-          const convertedMovements = (existingLoan.movements || []).map(m => String(m.id) === String(targetMovement.id) ? {
-            ...m, amount: nextAmount, date: formInput.date || m.date, accountId: selectedAccount ? selectedAccount.id : null
-          } : { ...m });
-          // Changing a movement's currency changes the loan currency as a whole, preserving every movement's value.
-          const finalMovements = oldCurrency === effectiveCurrency ? convertedMovements : convertedMovements.map(m => ({ ...m, amount: convertAmount(m.amount) }));
-          const linkedTxByMovement = new Map(transactions.filter(t => String(t.loanId) === String(existingLoan.id) && t.movementId).map(t => [String(t.movementId), t]));
-          let accsWorking = [...accounts];
-          let txnsWorking = [...transactions];
-          finalMovements.forEach(m => {
-            const linkedTx = linkedTxByMovement.get(String(m.id));
-            if (!linkedTx) return;
-            accsWorking = reverseLoanTransactionBalance(accsWorking, linkedTx);
-            const account = m.accountId ? accounts.find(a => String(a.id) === String(m.accountId)) : null;
-            const accountAmount = account ? convertFromAED(convertToAED(Number(m.amount || 0), effectiveCurrency), account.currency) : null;
-            const repayment = m.kind === "repayment";
-            const nextTx = {
-              ...linkedTx,
-              title: repayment ? `${existingLoan.type === "lent" ? "Repayment from" : "Repayment to"} ${existingLoan.name}` : `${existingLoan.type === "lent" ? "Loan to" : "Loan from"} ${existingLoan.name}`,
-              type: repayment ? (existingLoan.type === "lent" ? "income" : "expense") : (existingLoan.type === "lent" ? "expense" : "income"),
-              category: repayment ? "Loan Repayment" : "Loan",
-              amount: Number(m.amount || 0), currency: effectiveCurrency, rateToAED: exchangeRates[effectiveCurrency] || 1,
-              accountAmount, accountId: m.accountId || null, date: m.date || linkedTx.date
-            };
-            accsWorking = applyLoanTransactionBalance(accsWorking, nextTx, accountAmount || 0);
-            txnsWorking = txnsWorking.map(t => t.id === linkedTx.id ? nextTx : t);
-          });
-          const principalTotal = finalMovements.filter(m => m.kind === "principal").reduce((a,m)=>a+Number(m.amount||0),0);
-          const repaidTotal = finalMovements.filter(m => m.kind === "repayment").reduce((a,m)=>a+Number(m.amount||0),0);
-          updatedLoans = loans.map(l => l.id === existingLoan.id ? { ...l, amount: principalTotal, repaid: Math.min(repaidTotal, principalTotal), currency: effectiveCurrency, accountId: finalMovements.find(m=>m.kind==="principal")?.accountId || null, date: finalMovements.find(m=>m.kind==="principal")?.date || l.date, movements: finalMovements } : l);
-          updatedAccs = accsWorking; updatedTxns = txnsWorking;
-          setLoans(updatedLoans); setAccounts(updatedAccs); setTransactions(updatedTxns);
-          persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
-          closeMainFormModal();
-          return;
+    // v74: every Loan mutation goes through the canonical collection-level
+    // domain. No Loan UI path performs its own account/Ledger reconciliation.
+    const loanDomain = window.AleemFinLoanDomain;
+    const domainOpts = {
+      makeId,
+      todayISO,
+      exchangeRates,
+      convertToAED,
+      convertFromAED,
+      accounts
+    };
+    try {
+      const state = { accounts, loans, transactions };
+      let result;
+      if (editingId) {
+        if (editingLoanMovementId) {
+          result = loanDomain.editMovement(state, editingId, editingLoanMovementId, {
+            amount: amt,
+            date: formInput.date,
+            accountId: formInput.accountId !== undefined ? formInput.accountId : undefined,
+            currency: formInput.currency || (loans.find(l => l.id === editingId)?.currency || "AED")
+          }, domainOpts);
+        } else {
+          result = loanDomain.editLoan(state, editingId, {
+            type: formInput.loanType,
+            name: formInput.title,
+            amount: amt,
+            currency: formInput.currency,
+            accountId: formInput.accountId,
+            whatsapp: formInput.whatsapp,
+            dueDate: formInput.dueDate,
+            date: formInput.date
+          }, domainOpts);
         }
+      } else {
+        result = loanDomain.createLoan({
+          type: formInput.loanType,
+          name: formInput.title,
+          amount: amt,
+          currency: formInput.currency,
+          accountId: formInput.accountId,
+          whatsapp: formInput.whatsapp,
+          dueDate: formInput.dueDate,
+          date: formInput.date
+        }, state, domainOpts);
       }
-      const oldCurrency = existingLoan.currency || "AED";
-      const selectedLoanAccount = formInput.accountId ? accounts.find(a => String(a.id) === String(formInput.accountId)) : null;
-      const newCurrency = selectedLoanAccount ? selectedLoanAccount.currency : (formInput.currency || oldCurrency);
-      const principalMovements = (existingLoan.movements || []).filter(m => m.kind === "principal");
-      const repaymentMovements = (existingLoan.movements || []).filter(m => m.kind === "repayment");
-      const convertMovementAmount = movement => {
-        const value = Number(movement.amount || 0);
-        return oldCurrency === newCurrency ? value : convertFromAED(convertToAED(value, oldCurrency), newCurrency);
-      };
-      const convertedOtherPrincipalTotal = principalMovements.slice(1).reduce((sum, m) => sum + convertMovementAmount(m), 0);
-      const convertedRepaidTotal = repaymentMovements.reduce((sum, m) => sum + convertMovementAmount(m), 0);
-      if (amt + 1e-9 < convertedOtherPrincipalTotal) {
-        alert(`The loan amount cannot be lower than its existing additional principal movements (${newCurrency} ${numFmt(convertedOtherPrincipalTotal)}).`);
-        return;
-      }
-      if (amt + 1e-9 < convertedRepaidTotal) {
-        alert(`The loan amount cannot be lower than the amount already repaid (${newCurrency} ${numFmt(convertedRepaidTotal)}).`);
-        return;
-      }
-
-      const selectedPrimaryAccount = formInput.accountId ? accounts.find(a => String(a.id) === String(formInput.accountId)) : null;
-      const nextPrincipalFirst = principalMovements.length
-        ? Math.max(0, amt - convertedOtherPrincipalTotal)
-        : 0;
-      const convertedMovementMap = new Map();
-      principalMovements.forEach((m, index) => {
-        convertedMovementMap.set(m.id, index === 0 ? nextPrincipalFirst : convertMovementAmount(m));
-      });
-      repaymentMovements.forEach(m => convertedMovementMap.set(m.id, convertMovementAmount(m)));
-      const updatedMovements = (existingLoan.movements || []).map(m => {
-        const next = convertedMovementMap.has(m.id) ? { ...m, amount: convertedMovementMap.get(m.id) } : { ...m };
-        if (m.kind === "principal" && principalMovements.length && m.id === principalMovements[0].id) {
-          if (formInput.accountId) next.accountId = formInput.accountId;
-          if (formInput.date) next.date = formInput.date;
-        }
-        return next;
-      });
-      const nextRepaid = convertedRepaidTotal;
-
-      // Reconcile every linked loan transaction, not just the first one. This
-      // keeps account balances, Ledger history, loan movements and loan type
-      // consistent when an existing loan is edited, including currency/type
-      // changes and loans that received additional principal or repayments.
-      let accsWorking = [...accounts];
-      let txnsWorking = [...transactions];
-      const linkedTxByMovement = new Map();
-      transactions.filter(t => String(t.loanId) === String(existingLoan.id)).forEach(t => {
-        if (t.movementId) linkedTxByMovement.set(t.movementId, t);
-      });
-      updatedMovements.forEach(m => {
-        const linkedTx = linkedTxByMovement.get(m.id);
-        if (!linkedTx) return;
-        accsWorking = reverseLoanTransactionBalance(accsWorking, linkedTx);
-        const txAccount = accounts.find(a => String(a.id) === String(m.accountId || linkedTx.accountId));
-        const accountCurrency = txAccount?.currency || linkedTx.currency || newCurrency;
-        const newAccountAmount = convertFromAED(convertToAED(Number(m.amount || 0), newCurrency), accountCurrency);
-        const isRepayment = m.kind === "repayment";
-        const nextTxType = isRepayment
-          ? (formInput.loanType === "lent" ? "income" : "expense")
-          : (formInput.loanType === "lent" ? "expense" : "income");
-        const nextTitle = isRepayment
-          ? `${formInput.loanType === "lent" ? "Repayment from" : "Repayment to"} ${formInput.title}`
-          : `${formInput.loanType === "lent" ? "Loan to" : "Loan from"} ${formInput.title}`;
-        const nextTx = {
-          ...linkedTx,
-          title: nextTitle,
-          type: nextTxType,
-          amount: Number(m.amount || 0),
-          currency: newCurrency,
-          rateToAED: exchangeRates[newCurrency] || 1,
-          accountAmount: newAccountAmount,
-          accountId: m.accountId || linkedTx.accountId || null,
-          date: m.date || linkedTx.date
-        };
-        accsWorking = applyLoanTransactionBalance(accsWorking, nextTx, newAccountAmount);
-        txnsWorking = txnsWorking.map(t => t.id === linkedTx.id ? nextTx : t);
-      });
-
-      // Legacy principal transactions may not have movementId. Reconcile the
-      // one matching principal transaction without changing the UI or creating
-      // duplicate history entries.
-      const legacyPrincipalTx = transactions.find(t => String(t.loanId) === String(existingLoan.id) && t.category === "Loan" && !t.movementId);
-      if (legacyPrincipalTx && principalMovements.length) {
-        const firstMovement = updatedMovements.find(m => m.id === principalMovements[0].id);
-        accsWorking = reverseLoanTransactionBalance(accsWorking, legacyPrincipalTx);
-        const txAccount = accounts.find(a => a.id === legacyPrincipalTx.accountId);
-        const accountCurrency = txAccount?.currency || legacyPrincipalTx.currency || newCurrency;
-        const newAccountAmount = convertFromAED(convertToAED(Number(firstMovement?.amount || 0), newCurrency), accountCurrency);
-        const nextTx = {
-          ...legacyPrincipalTx,
-          title: `${formInput.loanType === "lent" ? "Loan to" : "Loan from"} ${formInput.title}`,
-          type: formInput.loanType === "lent" ? "expense" : "income",
-          amount: Number(firstMovement?.amount || 0),
-          currency: newCurrency,
-          rateToAED: exchangeRates[newCurrency] || 1,
-          accountAmount: newAccountAmount,
-          accountId: (firstMovement && firstMovement.accountId) || legacyPrincipalTx.accountId || null,
-          date: firstMovement?.date || legacyPrincipalTx.date
-        };
-        accsWorking = applyLoanTransactionBalance(accsWorking, nextTx, newAccountAmount);
-        txnsWorking = txnsWorking.map(t => t.id === legacyPrincipalTx.id ? nextTx : t);
-      }
-
-      updatedLoans = loans.map(l => l.id === editingId ? {
-        ...l,
-        type: formInput.loanType,
-        name: formInput.title,
-        amount: amt,
-        repaid: nextRepaid,
-        currency: newCurrency,
-        whatsapp: formInput.whatsapp,
-        dueDate: formInput.dueDate,
-        accountId: formInput.accountId || (principalMovements[0] && principalMovements[0].accountId) || existingLoan.accountId || null,
-        movements: updatedMovements
-      } : l);
-      updatedAccs = accsWorking;
-      updatedTxns = txnsWorking;
-      setLoans(updatedLoans);
+      updatedAccs = result.accounts;
+      updatedLoans = result.loans;
+      updatedTxns = result.transactions;
       setAccounts(updatedAccs);
-      setTransactions(updatedTxns);
-    } else {
-      const newLoanId = makeId();
-      const loanAcc = formInput.accountId ? accounts.find(a => a.id === formInput.accountId) : null;
-      const loanCurrency = loanAcc ? loanAcc.currency : (formInput.currency || "AED");
-      const movements = [{
-        id: makeId(),
-        kind: "principal",
-        amount: amt,
-        date: formInput.date,
-        accountId: loanAcc ? loanAcc.id : null
-      }];
-      {
-        const accAmt = loanAcc ? convertFromAED(convertToAED(amt, loanCurrency), loanAcc.currency) : null;
-        if (loanAcc) {
-          const delta = formInput.loanType === "lent" ? -accAmt : accAmt;
-          updatedAccs = accounts.map(a => a.id === loanAcc.id ? { ...a, balance: a.balance + delta } : a);
-        }
-        const loanTx = {
-          id: makeId(),
-          title: `${formInput.loanType === "lent" ? "Loan to" : "Loan from"} ${formInput.title}`,
-          type: formInput.loanType === "lent" ? "expense" : "income",
-          category: "Loan", amount: amt, currency: loanCurrency, rateToAED: exchangeRates[loanCurrency] || 1,
-          accountAmount: accAmt, accountId: loanAcc ? loanAcc.id : null, date: formInput.date,
-          recordedAt: new Date().toISOString(), loanId: newLoanId, movementId: movements[0].id
-        };
-        updatedTxns = [loanTx, ...transactions];
-      }
-      updatedLoans.push({
-        id: newLoanId,
-        type: formInput.loanType,
-        name: formInput.title,
-        amount: amt,
-        repaid: 0,
-        currency: loanCurrency,
-        whatsapp: formInput.whatsapp,
-        dueDate: formInput.dueDate,
-        date: formInput.date,
-        accountId: loanAcc ? loanAcc.id : null,
-        movements
-      });
       setLoans(updatedLoans);
+      setTransactions(updatedTxns);
+      persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
+      closeMainFormModal();
+      return;
+    } catch (err) {
+      alert(err && err.message ? err.message : "Unable to save this loan.");
+      return;
     }
   } else if (modalType === "transfer") {
     const fromAcc = accounts.find(a => a.id === formInput.accountId);
@@ -1895,120 +1710,43 @@ const handleRepaymentSubmit = e => {
   e.preventDefault();
   if (!repaymentModalLoan) return;
   const amt = Number(repayAmount);
-  if (!(amt > 0)) {
-    alert("Please enter a repayment amount greater than zero.");
-    return;
+  if (!(amt > 0)) { alert("Please enter a repayment amount greater than zero."); return; }
+  const loan = loans.find(l => String(l.id) === String(repaymentModalLoan.id));
+  if (!loan) return;
+  try {
+    saveStateToHistory();
+    const result = window.AleemFinLoanDomain.appendMovement(
+      { accounts, loans, transactions }, loan.id,
+      { kind: "repayment", amount: amt, date: repayDate || todayISO(), accountId: repayAccountId || null },
+      { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts }
+    );
+    setLoans(result.loans); setAccounts(result.accounts); setTransactions(result.transactions);
+    persistAllData(result.accounts, assets, result.loans, result.transactions);
+    setRepaymentModalLoan(null); setRepayAmount(""); setRepayAccountId("");
+  } catch (err) {
+    alert(err && err.message ? err.message : "Unable to record this repayment.");
   }
-  const outstanding = repaymentModalLoan.amount - (repaymentModalLoan.repaid || 0);
-  if (amt > outstanding + 1e-4) {
-    alert(`This repayment (${repaymentModalLoan.currency} ${amt.toLocaleString()}) is more than the outstanding balance (${repaymentModalLoan.currency} ${outstanding.toLocaleString()}). Please enter an amount up to the outstanding balance.`);
-    return;
-  }
-  saveStateToHistory();
-  const loan = repaymentModalLoan;
-  const repayDateVal = repayDate || todayISO();
-  const repaymentMovementId = makeId();
-  const updatedLoans = loans.map(l => l.id === loan.id ? {
-    ...l,
-    repaid: (l.repaid || 0) + amt,
-    movements: [...(l.movements || []), {
-      id: repaymentMovementId,
-      kind: "repayment",
-      amount: amt,
-      date: repayDateVal,
-      accountId: repayAccountId || null
-    }]
-  } : l);
-  let updatedAccs = accounts;
-  let updatedTxns = transactions;
-  {
-    const acc = repayAccountId ? accounts.find(a => a.id === repayAccountId) : null;
-    const accAmt = acc ? convertFromAED(convertToAED(amt, loan.currency), acc.currency) : null;
-    if (acc) {
-      const delta = loan.type === "lent" ? accAmt : -accAmt;
-      updatedAccs = accounts.map(a => a.id === acc.id ? { ...a, balance: a.balance + delta } : a);
-    }
-      const newTx = {
-        id: makeId(),
-        title: `${loan.type === "lent" ? "Repayment from" : "Repayment to"} ${loan.name}`,
-        type: loan.type === "lent" ? "income" : "expense",
-        category: "Loan Repayment",
-        amount: amt,
-        currency: loan.currency,
-        rateToAED: exchangeRates[loan.currency] || 1,
-        accountAmount: accAmt,
-        accountId: acc ? acc.id : null,
-        date: repayDateVal,
-        recordedAt: new Date().toISOString(),
-        loanId: loan.id,
-        movementId: repaymentMovementId
-      };
-      updatedTxns = [newTx, ...transactions];
-  }
-  setLoans(updatedLoans);
-  setAccounts(updatedAccs);
-  setTransactions(updatedTxns);
-  persistAllData(updatedAccs, assets, updatedLoans, updatedTxns);
-  setRepaymentModalLoan(null);
-  setRepayAmount("");
-  setRepayAccountId("");
 };
 const handleAddMoreSubmit = e => {
   e.preventDefault();
   if (!loanAddMoreTarget) return;
   const amt = Number(addMoreAmount);
-  if (!(amt > 0)) {
-    alert("Please enter an amount greater than zero.");
-    return;
+  if (!(amt > 0)) { alert("Please enter an amount greater than zero."); return; }
+  const loan = loans.find(l => String(l.id) === String(loanAddMoreTarget.id));
+  if (!loan) return;
+  try {
+    saveStateToHistory();
+    const result = window.AleemFinLoanDomain.appendMovement(
+      { accounts, loans, transactions }, loan.id,
+      { kind: "principal", amount: amt, date: addMoreDate || todayISO(), accountId: addMoreAccountId || null },
+      { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts }
+    );
+    setLoans(result.loans); setAccounts(result.accounts); setTransactions(result.transactions);
+    persistAllData(result.accounts, assets, result.loans, result.transactions);
+    setLoanAddMoreTarget(null); setAddMoreAmount(""); setAddMoreAccountId("");
+  } catch (err) {
+    alert(err && err.message ? err.message : "Unable to add to this loan.");
   }
-  saveStateToHistory();
-  const loan = loanAddMoreTarget;
-  const addDateVal = addMoreDate || todayISO();
-  const addMoreMovementId = makeId();
-  const updatedLoans = loans.map(l => l.id === loan.id ? {
-    ...l,
-    amount: l.amount + amt,
-    movements: [...(l.movements || []), {
-      id: addMoreMovementId,
-      kind: "principal",
-      amount: amt,
-      date: addDateVal,
-      accountId: addMoreAccountId || null
-    }]
-  } : l);
-  let updatedAccs = accounts;
-  let updatedTxns = transactions;
-  {
-    const acc = addMoreAccountId ? accounts.find(a => a.id === addMoreAccountId) : null;
-    const accAmt = acc ? convertFromAED(convertToAED(amt, loan.currency), acc.currency) : null;
-    if (acc) {
-      const delta = loan.type === "lent" ? -accAmt : accAmt;
-      updatedAccs = accounts.map(a => a.id === acc.id ? { ...a, balance: a.balance + delta } : a);
-    }
-      const newTx = {
-        id: makeId(),
-        title: `${loan.type === "lent" ? "Loan to" : "Loan from"} ${loan.name}`,
-        type: loan.type === "lent" ? "expense" : "income",
-        category: "Loan",
-        amount: amt,
-        currency: loan.currency,
-        rateToAED: exchangeRates[loan.currency] || 1,
-        accountAmount: accAmt,
-        accountId: acc ? acc.id : null,
-        date: addDateVal,
-        recordedAt: new Date().toISOString(),
-        loanId: loan.id,
-        movementId: addMoreMovementId
-      };
-      updatedTxns = [newTx, ...transactions];
-  }
-  setLoans(updatedLoans);
-  setAccounts(updatedAccs);
-  setTransactions(updatedTxns);
-  persistAllData(updatedAccs, assets, updatedLoans, updatedTxns);
-  setLoanAddMoreTarget(null);
-  setAddMoreAmount("");
-  setAddMoreAccountId("");
 };
 const confirmDelete = () => {
   if (!deleteTarget) return;
@@ -2024,69 +1762,39 @@ const confirmDelete = () => {
   if (target.type === "transaction") {
     const tx = transactions.find(t => t.id === target.id);
     if (tx) {
-      if (tx.type === "transfer") {
-        updatedAccs = accounts.map(acc => {
-          if (acc.id === tx.accountId) return {
-            ...acc,
-            balance: acc.balance + tx.amount
-          };
-          if (acc.id === tx.toAccountId) return {
-            ...acc,
-            balance: acc.balance - (tx.toAmount != null ? tx.toAmount : tx.amount)
-          };
-          return acc;
-        });
-      } else if (tx.accountId) {
-        const accAmt = tx.accountAmount != null ? tx.accountAmount : tx.amount;
-        updatedAccs = accounts.map(acc => {
-          if (acc.id === tx.accountId) {
-            const revDelta = tx.type === "income" ? -accAmt : accAmt;
-            return {
-              ...acc,
-              balance: acc.balance + revDelta
-            };
-          }
-          return acc;
-        });
-      }
-      // Loan-linked transactions (principal or repayment) also need the
-      // linked loan record's amount/repaid/movements rolled back, or the
-      // Loans tab desyncs from the Ledger (see: loan delete desync bug).
-      if (tx.loanId) {
-        const linkedLoan = loans.find(l => String(l.id) === String(tx.loanId));
-        if (linkedLoan) {
-          const linkedMovement = (linkedLoan.movements || []).find(m => String(m.id) === String(tx.movementId));
-          if (linkedMovement) {
-            const remaining = (linkedLoan.movements || []).filter(m => String(m.id) !== String(linkedMovement.id));
-            updatedLoans = loans.reduce((acc,l) => {
-              if (String(l.id) !== String(tx.loanId)) { acc.push(l); return acc; }
-              if (!remaining.some(m => m.kind === "principal" && Number(m.amount||0) > 1e-9)) return acc;
-              acc.push(normalizeLoanFromMovements({ ...l, movements: remaining }));
-              return acc;
-            }, []);
-          }
+      if (tx.loanId && tx.movementId) {
+        try {
+          const result = window.AleemFinLoanDomain.removeMovement({ accounts, loans, transactions }, tx.loanId, tx.movementId, { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts });
+          updatedAccs = result.accounts; updatedLoans = result.loans; updatedTxns = result.transactions;
+        } catch (err) {
+          alert(err && err.message ? err.message : "Unable to delete this loan movement.");
+          return;
         }
+      } else {
+        if (tx.type === "transfer") {
+          updatedAccs = accounts.map(acc => {
+            if (acc.id === tx.accountId) return { ...acc, balance: acc.balance + tx.amount };
+            if (acc.id === tx.toAccountId) return { ...acc, balance: acc.balance - (tx.toAmount != null ? tx.toAmount : tx.amount) };
+            return acc;
+          });
+        } else if (tx.accountId) {
+          const accAmt = tx.accountAmount != null ? tx.accountAmount : tx.amount;
+          updatedAccs = accounts.map(acc => acc.id === tx.accountId ? { ...acc, balance: acc.balance + (tx.type === "income" ? -accAmt : accAmt) } : acc);
+        }
+        updatedTxns = transactions.filter(t => t.id !== target.id);
       }
-      // Recurring-linked transactions are reversible: deleting the ledger
-      // occurrence restores that scheduled occurrence and its Up Next date.
       if (tx.recurringId) {
         const recurringItem = recurringItems.find(item => item.id === tx.recurringId);
         if (recurringItem) {
           const scheduledDate = tx.recurringDate || tx.date;
           const remainingDates = (recurringItem.recordedDates || []).filter(d => d !== scheduledDate);
           const restoredNextDate = scheduledDate < (recurringItem.nextDate || scheduledDate) ? scheduledDate : recurringItem.nextDate;
-          updatedRecurringItems = recurringItems.map(item => item.id === tx.recurringId ? {
-            ...item,
-            nextDate: restoredNextDate || scheduledDate,
-            recordedDates: remainingDates
-          } : item);
+          updatedRecurringItems = recurringItems.map(item => item.id === tx.recurringId ? { ...item, nextDate: restoredNextDate || scheduledDate, recordedDates: remainingDates } : item);
           setRecurringItems(updatedRecurringItems);
         }
       }
-      setAccounts(updatedAccs);
+      setAccounts(updatedAccs); setLoans(updatedLoans); setTransactions(updatedTxns);
     }
-    updatedTxns = transactions.filter(t => t.id !== target.id);
-    setTransactions(updatedTxns);
   } else if (target.type === "account") {
     const accId = target.id;
     let accs = accounts.filter(a => a.id !== accId);
@@ -2109,7 +1817,12 @@ const confirmDelete = () => {
     const removedAccountTxns = transactions.filter(t => t.accountId === accId || t.toAccountId === accId);
     updatedAccs = accs;
     updatedTxns = transactions.filter(t => t.accountId !== accId && t.toAccountId !== accId);
-    updatedLoans = removeLoanMovementsForTransactions(updatedLoans, removedAccountTxns);
+    removedAccountTxns.filter(t => t.loanId && t.movementId).forEach(t => {
+      try {
+        const result = window.AleemFinLoanDomain.removeMovement({ accounts: updatedAccs, loans: updatedLoans, transactions: updatedTxns }, t.loanId, t.movementId, { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts: updatedAccs });
+        updatedAccs = result.accounts; updatedLoans = result.loans; updatedTxns = result.transactions;
+      } catch (err) {}
+    });
     setAccounts(updatedAccs);
     setLoans(updatedLoans);
     setTransactions(updatedTxns);
@@ -2117,18 +1830,18 @@ const confirmDelete = () => {
     updatedAsts = assets.filter(ast => ast.id !== target.id);
     setAssets(updatedAsts);
   } else if (target.type === "loan") {
-    const targetLoan = loans.find(l => l.id === target.id);
-    if (targetLoan) {
-      const linkedLoanTxns = transactions.filter(t => String(t.loanId) === String(targetLoan.id));
-      linkedLoanTxns.forEach(tx => {
-        updatedAccs = reverseLoanTransactionBalance(updatedAccs, tx);
-      });
-      updatedTxns = transactions.filter(t => String(t.loanId) !== String(targetLoan.id));
-      updatedLoans = loans.filter(l => l.id !== targetLoan.id);
+    try {
+      const result = window.AleemFinLoanDomain.deleteLoan({ accounts, loans, transactions }, target.id);
+      updatedAccs = result.accounts;
+      updatedLoans = result.loans;
+      updatedTxns = result.transactions;
+      setLoans(updatedLoans);
+      setAccounts(updatedAccs);
+      setTransactions(updatedTxns);
+    } catch (err) {
+      alert(err && err.message ? err.message : "Unable to delete this loan.");
+      return;
     }
-    setLoans(updatedLoans);
-    setAccounts(updatedAccs);
-    setTransactions(updatedTxns);
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns, exchangeRates, budgets, goals, updatedRecurringItems);
   setDeleteTarget(null);
