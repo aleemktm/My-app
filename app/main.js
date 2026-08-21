@@ -1674,13 +1674,17 @@ const handleAddMoreSubmit = e => {
 };
 const confirmDelete = () => {
   if (!deleteTarget) return;
+  const target = deleteTarget;
+  // Close the confirmation sheet immediately so the UI always returns to the
+  // current page after a successful deletion, even while state/persistence updates run.
+  setDeleteTarget(null);
   saveStateToHistory();
   let updatedAccs = [...accounts];
   let updatedAsts = [...assets];
   let updatedLoans = [...loans];
   let updatedTxns = [...transactions];
-  if (deleteTarget.type === "transaction") {
-    const tx = transactions.find(t => t.id === deleteTarget.id);
+  if (target.type === "transaction") {
+    const tx = transactions.find(t => t.id === target.id);
     if (tx) {
       if (tx.type === "transfer") {
         updatedAccs = accounts.map(acc => {
@@ -1727,23 +1731,36 @@ const confirmDelete = () => {
               amount: Number(tx.accountAmount != null ? tx.accountAmount : tx.amount) || 0
             };
           const movementAmount = Number(linkedMovement.amount || 0);
-          updatedLoans = loans.map(l => {
-            if (l.id !== tx.loanId) return l;
+          updatedLoans = loans.reduce((acc, l) => {
+            if (l.id !== tx.loanId) {
+              acc.push(l);
+              return acc;
+            }
+            const remainingMovements = (l.movements || []).filter(m => m.id !== linkedMovement.id);
             if (linkedMovement.kind === "repayment") {
-              return {
+              acc.push({
                 ...l,
                 repaid: Math.max(0, (l.repaid || 0) - movementAmount),
-                movements: (l.movements || []).filter(m => m.id !== linkedMovement.id)
-              };
+                movements: remainingMovements
+              });
+              return acc;
             }
             const nextAmount = Math.max(0, (l.amount || 0) - movementAmount);
-            return {
+            const remainingPrincipal = remainingMovements.reduce((sum, m) =>
+              m.kind === "principal" ? sum + Number(m.amount || 0) : sum, 0);
+            // If the deleted Ledger entry was the last principal movement, the
+            // loan itself no longer exists. Remove it rather than leaving an
+            // orphaned zero-value card in Loans. If another principal movement
+            // remains (e.g. "Add more"), keep the loan and only reduce its amount.
+            if (remainingPrincipal <= 1e-9 || nextAmount <= 1e-9) return acc;
+            acc.push({
               ...l,
               amount: nextAmount,
               repaid: Math.min(l.repaid || 0, nextAmount),
-              movements: (l.movements || []).filter(m => m.id !== linkedMovement.id)
-            };
-          });
+              movements: remainingMovements
+            });
+            return acc;
+          }, []);
           setLoans(updatedLoans);
         }
       }
@@ -1765,10 +1782,10 @@ const confirmDelete = () => {
       }
       setAccounts(updatedAccs);
     }
-    updatedTxns = transactions.filter(t => t.id !== deleteTarget.id);
+    updatedTxns = transactions.filter(t => t.id !== target.id);
     setTransactions(updatedTxns);
-  } else if (deleteTarget.type === "account") {
-    const accId = deleteTarget.id;
+  } else if (target.type === "account") {
+    const accId = target.id;
     let accs = accounts.filter(a => a.id !== accId);
     const relatedTxns = transactions.filter(t => t.accountId === accId || t.toAccountId === accId);
     relatedTxns.forEach(t => {
@@ -1790,11 +1807,11 @@ const confirmDelete = () => {
     updatedTxns = transactions.filter(t => t.accountId !== accId && t.toAccountId !== accId);
     setAccounts(updatedAccs);
     setTransactions(updatedTxns);
-  } else if (deleteTarget.type === "asset") {
-    updatedAsts = assets.filter(ast => ast.id !== deleteTarget.id);
+  } else if (target.type === "asset") {
+    updatedAsts = assets.filter(ast => ast.id !== target.id);
     setAssets(updatedAsts);
-  } else if (deleteTarget.type === "loan") {
-    updatedLoans = loans.filter(l => l.id !== deleteTarget.id);
+  } else if (target.type === "loan") {
+    updatedLoans = loans.filter(l => l.id !== target.id);
     setLoans(updatedLoans);
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns, exchangeRates, budgets, goals, updatedRecurringItems);
