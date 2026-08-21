@@ -3155,3 +3155,38 @@ html.dark .loan-native-summary-card.loan-native-borrowed { border-color: #FF3B30
 html.dark .swipe-action-skip { background: #2C2C2E !important; color: #FFFFFF !important; }
 /* Insights: loan activity is informational, not a gain/loss signal. */
 .insight-neutral { color: var(--af-secondary) !important; }
+
+/* v68.1 — Loan history semantic labels + filter-driven summary borders. */
+/* History labels must retain the same green/red semantic colours in Dark Mode as Light Mode. */
+html.dark .loan-history-row-out .loan-history-label-wrap > strong,
+html.dark .loan-history-row-out .loan-history-value > strong { color:#E5484D !important; }
+html.dark .loan-history-row-in .loan-history-label-wrap > strong,
+html.dark .loan-history-row-in .loan-history-value > strong { color:#1DBF73 !important; }
+
+/* Summary-card borders are neutral when All is selected and highlighted only for the active loan type. */
+.loan-native-summary-card.loan-native-lent,
+.loan-native-summary-card.loan-native-borrowed {
+  border:1px solid rgba(60,60,67,.10) !important;
+  box-shadow:0 8px 22px rgba(15,23,42,.035) !important;
+}
+html.dark .loan-native-summary-card.loan-native-lent,
+html.dark .loan-native-summary-card.loan-native-borrowed {
+  border-color:rgba(255,255,255,.08) !important;
+  box-shadow:none !important;
+}
+.loan-native-summary-card.loan-native-lent.is-filtered {
+  border-color:var(--af-green) !important;
+  box-shadow:inset 0 0 0 1px var(--af-green), 0 8px 22px rgba(15,23,42,.035) !important;
+}
+.loan-native-summary-card.loan-native-borrowed.is-filtered {
+  border-color:#FF3B30 !important;
+  box-shadow:inset 0 0 0 1px #FF3B30, 0 8px 22px rgba(15,23,42,.035) !important;
+}
+html.dark .loan-native-summary-card.loan-native-lent.is-filtered {
+  border-color:var(--af-green) !important;
+  box-shadow:inset 0 0 0 1px var(--af-green) !important;
+}
+html.dark .loan-native-summary-card.loan-native-borrowed.is-filtered {
+  border-color:#FF3B30 !important;
+  box-shadow:inset 0 0 0 1px #FF3B30 !important;
+}
