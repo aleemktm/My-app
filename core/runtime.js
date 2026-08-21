@@ -13,6 +13,9 @@ var hapticFeedback = function(duration) {
     if (window.__aleemFinHapticsEnabled === false) return;
     var cap = window.Capacitor;
     var haptics = cap && cap.Plugins && cap.Plugins.Haptics ? cap.Plugins.Haptics : null;
+    if (!haptics && cap && typeof cap.registerPlugin === "function") {
+      try { haptics = cap.registerPlugin("Haptics"); } catch (_) {}
+    }
     if (haptics && typeof haptics.impact === "function") {
       var d = Number(duration || 10);
       var style = d >= 16 ? "MEDIUM" : d >= 11 ? "LIGHT" : "LIGHT";

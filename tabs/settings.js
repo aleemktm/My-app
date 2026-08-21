@@ -2,7 +2,7 @@
 // grouped list with drill-down subpages (Settings.app pattern).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, dashboardCardCount, setDashboardCardCount, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, dashboardCardCount, setDashboardCardCount, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
     const h = React.createElement;
     const [settingsPage, setSettingsPage] = React.useState(null);
     const settingsTouchStartRef = React.useRef(null);
@@ -201,7 +201,19 @@
           h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Restore an AleemFin backup file previously saved on this device or shared from another backup location." },
             h("label", { className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500 cursor-pointer" }, "Restore", h("input", { type: "file", accept: ".json", onChange: importBackup, className: "hidden" }))),
           h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file." },
-            h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export"))
+            h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export")),
+          h(SettingsRow, { key: "google-drive-connect", icon: Icons.IconSync, title: "Google Drive", detail: googleDriveConnected ? "Connected to your Google account." : "Connect Google Drive to store your AleemFin automatic backup." },
+            googleDriveConnected
+              ? h("button", { type: "button", onClick: disconnectGoogleDrive, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Disconnect")
+              : h("button", { type: "button", onClick: connectGoogleDrive, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Connect")),
+          googleDriveConnected && h(SettingsRow, { key: "google-drive-auto", icon: Icons.IconSync, title: "Automatic Google Drive backup", detail: settings.googleDriveBackupEnabled ? "A fresh backup is uploaded after each new Inflow or Outflow." : "Keep the latest AleemFin backup in Google Drive automatically." },
+            IOSSwitch({ checked: settings.googleDriveBackupEnabled === true, onChange: () => {
+              const next = settings.googleDriveBackupEnabled !== true;
+              updateSettings({ googleDriveBackupEnabled: next });
+              if (next) setTimeout(() => uploadCurrentBackupToGoogleDrive(), 0);
+            }, label: "Automatic Google Drive backup" })),
+          googleDriveConnected && settings.googleDriveBackupEnabled === true && h(SettingsRow, { key: "google-drive-now", icon: Icons.IconUpload, title: "Backup to Google Drive now", detail: "Upload the latest automatic backup immediately." },
+            h("button", { type: "button", onClick: uploadCurrentBackupToGoogleDrive, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Backup now"))
         ])
       );
     } else if (settingsPage === "interaction") {
@@ -251,7 +263,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.74 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.79 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -278,7 +290,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.74", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.79", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })

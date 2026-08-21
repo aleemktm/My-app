@@ -32,7 +32,7 @@
         h("div", { className: "planning-section-head" }, h("div", null, h("p", { className: "planning-kicker" }, "THIS MONTH"), h("h3", null, "Budgets")), h("button", { onClick: () => openBudgetEditor(), className: "planning-add-button" }, h(Icons.IconPlus, { className: "w-4 h-4" }), "Add budget")),
         budgets.length === 0 && !planningEditor && h("div", { className: "planning-empty" }, h(Icons.IconTune, { className: "w-5 h-5" }), h("strong", null, "Give your spending a lane"), h("p", null, "Set a monthly limit for any expense category.")),
         h("div", { className:"planning-list" }, budgets.map(budget=>{
-          const spent=budgetSpent(budget), remaining=budget.amount-spent, progress=Math.min(100,Math.round(spent/budget.amount*100));
+          const spent=budgetSpent(budget), remaining=budget.amount-spent, progress=budget.amount>0?Math.min(100,Math.round(spent/budget.amount*100)):0;
           const tone=progress>=100?"danger":progress>=80?"warning":"good";
           return h(window.SwipeRow,{key:budget.id,selectionKey:selectionKey("budget",budget.id),onEdit:()=>openBudgetEditor(budget),onDelete:()=>deleteBudget(budget)},h("article",{className:`planning-item ${tone}`},
             h("div",{className:"planning-item-top"},h("div",{className:"planning-item-title"},h("span",{className:"planning-item-icon"},h(window.Icons.getCategoryIcon(budget.category,"expense"),{className:"w-4 h-4"})),h("div",null,h("h4",null,budget.category),h("p",null,progress>=100?"Over budget":progress>=80?"Close to limit":"On track"))),h("strong",null,`${budget.currency} ${numFmt(budget.amount)}`)),

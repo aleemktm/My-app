@@ -40,12 +40,13 @@
     return { changeAED, hasData };
   }
 
-  function scoreFor({ savingsRate, emergencyRunwayMonths, monthlySavingsAED, monthlyIncomeAED }) {
+  function scoreFor({ savingsRate, emergencyRunwayMonths }) {
     const runway = emergencyRunwayMonths === "12+" ? 12 : Number(emergencyRunwayMonths || 0);
     const savings = savingsRate == null ? 0 : Math.max(0, Math.min(100, savingsRate));
-    const cashFlow = monthlyIncomeAED > 0 ? Math.max(0, Math.min(100, monthlySavingsAED / monthlyIncomeAED * 100)) : 0;
-    const score = Math.round(Math.max(0, Math.min(100, savings * 0.45 + Math.min(100, runway / 6 * 100) * 0.35 + cashFlow * 0.20)));
-    return score;
+    const runwayScore = Math.max(0, Math.min(100, runway / 6 * 100));
+    // Savings rate and monthly cash-flow ratio are the same underlying signal;
+    // count it once and pair it with emergency runway instead of double-counting it.
+    return Math.round(Math.max(0, Math.min(100, savings * 0.65 + runwayScore * 0.35)));
   }
 
   function sparkline(data, field, color, darkMode) {
@@ -120,7 +121,7 @@
           h("span", { className: "insight-eyebrow" }, "INSIGHTS"),
           h("h1", { className: "insight-title" }, "Your money, in focus."),
           h("p", { className: "insight-subtitle" }, "A quiet read of your recent financial patterns.")),
-        h("div", { className: "insight-score", title: "A simple wellness signal based on savings, cash flow and runway" },
+        h("div", { className: "insight-score", title: "A simple wellness signal based on savings rate and emergency runway" },
           h("div", { className: "insight-score-ring", style: { background: `conic-gradient(${GREEN} ${score * 3.6}deg, rgba(29,191,115,.10) 0deg)` } },
             h("div", { className: "insight-score-inner" }, h("strong", null, score), h("span", null, "HEALTH"))))),
       h("div", { className: "insight-ai-card" },

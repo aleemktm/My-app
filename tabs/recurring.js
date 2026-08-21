@@ -8,8 +8,14 @@
     const activeItems = recurringItems.filter(item => item.active);
     const upcoming = activeItems.slice().sort((a,b) => (a.nextDate || "").localeCompare(b.nextDate || "")).slice(0, 4);
     const baseCurrency = settings.defaultCurrency || "AED";
-    const monthlyIncome = incomeItems.filter(x => x.active && x.frequency === "monthly").reduce((s,x)=>s+convertToBaseCurrency(Number(x.amount||0), x.currency || baseCurrency),0);
-    const monthlyExpense = expenseItems.filter(x => x.active && x.frequency === "monthly").reduce((s,x)=>s+convertToBaseCurrency(Number(x.amount||0), x.currency || baseCurrency),0);
+    const monthlyEquivalent = item => {
+      const amount = Number(item.amount || 0);
+      if (item.frequency === "weekly") return amount * 52 / 12;
+      if (item.frequency === "yearly") return amount / 12;
+      return amount;
+    };
+    const monthlyIncome = incomeItems.filter(x => x.active).reduce((s,x)=>s+convertToBaseCurrency(monthlyEquivalent(x), x.currency || baseCurrency),0);
+    const monthlyExpense = expenseItems.filter(x => x.active).reduce((s,x)=>s+convertToBaseCurrency(monthlyEquivalent(x), x.currency || baseCurrency),0);
     return h("div", { className: "recurring-native space-y-4 max-w-2xl mx-auto w-full" },
       h("section", { className: "recurring-hero" },
         h("div", { className: "recurring-hero-copy" },

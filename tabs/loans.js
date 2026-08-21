@@ -128,11 +128,15 @@
                   ),
                   h("div", { className: "loan-history-value" },
                     h("strong", { className: amountClass }, sign, loan.currency, " ", numFmt(mv.amount)),
-                    h("button", {
+                    // Undo is intentionally available only for repayment records.
+                    // Principal movements are structural Loan records; removing the
+                    // final principal deletes the parent Loan, so those records must
+                    // use the Loan's delete/edit actions instead of a destructive undo.
+                    isRepayment && h("button", {
                       type: "button",
                       className: "loan-history-undo",
                       onClick: e => { e.stopPropagation(); undoLoanMovement(loan.id, mv.id, mv.legacyTransactionId); },
-                      title: "Undo this record", "aria-label": "Undo this record"
+                      title: "Undo repayment", "aria-label": "Undo repayment"
                     }, h(Icons.IconUndo, { className: "w-3 h-3" }))
                   )
                 );
