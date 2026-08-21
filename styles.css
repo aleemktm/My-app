@@ -2935,3 +2935,223 @@ html.dark .recurring-card-main p { color: var(--af-secondary) !important; }
 
 html.dark .settings-plain-info span { color: var(--af-secondary) !important; }
 html.dark .settings-plain-info strong { color: var(--af-label) !important; }
+
+/* AleemFin v66 refinement: Loan History title is white in dark mode. */
+html.dark .loan-history-card-head > div:first-child span { color: #FFFFFF !important; }
+
+
+/* v66 native refinement: Loan History heading must remain white in Dark Mode. */
+html.dark .loan-history-card .loan-history-card-head > div:first-child span,
+html.dark .loan-history-card .loan-history-card-head > div:first-child strong { color: #FFFFFF !important; }
+
+
+/* AleemFin native lock screen refinement — clean iOS-style Face ID presentation. */
+.ios-security-lock {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000100 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: max(64px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom)) !important;
+  background: #F7F7F8 !important;
+  color: #111111 !important;
+  backdrop-filter: blur(28px) saturate(125%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(125%) !important;
+}
+.ios-security-lock.is-dark {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+}
+.ios-security-lock-faceid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  transform: translate(-50%, -58%);
+  color: currentColor;
+  opacity: .96;
+}
+.ios-faceid-corners,
+.ios-faceid-eyes,
+.ios-faceid-mouth { position:absolute; inset:0; }
+.ios-faceid-corners span { position:absolute; width:25px; height:25px; border-color:currentColor; border-style:solid; opacity:.92; }
+.ios-faceid-corners .c1 { top:0; left:0; border-width:4px 0 0 4px; border-radius:9px 0 0 0; }
+.ios-faceid-corners .c2 { top:0; right:0; border-width:4px 4px 0 0; border-radius:0 9px 0 0; }
+.ios-faceid-corners .c3 { bottom:0; left:0; border-width:0 0 4px 4px; border-radius:0 0 0 9px; }
+.ios-faceid-corners .c4 { bottom:0; right:0; border-width:0 4px 4px 0; border-radius:0 0 9px 0; }
+.ios-faceid-eyes { display:flex; align-items:center; justify-content:center; gap:24px; transform:translateY(-3px); }
+.ios-faceid-eyes span { width:11px; height:7px; border-top:3px solid currentColor; border-radius:50%; opacity:.9; }
+.ios-faceid-mouth { width:28px; height:14px; left:50%; top:57%; transform:translateX(-50%); border-bottom:3px solid currentColor; border-radius:0 0 50% 50%; opacity:.85; }
+.ios-security-lock-bottom { width:min(360px,100%); display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:auto; text-align:center; }
+.ios-security-brand-name { font-size:22px; line-height:1.1; font-weight:700; letter-spacing:-.035em; }
+.ios-security-brand-tagline { margin-top:6px; font-size:12px; line-height:1.35; color:#8E8E93; }
+.ios-security-lock.is-dark .ios-security-brand-tagline { color:#98989D; }
+.ios-security-pin-button { width:min(260px,100%); min-height:48px; border:0; border-radius:999px; background:#007AFF; color:#FFFFFF; font-size:15px; font-weight:600; letter-spacing:-.01em; box-shadow:0 8px 24px rgba(0,122,255,.22); -webkit-tap-highlight-color:transparent; }
+.ios-security-pin-button:active { transform:scale(.98); }
+.ios-security-pin-form { width:min(300px,100%); display:flex; flex-direction:column; align-items:center; gap:10px; }
+.ios-security-pin-entry { width:100%; height:48px; border-radius:14px; border:1px solid rgba(60,60,67,.16); background:#FFFFFF; color:#111111; text-align:center; font-size:20px; letter-spacing:.35em; outline:none; }
+.ios-security-lock.is-dark .ios-security-pin-entry { background:#1C1C1E; color:#FFFFFF; border-color:rgba(255,255,255,.14); }
+.ios-security-pin-submit { width:100%; min-height:46px; border:0; border-radius:999px; background:#007AFF; color:#FFFFFF; font-size:15px; font-weight:600; }
+.ios-security-pin-cancel { border:0; background:transparent; color:#8E8E93; font-size:13px; padding:4px 10px; }
+.ios-security-pin-error { margin:0; color:#FF3B30; font-size:12px; font-weight:600; }
+
+/* Highest-specificity dark-mode rule for the Loan History heading. */
+html.dark .loan-history-card.loan-history-card-dark .loan-history-card-head > div:first-child > span,
+html.dark .loan-history-card.loan-history-card-dark .loan-history-card-head > div:first-child > strong,
+.loan-history-card.loan-history-card-dark .loan-history-card-head > div:first-child > span,
+.loan-history-card.loan-history-card-dark .loan-history-card-head > div:first-child > strong {
+  color:#FFFFFF !important;
+}
+
+
+/* v66.1 loan refinement: history row labels stay readable in Dark Mode. */
+html.dark .loan-history-card.loan-history-card-dark .loan-history-row .loan-history-main > strong,
+html.dark .loan-history-card .loan-history-row .loan-history-main > strong {
+  color: #F2F2F7 !important;
+}
+
+/* v66.1 loan selection refinement: selection highlight sits above the card surface. */
+.swipe-row.is-selected .loan-card-stack .loan-native-front {
+  outline: 2px solid color-mix(in srgb, var(--af-accent) 78%, transparent) !important;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--af-accent) 22%, transparent),
+              0 10px 28px color-mix(in srgb, var(--af-accent) 10%, transparent) !important;
+}
+html.dark .swipe-row.is-selected .loan-card-stack .loan-native-front {
+  outline-color: color-mix(in srgb, var(--af-accent) 88%, #FFFFFF 12%) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--af-accent) 30%, transparent),
+              0 10px 28px color-mix(in srgb, var(--af-accent) 14%, transparent) !important;
+}
+.swipe-row.is-selected .loan-card-stack .loan-history-card {
+  outline: 1px solid color-mix(in srgb, var(--af-accent) 38%, transparent);
+  outline-offset: -1px;
+}
+
+/* v66.3 — Loan cash-flow colours match AleemFin Ledger semantic colours. */
+.loan-history-label-wrap { display:flex; align-items:center; gap:6px; min-width:0; }
+.loan-history-flow-icon { width:13px; height:13px; flex:none; stroke:currentColor; }
+/* Lent out = outflow: red. Repaid/Borrowed = inflow: green. */
+.loan-history-row-out .loan-history-flow-icon,
+.loan-history-row-out .loan-history-label-wrap strong,
+.loan-history-row-out .loan-history-value strong { color:#E5484D !important; }
+.loan-history-row-in .loan-history-flow-icon,
+.loan-history-row-in .loan-history-label-wrap strong,
+.loan-history-row-in .loan-history-value strong { color:#1DBF73 !important; }
+
+/* Lent out = money OUT (red/up); Borrowed = money IN (green/down). */
+.loan-native-summary-card.loan-native-lent,
+.loan-native-card.loan-card-lent { color:#E5484D; }
+.loan-native-summary-card.loan-native-borrowed,
+.loan-native-card.loan-card-borrowed { color:var(--af-accent); }
+.loan-native-card.loan-card-lent .loan-direction-icon { background:rgba(229,72,77,.09); color:#E5484D; }
+.loan-native-card.loan-card-borrowed .loan-direction-icon { background:color-mix(in srgb, var(--af-accent) 10%, transparent); color:var(--af-accent); }
+.loan-native-card.loan-card-lent .loan-outstanding strong { color:#E5484D; }
+.loan-native-card.loan-card-borrowed .loan-outstanding strong { color:var(--af-accent); }
+.loan-native-card.loan-card-lent .loan-progress-fill { background:#E5484D; }
+.loan-native-card.loan-card-borrowed .loan-progress-fill { background:var(--af-accent); }
+
+/* v66.4 — Loan selection must match Ledger's exact selection tint. */
+.swipe-row.is-selected .loan-card-stack { position:relative; z-index:3; }
+.swipe-row.is-selected .loan-card-stack .loan-native-front {
+  position:relative;
+  z-index:4;
+  border-color:color-mix(in srgb, var(--af-accent) 45%, transparent) !important;
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--af-accent) 45%, transparent),
+             0 10px 28px color-mix(in srgb, var(--af-accent) 8%, transparent) !important;
+}
+.swipe-row.is-selected .loan-card-stack .loan-native-front::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  border-radius:inherit;
+  background:color-mix(in srgb, var(--af-accent) 4.5%, transparent);
+  pointer-events:none;
+}
+.swipe-row.is-selected .loan-card-stack .loan-native-front > * { position:relative; z-index:1; }
+.swipe-row.is-selected .loan-card-stack .loan-history-card { z-index:3; }
+
+/* v66.4 — Loan History rows follow the Ledger activity visual language. */
+.loan-history-row {
+  background:rgba(118,118,128,.055);
+  min-height:48px;
+  padding:8px 10px;
+  border-radius:12px;
+}
+.loan-history-label-wrap { gap:9px; }
+.loan-history-label-wrap strong {
+  font-size:11px !important;
+  font-weight:800 !important;
+  letter-spacing:-.01em;
+}
+.loan-history-main > span {
+  font-size:9px !important;
+  margin-top:3px !important;
+  color:var(--af-secondary) !important;
+}
+.loan-history-flow-icon {
+  width:30px !important;
+  height:30px !important;
+  padding:6px;
+  border-radius:10px;
+  flex:none;
+}
+.loan-history-row-out .loan-history-flow-icon {
+  background:rgba(229,72,77,.12);
+}
+.loan-history-row-in .loan-history-flow-icon {
+  background:rgba(29,191,115,.12);
+}
+.loan-history-value { gap:8px; }
+.loan-history-value > strong {
+  font-size:11px !important;
+  font-weight:800 !important;
+}
+.loan-history-undo {
+  width:30px !important;
+  height:30px !important;
+  min-width:30px !important;
+  min-height:30px !important;
+  border-radius:10px !important;
+  background:rgba(118,118,128,.09) !important;
+  color:var(--af-gray) !important;
+}
+html.dark .loan-history-row { background:rgba(255,255,255,.045); }
+html.dark .loan-history-main > span { color:#AEAEB2 !important; }
+
+
+/* v66.5 targeted refinements */
+/* Assets: market-rate card matches the top Wealth & Assets surface, with no accent rail. */
+.assets-gold-card {
+  border-left: 1px solid rgba(60,60,67,.10) !important;
+  background: linear-gradient(145deg,#fff,#f5faf7) !important;
+  box-shadow: 0 12px 30px rgba(15,23,42,.045);
+}
+html.dark .assets-gold-card {
+  border-left: 1px solid var(--af-dark-border) !important;
+  background: linear-gradient(145deg,#222225,#202A25) !important;
+  box-shadow: none;
+}
+/* Loans: semantic summary borders are visible in both themes. */
+.loan-native-summary-card.loan-native-lent {
+  border-color: var(--af-green) !important;
+  box-shadow: inset 0 0 0 1px var(--af-green) !important;
+}
+.loan-native-summary-card.loan-native-borrowed {
+  border-color: #FF3B30 !important;
+  box-shadow: inset 0 0 0 1px #FF3B30 !important;
+}
+html.dark .loan-native-summary-card.loan-native-lent { border-color: var(--af-green) !important; box-shadow: inset 0 0 0 1px var(--af-green) !important; }
+html.dark .loan-native-summary-card.loan-native-borrowed { border-color: #FF3B30 !important; box-shadow: inset 0 0 0 1px #FF3B30 !important; }
+/* Loan progress uses the selected app accent in both directions and themes. */
+.loan-native-card.loan-card-lent .loan-progress-fill,
+.loan-native-card.loan-card-borrowed .loan-progress-fill { background: var(--af-accent) !important; }
+/* Recurring: three left-side actions, edit/delete remain on the right. */
+.swipe-actions-left-three { width: 216px !important; grid-template-columns: repeat(3, 1fr) !important; }
+.swipe-action-skip { background: rgba(118,118,128,.11) !important; color: #3A3A3C !important; }
+html.dark .swipe-action-skip { background: #2C2C2E !important; color: #FFFFFF !important; }
+/* Insights: loan activity is informational, not a gain/loss signal. */
+.insight-neutral { color: var(--af-secondary) !important; }

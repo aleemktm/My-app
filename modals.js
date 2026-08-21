@@ -353,25 +353,66 @@
     const { darkMode, settings, hashPin, setSecurityLocked, updateSettings } = props;
     const [pin, setPin] = React.useState("");
     const [error, setError] = React.useState("");
-    const [resetConfirm, setResetConfirm] = React.useState(false);
+    const [showPin, setShowPin] = React.useState(false);
     const unlock = async e => {
       e.preventDefault();
-      if ((await hashPin(pin)) === settings.pinHash) { setSecurityLocked(false); setPin(""); setError(""); }
-      else { setError("Incorrect PIN."); setPin(""); }
+      setError("");
+      if ((await hashPin(pin)) === settings.pinHash) {
+        setSecurityLocked(false);
+        setPin("");
+        setShowPin(false);
+      } else {
+        setError("Incorrect PIN.");
+        setPin("");
+      }
+    };
+    const usePin = () => {
+      setShowPin(true);
+      setError("");
+      window.setTimeout(() => {
+        const input = document.querySelector(".ios-security-pin-entry");
+        if (input) input.focus();
+      }, 60);
     };
     return ReactDOM.createPortal(
       React.createElement("div", { className:`ios-security-lock ${darkMode?"is-dark":""}` },
-        React.createElement("div", { className:"ios-security-lock-card" },
-          React.createElement("div", { className:"ios-security-lock-icon" }, React.createElement(Icons.IconSettings, { className:"w-6 h-6" })),
-          React.createElement("h2", { className:"text-base font-bold" }, "AleemFin is Locked"),
-          React.createElement("p", { className:"text-xs text-zinc-400 mt-1" }, settings.biometricEnabled ? "Use Face ID / Touch ID or enter your PIN to continue." : "Enter your PIN to continue."),
-          settings.biometricEnabled && React.createElement("button", { type:"button", onClick:async()=>{ const ok=await (typeof window.__aleemFinAuthenticateBiometric === "function" ? window.__aleemFinAuthenticateBiometric() : false); if(ok){setSecurityLocked(false);hapticFeedback(18);actionSound("success");} }, className:"ios-security-primary w-full mt-4" }, "Unlock with Face ID / Touch ID"),
-          React.createElement("form", { onSubmit:unlock, className:"mt-3 space-y-3" },
-            React.createElement("input", { autoFocus:true, type:"password", inputMode:"numeric", maxLength:8, placeholder:"PIN", value:pin, onChange:e=>setPin(e.target.value.replace(/\\D/g,"").slice(0,8)), className:"ios-security-lock-input" }),
-            error && React.createElement("p", { className:"text-xs text-rose-500 font-semibold" }, error),
-            React.createElement("button", { type:"submit", className:"ios-security-primary w-full" }, "Unlock")
+        React.createElement("div", { className:"ios-security-lock-faceid", "aria-hidden":"true" },
+          React.createElement("div", { className:"ios-faceid-corners" },
+            React.createElement("span", { className:"c1" }), React.createElement("span", { className:"c2" }),
+            React.createElement("span", { className:"c3" }), React.createElement("span", { className:"c4" })
           ),
-          React.createElement("button", { type:"button", onClick:()=>setResetConfirm(true), className:"text-[9px] text-zinc-400 mt-3 text-center underline underline-offset-2" }, "Forgot PIN? Reset lock"), resetConfirm && React.createElement("div", { className:"mt-3 rounded-2xl border border-rose-500/15 bg-rose-500/5 p-3" }, React.createElement("p", { className:"text-[9px] text-zinc-400 text-left leading-relaxed" }, "Resetting removes the local PIN lock. Your financial data stays on this device."), React.createElement("div", { className:"flex gap-2 justify-end mt-2" }, React.createElement("button", { type:"button", onClick:()=>setResetConfirm(false), className:"ios-security-action" }, "Cancel"), React.createElement("button", { type:"button", onClick:()=>{updateSettings({pinLockEnabled:false,pinHash:""});setSecurityLocked(false);}, className:"ios-security-primary" }, "Reset Lock")))
+          React.createElement("div", { className:"ios-faceid-eyes" },
+            React.createElement("span", null), React.createElement("span", null)
+          ),
+          React.createElement("div", { className:"ios-faceid-mouth" })
+        ),
+        React.createElement("div", { className:"ios-security-lock-bottom" },
+          React.createElement("div", { className:"ios-security-brand" },
+            React.createElement("div", { className:"ios-security-brand-name" }, "AleemFin"),
+            React.createElement("div", { className:"ios-security-brand-tagline" }, "Your private wealth companion")
+          ),
+          !showPin && React.createElement("button", {
+            type:"button",
+            onClick:usePin,
+            className:"ios-security-pin-button"
+          }, "Unlock with PIN"),
+          showPin && React.createElement("form", { onSubmit:unlock, className:"ios-security-pin-form" },
+            React.createElement("input", {
+              autoFocus:true,
+              type:"password",
+              inputMode:"numeric",
+              pattern:"[0-9]*",
+              maxLength:8,
+              autoComplete:"off",
+              placeholder:"PIN",
+              value:pin,
+              onChange:e=>setPin(e.target.value.replace(/\D/g,"").slice(0,8)),
+              className:"ios-security-pin-entry"
+            }),
+            error && React.createElement("p", { className:"ios-security-pin-error" }, error),
+            React.createElement("button", { type:"submit", className:"ios-security-pin-submit" }, "Unlock"),
+            React.createElement("button", { type:"button", className:"ios-security-pin-cancel", onClick:()=>{setShowPin(false);setPin("");setError("");} }, "Cancel")
+          )
         )
       ), document.body
     );
