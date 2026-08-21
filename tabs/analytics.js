@@ -20,26 +20,24 @@
   function calculateMonthlyLoanChange(loans = [], transactions = [], monthPrefix, convertTxToAED) {
     if (!monthPrefix || typeof convertTxToAED !== "function") return { changeAED: 0, hasData: false };
     const monthStart = `${monthPrefix}-01`;
-    let current = 0;
-    let opening = 0;
-    let hasLoanData = false;
-    (loans || []).forEach(loan => {
-      const outstanding = Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0));
-      current += convertTxToAED({ amount: outstanding, currency: loan.currency || "AED", rateToAED: 1 });
-      const loanTxns = (transactions || []).filter(t => t && String(t.loanId) === String(loan.id) && t.date && t.date < monthStart && (t.category === "Loan" || t.category === "Loan Repayment"));
-      if (loanTxns.length) {
-        hasLoanData = true;
-        const openingOutstanding = loanTxns.reduce((sum, t) => {
-          const value = Number(t.accountAmount != null ? t.accountAmount : t.amount) || 0;
-          const aed = convertTxToAED({ ...t, amount: value, accountAmount: value });
-          return sum + (t.category === "Loan Repayment" ? -Math.abs(aed) : Math.abs(aed));
-        }, 0);
-        opening += Math.max(0, openingOutstanding);
-      } else if ((loan.date || "") < monthStart) {
-        opening += convertTxToAED({ amount: Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0)), currency: loan.currency || "AED", rateToAED: 1 });
-      }
+    const monthEnd = `${monthPrefix}-31`;
+    let changeAED = 0;
+    let hasData = false;
+    (transactions || []).forEach(tx => {
+      if (!tx || !tx.loanId || !tx.date || tx.date < monthStart || tx.date > monthEnd) return;
+      const loan = (loans || []).find(l => String(l.id) === String(tx.loanId));
+      if (!loan) return;
+      const amount = Number(tx.amount || 0);
+      if (!(amount > 0)) return;
+      const aed = convertTxToAED({ ...tx, amount, accountAmount: amount });
+      const repayment = tx.category === "Loan Repayment";
+      const loanContribution = loan.type === "lent"
+        ? (repayment ? -aed : aed)
+        : (repayment ? aed : -aed);
+      changeAED += loanContribution;
+      hasData = true;
     });
-    return { changeAED: current - opening, hasData: hasLoanData || current !== 0 };
+    return { changeAED, hasData };
   }
 
   function scoreFor({ savingsRate, emergencyRunwayMonths, monthlySavingsAED, monthlyIncomeAED }) {
