@@ -470,6 +470,76 @@ const persistAllData = (newAccs, newAsts, newLoans, newTxns, newRates, newBudget
     setStorageError(true);
   }
 };
+// One-time migration/reconciliation for loan-linked Ledger records. Older
+// versions stored the account currency in the Ledger `amount`, which caused
+// the Loans card and Home/Ledger view to drift after currency edits. The
+// authoritative loan movement is now mirrored into the linked transaction,
+// while `accountAmount` remains the exact balance-sheet impact in the account
+// currency.
+useEffect(() => {
+  let changed = false;
+  const reconciledLoans = loans.map(loan => {
+    const movements = Array.isArray(loan.movements) ? loan.movements : null;
+    if (!movements || movements.length === 0) return loan;
+    const principalTotal = movements.filter(m => m.kind === "principal").reduce((sum, m) => sum + Number(m.amount || 0), 0);
+    const repaidTotal = movements.filter(m => m.kind === "repayment").reduce((sum, m) => sum + Number(m.amount || 0), 0);
+    const firstPrincipal = movements.find(m => m.kind === "principal");
+    const next = {
+      ...loan,
+      amount: principalTotal,
+      repaid: Math.min(repaidTotal, principalTotal),
+      accountId: loan.accountId || firstPrincipal?.accountId || null,
+      date: loan.date || firstPrincipal?.date || loan.date
+    };
+    if (JSON.stringify(next) !== JSON.stringify(loan)) changed = true;
+    return next;
+  });
+  const reconciledTxns = transactions.map(tx => {
+    if (!tx || !tx.loanId) return tx;
+    const loan = reconciledLoans.find(l => String(l.id) === String(tx.loanId));
+    if (!loan) return tx;
+    let movement = Array.isArray(loan.movements) ? loan.movements.find(m => String(m.id) === String(tx.movementId)) : null;
+    if (!movement) {
+      const inferredKind = tx.category === "Loan Repayment" ? "repayment" : "principal";
+      const txRaw = Number(tx.accountAmount != null ? tx.accountAmount : tx.amount) || 0;
+      const txAccount = accounts.find(a => String(a.id) === String(tx.accountId));
+      const txAccountCurrency = txAccount?.currency || tx.currency || loan.currency || "AED";
+      const txLoanAmount = convertFromAED(convertToAED(txRaw, txAccountCurrency), loan.currency || txAccountCurrency);
+      movement = Array.isArray(loan.movements) ? loan.movements.find(m =>
+        m.kind === inferredKind &&
+        String(m.accountId || "") === String(tx.accountId || "") &&
+        m.date === tx.date &&
+        Math.abs(Number(m.amount || 0) - txLoanAmount) < 1e-6
+      ) : null;
+    }
+    if (!movement) return tx;
+    const movementAmount = Number(movement.amount || 0) || 0;
+    const account = accounts.find(a => String(a.id) === String(movement.accountId || tx.accountId));
+    const accountId = movement.accountId || tx.accountId || null;
+    const accountCurrency = account ? account.currency : (tx.accountAmount != null ? tx.currency : loan.currency);
+    const accountAmount = account
+      ? convertFromAED(convertToAED(movementAmount, loan.currency || "AED"), account.currency)
+      : Number(tx.accountAmount != null ? tx.accountAmount : movementAmount) || 0;
+    const next = {
+      ...tx,
+      amount: movementAmount,
+      currency: loan.currency || tx.currency || "AED",
+      rateToAED: exchangeRates[loan.currency || tx.currency || "AED"] || 1,
+      accountId,
+      accountAmount,
+      movementId: movement.id || tx.movementId
+    };
+    if (JSON.stringify(next) !== JSON.stringify(tx)) changed = true;
+    return next;
+  });
+  if (changed) {
+    setLoans(reconciledLoans);
+    setTransactions(reconciledTxns);
+    persistAllData(accounts, assets, reconciledLoans, reconciledTxns);
+  }
+  // Run once against the current stored state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 const [ratesModalOpen, setRatesModalOpen] = useState(false);
 const [rateForm, setRateForm] = useState(() => Object.fromEntries(["USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"].map(k => [k, String(exchangeRates[k] || "")] )));
 const openRatesModal = () => {
@@ -507,6 +577,12 @@ const saveStateToHistory = () => {
 // Loan ledger helpers keep the loan object, its movement history, linked
 // transactions, account balances, and all downstream calculations in sync.
 const loanAmountFromTransaction = (tx, loan) => {
+  if (!tx) return 0;
+  // Loan-linked transactions store their debt movement in the loan currency
+  // (`amount` + `currency`) and the actual account impact separately in
+  // `accountAmount`. This keeps Ledger/Home and Loans as two views of one
+  // relationship even when the account uses another currency.
+  if (tx.movementId || tx.loanId) return Number(tx.amount || 0) || 0;
   const raw = Number(tx.accountAmount != null ? tx.accountAmount : tx.amount) || 0;
   const txCurrency = tx.accountId ? (accounts.find(a => a.id === tx.accountId)?.currency || tx.currency || loan.currency) : (tx.currency || loan.currency);
   return convertFromAED(convertToAED(raw, txCurrency), loan.currency || txCurrency);
@@ -573,7 +649,7 @@ const undoLoanMovement = (loanId, movementId, legacyTransactionId) => {
     movement = {
       id: linkedTx.movementId || linkedTx.id,
       kind: linkedTx.category === "Loan Repayment" ? "repayment" : "principal",
-      amount: Number(linkedTx.accountAmount != null ? linkedTx.accountAmount : linkedTx.amount) || 0,
+      amount: loanAmountFromTransaction(linkedTx, loan),
       accountId: linkedTx.accountId,
       date: linkedTx.date
     };
@@ -592,30 +668,33 @@ const undoLoanMovement = (loanId, movementId, legacyTransactionId) => {
         movements: (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id)
       };
     }
+    const remainingMovements = (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id);
+    const remainingPrincipal = remainingMovements.filter(m => m.kind === "principal").reduce((sum, m) => sum + Number(m.amount || 0), 0);
+    if (remainingPrincipal <= 1e-9) return null;
     return {
       ...l,
-      amount: Math.max(0, (l.amount || 0) - movementAmount),
-      repaid: Math.min(l.repaid || 0, Math.max(0, (l.amount || 0) - movementAmount)),
-      movements: (l.movements || []).filter(m => m.id !== movementId && m.id !== movement.id)
+      amount: remainingPrincipal,
+      repaid: Math.min(l.repaid || 0, remainingPrincipal),
+      movements: remainingMovements
     };
   });
 
   let updatedAccs = accounts;
   let updatedTxns = transactions;
   if (linkedTx) {
-    const delta = linkedTx.type === "income"
-      ? -Number(linkedTx.accountAmount ?? linkedTx.amount ?? 0)
-      : Number(linkedTx.accountAmount ?? linkedTx.amount ?? 0);
+    const accountImpact = Number(linkedTx.accountAmount != null ? linkedTx.accountAmount : linkedTx.amount || 0) || 0;
+    const delta = linkedTx.type === "income" ? -accountImpact : accountImpact;
     updatedAccs = accounts.map(a => a.id === linkedTx.accountId
       ? { ...a, balance: a.balance + delta }
       : a);
     updatedTxns = transactions.filter(t => t.id !== linkedTx.id);
   }
 
-  setLoans(updatedLoans);
+  const cleanedLoans = updatedLoans.filter(Boolean);
+  setLoans(cleanedLoans);
   setAccounts(updatedAccs);
   setTransactions(updatedTxns);
-  persistAllData(updatedAccs, assets, updatedLoans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
+  persistAllData(updatedAccs, assets, cleanedLoans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
 };
 const [modalOpen, setModalOpen] = useState(false);
 const [modalClosing, setModalClosing] = useState(false);
@@ -921,14 +1000,21 @@ const openEditModal = (type, item) => {
       currentPriceAED: String(item.currentPriceAED)
     });
   } else if (type === "loan") {
+    const primaryPrincipal = Array.isArray(item.movements)
+      ? item.movements.find(m => m.kind === "principal")
+      : null;
+    const linkedPrincipalTx = transactions.find(t => String(t.loanId) === String(item.id) && (primaryPrincipal ? String(t.movementId) === String(primaryPrincipal.id) : t.category === "Loan"));
+    const primaryAccountId = (primaryPrincipal && primaryPrincipal.accountId) || (linkedPrincipalTx && linkedPrincipalTx.accountId) || item.accountId || "";
     setFormInput({
       ...base,
       title: item.name,
       amount: String(item.amount),
       currency: item.currency,
       loanType: item.type,
+      accountId: primaryAccountId,
       whatsapp: item.whatsapp || "",
-      dueDate: item.dueDate || ""
+      dueDate: item.dueDate || "",
+      date: item.date || todayISO()
     });
   } else if (type === "income" || type === "expense") {
     setFormInput({
@@ -1424,6 +1510,7 @@ const handleFormSubmit = e => {
         return;
       }
 
+      const selectedPrimaryAccount = formInput.accountId ? accounts.find(a => String(a.id) === String(formInput.accountId)) : null;
       const nextPrincipalFirst = principalMovements.length
         ? Math.max(0, amt - convertedOtherPrincipalTotal)
         : 0;
@@ -1432,9 +1519,14 @@ const handleFormSubmit = e => {
         convertedMovementMap.set(m.id, index === 0 ? nextPrincipalFirst : convertMovementAmount(m));
       });
       repaymentMovements.forEach(m => convertedMovementMap.set(m.id, convertMovementAmount(m)));
-      const updatedMovements = (existingLoan.movements || []).map(m => convertedMovementMap.has(m.id)
-        ? { ...m, amount: convertedMovementMap.get(m.id) }
-        : m);
+      const updatedMovements = (existingLoan.movements || []).map(m => {
+        const next = convertedMovementMap.has(m.id) ? { ...m, amount: convertedMovementMap.get(m.id) } : { ...m };
+        if (m.kind === "principal" && principalMovements.length && m.id === principalMovements[0].id) {
+          if (formInput.accountId) next.accountId = formInput.accountId;
+          if (formInput.date) next.date = formInput.date;
+        }
+        return next;
+      });
       const nextRepaid = convertedRepaidTotal;
 
       // Reconcile every linked loan transaction, not just the first one. This
@@ -1451,7 +1543,7 @@ const handleFormSubmit = e => {
         const linkedTx = linkedTxByMovement.get(m.id);
         if (!linkedTx) return;
         accsWorking = reverseLoanTransactionBalance(accsWorking, linkedTx);
-        const txAccount = accounts.find(a => a.id === linkedTx.accountId);
+        const txAccount = accounts.find(a => String(a.id) === String(m.accountId || linkedTx.accountId));
         const accountCurrency = txAccount?.currency || linkedTx.currency || newCurrency;
         const newAccountAmount = convertFromAED(convertToAED(Number(m.amount || 0), newCurrency), accountCurrency);
         const isRepayment = m.kind === "repayment";
@@ -1465,10 +1557,12 @@ const handleFormSubmit = e => {
           ...linkedTx,
           title: nextTitle,
           type: nextTxType,
-          amount: newAccountAmount,
-          currency: accountCurrency,
-          rateToAED: exchangeRates[accountCurrency] || 1,
-          accountAmount: newAccountAmount
+          amount: Number(m.amount || 0),
+          currency: newCurrency,
+          rateToAED: exchangeRates[newCurrency] || 1,
+          accountAmount: newAccountAmount,
+          accountId: m.accountId || linkedTx.accountId || null,
+          date: m.date || linkedTx.date
         };
         accsWorking = applyLoanTransactionBalance(accsWorking, nextTx, newAccountAmount);
         txnsWorking = txnsWorking.map(t => t.id === linkedTx.id ? nextTx : t);
@@ -1488,10 +1582,12 @@ const handleFormSubmit = e => {
           ...legacyPrincipalTx,
           title: `${formInput.loanType === "lent" ? "Loan to" : "Loan from"} ${formInput.title}`,
           type: formInput.loanType === "lent" ? "expense" : "income",
-          amount: newAccountAmount,
-          currency: accountCurrency,
-          rateToAED: exchangeRates[accountCurrency] || 1,
-          accountAmount: newAccountAmount
+          amount: Number(firstMovement?.amount || 0),
+          currency: newCurrency,
+          rateToAED: exchangeRates[newCurrency] || 1,
+          accountAmount: newAccountAmount,
+          accountId: (firstMovement && firstMovement.accountId) || legacyPrincipalTx.accountId || null,
+          date: firstMovement?.date || legacyPrincipalTx.date
         };
         accsWorking = applyLoanTransactionBalance(accsWorking, nextTx, newAccountAmount);
         txnsWorking = txnsWorking.map(t => t.id === legacyPrincipalTx.id ? nextTx : t);
@@ -1506,6 +1602,7 @@ const handleFormSubmit = e => {
         currency: newCurrency,
         whatsapp: formInput.whatsapp,
         dueDate: formInput.dueDate,
+        accountId: formInput.accountId || (principalMovements[0] && principalMovements[0].accountId) || existingLoan.accountId || null,
         movements: updatedMovements
       } : l);
       updatedAccs = accsWorking;
@@ -1536,9 +1633,9 @@ const handleFormSubmit = e => {
           title: `${formInput.loanType === "lent" ? "Loan to" : "Loan from"} ${formInput.title}`,
           type: formInput.loanType === "lent" ? "expense" : "income",
           category: "Loan",
-          amount: accAmt,
-          currency: loanAcc.currency,
-          rateToAED: exchangeRates[loanAcc.currency] || 1,
+          amount: amt,
+          currency: formInput.currency,
+          rateToAED: exchangeRates[formInput.currency] || 1,
           accountAmount: accAmt,
           accountId: loanAcc.id,
           date: formInput.date,
@@ -1562,6 +1659,7 @@ const handleFormSubmit = e => {
         whatsapp: formInput.whatsapp,
         dueDate: formInput.dueDate,
         date: formInput.date,
+        accountId: loanAcc ? loanAcc.id : null,
         movements
       });
       setLoans(updatedLoans);
@@ -1724,9 +1822,10 @@ const handleRepaymentSubmit = e => {
         title: `${loan.type === "lent" ? "Repayment from" : "Repayment to"} ${loan.name}`,
         type: loan.type === "lent" ? "income" : "expense",
         category: "Loan Repayment",
-        amount: accAmt,
-        currency: acc.currency,
-        rateToAED: exchangeRates[acc.currency] || 1,
+        amount: amt,
+        currency: loan.currency,
+        rateToAED: exchangeRates[loan.currency] || 1,
+        accountAmount: accAmt,
         accountId: acc.id,
         date: repayDateVal,
         recordedAt: new Date().toISOString(),
@@ -1783,9 +1882,10 @@ const handleAddMoreSubmit = e => {
         title: `${loan.type === "lent" ? "Loan to" : "Loan from"} ${loan.name}`,
         type: loan.type === "lent" ? "expense" : "income",
         category: "Loan",
-        amount: accAmt,
-        currency: acc.currency,
-        rateToAED: exchangeRates[acc.currency] || 1,
+        amount: amt,
+        currency: loan.currency,
+        rateToAED: exchangeRates[loan.currency] || 1,
+        accountAmount: accAmt,
         accountId: acc.id,
         date: addDateVal,
         recordedAt: new Date().toISOString(),
