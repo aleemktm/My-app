@@ -51,7 +51,6 @@ const DEFAULT_SETTINGS = {
   notificationsEnabled: false,
   loanRemindersEnabled: true,
   recurringRemindersEnabled: true,
-  automaticICloudBackupEnabled: true,
   pinLockEnabled: false,
   pinHash: "",
   showGreeting: true,
@@ -114,29 +113,43 @@ const isStandalonePWA = () => {
     return window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   } catch (e) { return false; }
 };
+const getBiometricPlugin = () => getNativePlugin("BiometricAuthNative");
+const checkBiometricAvailability = async () => {
+  try {
+    if (!isNativeAleemFin()) return { isAvailable: false, reason: "native-only" };
+    const plugin = getBiometricPlugin();
+    if (!plugin || typeof plugin.checkBiometry !== "function") return { isAvailable: false, reason: "plugin-unavailable" };
+    const result = await plugin.checkBiometry();
+    return result || { isAvailable: false, reason: "no-result" };
+  } catch (e) {
+    console.warn("AleemFin biometric availability check failed", e);
+    return { isAvailable: false, reason: "check-failed", error: e };
+  }
+};
 const authenticateBiometric = async () => {
   try {
-    const plugin = getNativePlugin("BiometricAuth");
-    if (plugin) {
-      if (typeof plugin.checkBiometry === "function") {
-        const availability = await plugin.checkBiometry();
-        if (availability && availability.isAvailable === false) return false;
-      }
-      if (typeof plugin.authenticate === "function") {
-        await plugin.authenticate({ reason: "Unlock AleemFin securely." });
-        return true;
-      }
+    if (!isNativeAleemFin()) return false;
+    const plugin = getBiometricPlugin();
+    if (!plugin || typeof plugin.internalAuthenticate !== "function") return false;
+    const availability = await checkBiometricAvailability();
+    if (availability && availability.isAvailable === false) {
+      console.warn("AleemFin biometrics unavailable", availability);
+      return false;
     }
-    // Optional native WebKit bridge for the iOS host app.
-    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.biometricAuth) {
-      window.webkit.messageHandlers.biometricAuth.postMessage({ reason: "Unlock AleemFin securely." });
-      return true;
-    }
+    await plugin.internalAuthenticate({
+      reason: "Unlock AleemFin securely.",
+      cancelTitle: "Cancel",
+      allowDeviceCredential: false
+    });
+    return true;
   } catch (e) {
     console.warn("AleemFin biometric authentication failed", e);
+    window.__aleemFinLastBiometricError = e;
+    return false;
   }
-  return false;
 };
+window.__aleemFinCheckBiometricAvailability = checkBiometricAvailability;
+window.__aleemFinAuthenticateBiometric = authenticateBiometric;
 const requestNotificationPermission = async () => {
   try {
     const plugin = getNativePlugin("LocalNotifications");
@@ -145,7 +158,6 @@ const requestNotificationPermission = async () => {
       const granted = result && (result.display === "granted" || result.display === "provisional");
       if (granted) return { ok: true, mode: "native" };
     }
-    // iOS web notifications are supported for Home Screen web apps, not normal Safari tabs.
     if (typeof Notification !== "undefined" && isStandalonePWA()) {
       const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
       return { ok: permission === "granted", mode: "web", permission };
@@ -156,8 +168,30 @@ const requestNotificationPermission = async () => {
     return { ok: false, mode: isNativeAleemFin() ? "native" : "web", reason: "error" };
   }
 };
+const testNativeNotification = async () => {
+  try {
+    if (!isNativeAleemFin()) return { ok: false, reason: "native-only" };
+    const plugin = getNativePlugin("LocalNotifications");
+    if (!plugin || typeof plugin.schedule !== "function") return { ok: false, reason: "plugin-unavailable" };
+    const permission = await requestNotificationPermission();
+    if (!permission.ok) return permission;
+    const id = Math.max(1, Math.floor(Date.now() / 1000) % 2147483647);
+    await plugin.schedule({ notifications: [{
+      id,
+      title: "AleemFin",
+      body: "Native iOS notifications are working correctly.",
+      schedule: { at: new Date(Date.now() + 3000) },
+      sound: "default"
+    }] });
+    return { ok: true, mode: "native", id };
+  } catch (e) {
+    console.warn("AleemFin test notification failed", e);
+    return { ok: false, reason: "error", error: e };
+  }
+};
 window.__aleemFinAuthenticateBiometric = authenticateBiometric;
 window.__aleemFinRequestNotificationPermission = requestNotificationPermission;
+window.__aleemFinTestNativeNotification = testNativeNotification;
 
 const hashPin = async pin => {
   const value = String(pin || "");
@@ -278,42 +312,10 @@ const toggleHeroWealthVisibility = () => setHeroWealthHidden(prev => { const nex
 const [currency, setCurrency] = useState(() => settings.defaultCurrency || "AED");
 const STORAGE_KEY = "aleemfin_data_v8";
 const AUTO_BACKUP_KEY = "aleemfin_auto_backup_v1";
-const AUTO_ICLOUD_BACKUP_META_KEY = "aleemfin_auto_icloud_backup_meta_v1";
-const ICLOUD_BACKUP_FILE = "AleemFin_Backup.json";
-const ICLOUD_BACKUP_FOLDER = "AleemFin";
-const writeAutomaticICloudBackup = async backup => {
-  try {
-    if (settings.automaticICloudBackupEnabled === false) return false;
-    const json = JSON.stringify(backup, null, 2);
-    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iCloudBackup;
-    if (!handler || typeof handler.postMessage !== "function") return false;
-    handler.postMessage({
-      action: "save",
-      folder: ICLOUD_BACKUP_FOLDER,
-      fileName: ICLOUD_BACKUP_FILE,
-      data: json
-    });
-    try {
-      localStorage.setItem(AUTO_ICLOUD_BACKUP_META_KEY, JSON.stringify({
-        createdAt: backup.createdAt,
-        fileName: ICLOUD_BACKUP_FILE,
-        location: "iCloud Drive/AleemFin/"
-      }));
-    } catch (_) {}
-    return true;
-  } catch (_) { return false; }
-};
-const getAutomaticICloudBackupMeta = () => {
-  try {
-    const saved = localStorage.getItem(AUTO_ICLOUD_BACKUP_META_KEY);
-    return saved ? JSON.parse(saved) : null;
-  } catch (_) { return null; }
-};
 const saveAutomaticBackup = (data) => {
   try {
     const backup = { version: 3, createdAt: new Date().toISOString(), ...data };
     localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(backup));
-    void writeAutomaticICloudBackup(backup);
     return backup;
   } catch (_) { return null; }
 };
@@ -1296,6 +1298,7 @@ const handleFormSubmit = e => {
   let updatedAsts = [...assets];
   let updatedLoans = [...loans];
   let updatedTxns = [...transactions];
+  let updatedRecurringItems = [...recurringItems];
   if (modalType === "account") {
     if (editingId) {
       const prevAcc = accounts.find(acc => acc.id === editingId);
@@ -1744,6 +1747,22 @@ const confirmDelete = () => {
           setLoans(updatedLoans);
         }
       }
+      // Recurring-linked transactions are reversible: deleting the ledger
+      // occurrence restores that scheduled occurrence and its Up Next date.
+      if (tx.recurringId) {
+        const recurringItem = recurringItems.find(item => item.id === tx.recurringId);
+        if (recurringItem) {
+          const scheduledDate = tx.recurringDate || tx.date;
+          const remainingDates = (recurringItem.recordedDates || []).filter(d => d !== scheduledDate);
+          const restoredNextDate = scheduledDate < (recurringItem.nextDate || scheduledDate) ? scheduledDate : recurringItem.nextDate;
+          updatedRecurringItems = recurringItems.map(item => item.id === tx.recurringId ? {
+            ...item,
+            nextDate: restoredNextDate || scheduledDate,
+            recordedDates: remainingDates
+          } : item);
+          setRecurringItems(updatedRecurringItems);
+        }
+      }
       setAccounts(updatedAccs);
     }
     updatedTxns = transactions.filter(t => t.id !== deleteTarget.id);
@@ -1778,7 +1797,7 @@ const confirmDelete = () => {
     updatedLoans = loans.filter(l => l.id !== deleteTarget.id);
     setLoans(updatedLoans);
   }
-  persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns);
+  persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns, exchangeRates, budgets, goals, updatedRecurringItems);
   setDeleteTarget(null);
 };
 const askDeleteAccount = acc => {
@@ -1893,6 +1912,77 @@ const makeId = (prefix = "") => {
   const rand = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   return prefix ? `${prefix}${rand}` : rand;
 };
+
+const SIRI_PROCESSED_KEY = "aleemfin_siri_processed_requests_v1";
+const getProcessedSiriRequests = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SIRI_PROCESSED_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) { return []; }
+};
+const markSiriRequestProcessed = requestId => {
+  if (!requestId) return;
+  try {
+    const current = getProcessedSiriRequests();
+    const next = [...current.filter(id => id !== requestId), requestId].slice(-100);
+    localStorage.setItem(SIRI_PROCESSED_KEY, JSON.stringify(next));
+  } catch (_) {}
+};
+const handleSiriAddExpense = async payload => {
+  try {
+    if (!payload || payload.action !== "addExpense") return false;
+    const requestId = String(payload.requestId || "").trim();
+    if (requestId && getProcessedSiriRequests().includes(requestId)) return true;
+    const amount = Number(payload.amount);
+    if (!(amount > 0) || !Number.isFinite(amount)) return false;
+    const siriCurrency = String(payload.currency || "AED").toUpperCase();
+    const siriCategory = String(payload.category || "Food").trim() || "Food";
+    const siriTitle = String(payload.title || `${siriCategory} purchase`).trim() || "Siri expense";
+    const targetAcc = accounts.find(a => String(a.currency || "").toUpperCase() === siriCurrency) || accounts[0];
+    if (!targetAcc) return false;
+    const accountCurrency = targetAcc.currency || siriCurrency;
+    const accountAmount = convertFromAED(convertToAED(amount, siriCurrency), accountCurrency);
+    const newTx = {
+      id: makeId("siri_"),
+      title: siriTitle,
+      type: "expense",
+      category: siriCategory,
+      amount,
+      currency: siriCurrency,
+      rateToAED: exchangeRates[siriCurrency] || 1,
+      accountAmount,
+      accountId: targetAcc.id,
+      date: todayISO(),
+      recordedAt: new Date().toISOString(),
+      source: "siri"
+    };
+    const updatedAccs = accounts.map(acc => acc.id === targetAcc.id ? { ...acc, balance: acc.balance - accountAmount } : acc);
+    const updatedTxns = [newTx, ...transactions];
+    setAccounts(updatedAccs);
+    setTransactions(updatedTxns);
+    persistAllData(updatedAccs, assets, loans, updatedTxns, exchangeRates, budgets, goals, recurringItems);
+    saveAutomaticBackup({ accounts: updatedAccs, assets, loans, transactions: updatedTxns, rates: exchangeRates, budgets, goals, recurringItems, settings });
+    markSiriRequestProcessed(requestId);
+    try { hapticFeedback(16); } catch (_) {}
+    return true;
+  } catch (_) { return false; }
+};
+const processSiriURL = async urlString => {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== "aleemfin:" || url.searchParams.get("action") !== "addExpense") return false;
+    return await handleSiriAddExpense({
+      action: "addExpense",
+      requestId: url.searchParams.get("requestId") || "",
+      amount: Number(url.searchParams.get("amount")),
+      currency: url.searchParams.get("currency") || "AED",
+      category: url.searchParams.get("category") || "Food",
+      title: url.searchParams.get("title") || "Food purchase"
+    });
+  } catch (_) { return false; }
+};
+window.__aleemFinHandleSiriExpense = handleSiriAddExpense;
+window.__aleemFinHandleSiriURL = urlString => { processSiriURL(urlString); return true; };
 const openBudgetEditor = (budget = null) => {
   setBudgetForm(budget ? {
     id: budget.id,
@@ -2078,7 +2168,7 @@ const recordRecurringOccurrence = item => {
     rateToAED: exchangeRates[item.currency] || 1,
     accountAmount,
     accountId: account.id,
-    date,
+    date: todayStr,
     recordedAt: new Date().toISOString(),
     recurringId: item.id,
     recurringDate: date
@@ -2490,7 +2580,7 @@ const toggleDashboardCardForSheet = id => {
   else current.push(id);
   updateSettings({ dashboardCards: current.slice(0, dashboardCardCount) });
 };
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, currentMonthPrefix, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportAutomaticBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, setDashboardCardCount, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, getAutomaticBackup, getAutomaticICloudBackupMeta, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, currentMonthPrefix, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportAutomaticBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, setDashboardCardCount, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, getAutomaticBackup, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
 
     return (
       /* @__PURE__ */React.createElement("div", {
