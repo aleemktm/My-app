@@ -1069,14 +1069,18 @@
       amount: e.target.value
     }),
     className: inputCls
-  })), !editingId && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, "Account (optional)"), /* @__PURE__ */React.createElement("select", {
     value: formInput.accountId,
-    onChange: e => setFormInput({
-      ...formInput,
-      accountId: e.target.value
-    }),
+    onChange: e => {
+      const nextAccount = accounts.find(acc => acc.id === e.target.value);
+      setFormInput({
+        ...formInput,
+        accountId: e.target.value,
+        currency: nextAccount ? nextAccount.currency : formInput.currency
+      });
+    },
     className: inputCls
   }, /* @__PURE__ */React.createElement("option", {
     value: ""
@@ -1085,7 +1089,7 @@
     value: acc.id
   }, acc.name, " (", numFmt(acc.balance), " ", acc.currency, ")"))), /* @__PURE__ */React.createElement("p", {
     className: "text-[10px] text-zinc-400 mt-1"
-  }, "Choosing an account deducts/credits it now and logs a matching ledger entry.")), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+  }, "The selected account records the cash movement. Its currency is used for the account balance; the loan currency remains the amount shown in the loan and linked Ledger entry.")), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, "WhatsApp Number (optional)"), /* @__PURE__ */React.createElement("input", {
     type: "text",
@@ -1189,15 +1193,12 @@
       date: e.target.value
     }),
     className: inputCls
-  })), modalType === "loan" && !editingId && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+  })), modalType === "loan" && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, "Date"), /* @__PURE__ */React.createElement("input", {
     type: "date",
     value: formInput.date,
-    onChange: e => setFormInput({
-      ...formInput,
-      date: e.target.value
-    }),
+    onChange: e => setFormInput({ ...formInput, date: e.target.value }),
     className: inputCls
   })), /* @__PURE__ */React.createElement("div", {
     className: "pt-2 flex justify-end space-x-2"
