@@ -6,7 +6,7 @@
       numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate,
       setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort,
       setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO,
-      todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, selectedKeys, undoLoanMovement
+      todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, selectedKeys, undoLoanMovement, toggleLoanPin
     } = props;
     const h = React.createElement;
     const lentCount = sortedLoans.filter(l => l.type === "lent").length;
@@ -144,6 +144,7 @@
 
               const frontCard = h("div", {
                 className: `loan-native-card loan-native-front ${darkMode ? "loan-native-dark" : ""} ${typeClass}`,
+                "data-loan-id": String(loan.id),
                 onClick: () => {
                   // In selection mode, tapping a loan selects/deselects it instead of
                   // expanding its history. This prevents the long-press selection
@@ -212,8 +213,10 @@
                 onDelete: () => setDeleteTarget({ type: "loan", id: loan.id, name: loan.name }),
                 onLeftAction: () => openRepayment(loan),
                 onLeftAction2: () => openAddMore(loan),
+                onLeftAction3: () => toggleLoanPin(loan.id),
                 leftActionLabel: "Record payment",
                 leftAction2Label: loan.type === "lent" ? "Lend more" : "Borrow more",
+                leftAction3Label: loan.pinned ? "Unpin" : "Pin",
                 selectionKey: selectionKey("loan", loan.id)
               }, h("div", { className: `loan-card-stack ${expanded ? "is-expanded" : ""}` },
                 frontCard,

@@ -10,7 +10,7 @@
       refreshLiveRates, renderTxRow, runwayStatus, savingsRate, setActiveTab, setCurrency,
       heroWealthHidden, toggleHeroWealthVisibility, settings, syncingGold, syncingRates, totalLiquidAED, totalLoansBorrowedAED,
       totalLoansLentAED, totalPhysicalAED, transactions, budgets, goals, recurringItems, emergencyRunwayMonths,
-      goldChangePct, goldChangeAED, selectionToolbar, subTab, setSubTab, insightsView, onSubTabTouchStart, onSubTabTouchEnd
+      goldChangePct, goldChangeAED, selectionToolbar, subTab, setSubTab, insightsView, onSubTabTouchStart, onSubTabTouchEnd, intelligence
     } = props;
 
     const isPositive = monthlySavingsAED >= 0;
@@ -54,11 +54,19 @@
     for (let i = 0; i < quoteDayKey.length; i++) quoteHash = (quoteHash * 31 + quoteDayKey.charCodeAt(i)) >>> 0;
     const quoteOfDay = quotes[quoteHash % quotes.length][0];
 
+    const intelligenceMetrics = intelligence?.metrics || {};
+    const overdueCount = Number(intelligenceMetrics.overdueLoans || 0);
+    const dueSoonCount = Number(intelligenceMetrics.dueSoonLoans || 0);
+    const currentExpense = Number(intelligenceMetrics.expense || monthlyExpenseAED || 0);
+    const recentExpense = Number(intelligenceMetrics.avgExpense || 0);
+    const savingsRateNow = intelligenceMetrics.savingsRate == null ? savingsRate : Number(intelligenceMetrics.savingsRate);
+    const topObservation = Array.isArray(intelligence?.observations) ? intelligence.observations[0] : null;
+
     const stat = (label, value, note, cls, onClick) => h("button", {
       type: "button", onClick, className: `home-stat ${darkMode ? "home-stat-dark" : ""}`
     }, h("span", { className: "home-stat-label" }, label), h("strong", { className: cls || "" }, value), h("span", { className: "home-stat-note" }, note));
 
-    const action = (label, icon, tone, onClick) => h("button", {
+    const homeAction = (label, icon, tone, onClick) => h("button", {
       type: "button", onClick, className: `home-action home-action-${tone}`
     }, h("span", { className: "home-action-icon" }, h(icon, { className: "w-4 h-4" })), h("span", null, label));
 
@@ -67,11 +75,11 @@
         h("div", { className: "home-hero-glow" }),
         h("div", { className: "home-hero-top" },
           h("div", null,
-            settings.showGreeting && h("p", { className: "home-eyebrow" }, greeting + ", Aleem"),
-            h("div", { className: "home-title-row" },
-              h("span", { className: "home-month-pill" }, currentMonthLabel)
+            h("div", { className: "home-hero-greeting-row" },
+              settings.showGreeting && h("p", { className: "home-eyebrow" }, greeting + ", Aleem"),
+              h("span", { className: "home-hero-date" }, now.toLocaleDateString(undefined, { day: "numeric", month: "short" }))
             ),
-            h("p", { className: "home-subtitle home-quote-of-day" }, h("span", { className: "home-quote-mark", "aria-hidden": "true" }, "“"), quoteOfDay, h("span", { className: "home-quote-mark home-quote-mark-end", "aria-hidden": "true" }, "”"))
+            settings.heroQuoteEnabled === true && h("p", { className: "home-subtitle home-quote-of-day" }, h("span", { className: "home-quote-mark", "aria-hidden": "true" }, "“"), quoteOfDay, h("span", { className: "home-quote-mark home-quote-mark-end", "aria-hidden": "true" }, "”"))
           ),
           h("div", { className: "home-currency" },
             h("select", { value: currency, onChange: e => setCurrency(e.target.value), "aria-label": "Display currency" },
@@ -105,13 +113,159 @@
       ),
 
 
+      (() => {
+        const localDay=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;})();
+        const pulseDismissKey=`aleemfin_pulse_dismissed_v123_${localDay}`;
+        let pulseDismissed=false;
+        try{pulseDismissed=localStorage.getItem(pulseDismissKey)==="1";}catch(_){ }
+        const cardRef=React.useRef(null);
+        const drag=React.useRef(null);
+        const suppressClick=React.useRef(false);
+        const [dismissed,setDismissed]=React.useState(false);
+        if(pulseDismissed||dismissed)return h(React.Fragment,null);
+
+        let chosen=null, tone="neutral", icon=Icons.IconSparkles, eyebrow="ALEEMFIN PULSE";
+        try {
+          const observations=Array.isArray(intelligence?.observations)?intelligence.observations.filter(Boolean):[];
+          const serious=observations.find(o=>o.severity==="serious");
+          const warning=observations.find(o=>o.severity==="warning");
+          const candidates=observations.filter(o=>o.severity!=="neutral"&&o.severity!=="serious"&&o.severity!=="warning");
+          const dayKey=`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+          let hash=0; for(let i=0;i<dayKey.length;i++)hash=(hash*31+dayKey.charCodeAt(i))>>>0;
+          chosen=serious||warning||(candidates.length?candidates[hash%candidates.length]:observations[0])||null;
+          const severity=chosen?.severity||"neutral";
+          tone=severity==="serious"?"serious":severity==="warning"?"warning":severity==="positive"?"positive":"neutral";
+          icon=tone==="serious"?Icons.IconBell:tone==="warning"?Icons.IconInfo:Icons.IconSparkles;
+          eyebrow=tone==="serious"?"NEEDS YOUR ATTENTION":tone==="warning"?"WORTH NOTICING":tone==="positive"?"GOOD NEWS":"ALEEMFIN PULSE";
+        } catch (_) {}
+
+        const rubberBand=(dx,limit)=>{
+          const sign=dx<0?-1:1;
+          const distance=Math.abs(dx);
+          return sign*limit*(1-Math.exp(-distance/(limit*.78)));
+        };
+        const renderDrag=(node,x,scale=1,opacity=1,transition="none")=>{
+          if(!node)return;
+          node.style.transition=transition;
+          node.style.transform=`translate3d(${x}px,0,0) scale(${scale})`;
+          node.style.opacity=String(opacity);
+        };
+        const startDrag=(id,x,y,node)=>{
+          if(drag.current)return;
+          drag.current={id,startX:x,startY:y,dx:0,dy:0,moved:false,locked:false};
+          suppressClick.current=false;
+          node.style.animation="none";
+          node.style.transition="none";
+        };
+        const updateDrag=(id,x,y,node,prevent)=>{
+          const d=drag.current;
+          if(!d||d.id!==id)return;
+          const dx=x-d.startX;
+          const dy=y-d.startY;
+          if(!d.locked){
+            if(Math.abs(dx)<8&&Math.abs(dy)<8)return;
+            if(Math.abs(dy)>Math.abs(dx)*1.15){d.locked=true;return;}
+            d.moved=true;
+          }
+          if(d.locked)return;
+          d.dx=dx; d.dy=dy;
+          if(prevent)prevent();
+          const xVisual=dx<0?rubberBand(dx,168):dx*.18;
+          const scale=Math.max(.955,1-Math.min(Math.abs(xVisual),168)/5200);
+          const opacity=Math.max(.58,1-Math.abs(xVisual)/900);
+          renderDrag(node,xVisual,scale,opacity);
+        };
+        const finishDrag=(id,node)=>{
+          const d=drag.current;
+          if(!d||d.id!==id)return;
+          drag.current=null;
+          if(d.locked){
+            renderDrag(node,0,1,1,"transform .46s cubic-bezier(.22,1,.36,1),opacity .3s ease");
+            return;
+          }
+          const commit=d.moved&&d.dx<-78&&Math.abs(d.dx)>Math.abs(d.dy)*1.15;
+          if(commit){
+            suppressClick.current=true;
+            try{localStorage.setItem(pulseDismissKey,"1");}catch(_){ }
+            const fling=-Math.max(window.innerWidth*1.18,620);
+            renderDrag(node,fling,.93,0,"transform .52s cubic-bezier(.16,1,.3,1),opacity .34s ease");
+            window.setTimeout(()=>setDismissed(true),360);
+            window.setTimeout(()=>{suppressClick.current=false;},650);
+          }else if(d.moved){
+            suppressClick.current=true;
+            renderDrag(node,0,1,1,"transform .58s cubic-bezier(.34,1.56,.64,1),opacity .34s ease");
+            window.setTimeout(()=>{suppressClick.current=false;},520);
+          }else{
+            renderDrag(node,0,1,1,"transform .3s cubic-bezier(.22,1,.36,1),opacity .2s ease");
+          }
+        };
+        const begin=e=>{
+          if(e.pointerType==="mouse"&&e.button!==0)return;
+          const node=e.currentTarget;
+          startDrag(`p:${e.pointerId}`,e.clientX,e.clientY,node);
+          try{node.setPointerCapture(e.pointerId);}catch(_){ }
+        };
+        const move=e=>{
+          updateDrag(`p:${e.pointerId}`,e.clientX,e.clientY,e.currentTarget,()=>e.preventDefault());
+        };
+        const finish=e=>{
+          const id=`p:${e.pointerId}`;
+          try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){ }
+          finishDrag(id,e.currentTarget);
+        };
+        const touchBegin=e=>{
+          if(!e.touches||e.touches.length!==1)return;
+          const t=e.touches[0];
+          startDrag(`t:${t.identifier}`,t.clientX,t.clientY,e.currentTarget);
+        };
+        const touchMove=e=>{
+          if(!e.touches||e.touches.length!==1)return;
+          const t=e.touches[0];
+          updateDrag(`t:${t.identifier}`,t.clientX,t.clientY,e.currentTarget,()=>e.preventDefault());
+        };
+        const touchFinish=e=>{
+          const t=e.changedTouches&&e.changedTouches[0];
+          if(!t)return;
+          finishDrag(`t:${t.identifier}`,e.currentTarget);
+        };
+        const cancel=()=>{
+          const d=drag.current;
+          if(!d)return;
+          drag.current=null;
+          renderDrag(cardRef.current,0,1,1,"transform .48s cubic-bezier(.34,1.56,.64,1),opacity .3s ease");
+        };
+        const click=e=>{
+          if(suppressClick.current)return;
+          const meta=chosen?.meta&&typeof chosen.meta==="object"?chosen.meta:{};
+          if(meta.action==="open-loan"&&meta.loanId){
+            setActiveTab("loans");
+            window.setTimeout(()=>{
+              const target=document.querySelector(`[data-loan-id="${String(meta.loanId).replace(/[^a-zA-Z0-9_-]/g,"")}"]`);
+              if(target)target.scrollIntoView({behavior:"smooth",block:"center"});
+            },220);
+          }else if(meta.action==="open-analytics")setActiveTab("analytics");
+          else if(meta.action==="open-planning")setActiveTab("planning");
+          else if(meta.action==="open-accounts")setActiveTab("accounts");
+          else if(meta.action==="open-loans")setActiveTab("loans");
+        };
+        return h("button",{
+          ref:cardRef,type:"button",className:`home-pulse home-pulse-${tone} ${darkMode?"home-pulse-dark":""}`,
+          role:"status",onClick:click,onPointerDown:begin,onPointerMove:move,onPointerUp:finish,onPointerCancel:cancel,onTouchStart:touchBegin,onTouchMove:touchMove,onTouchEnd:touchFinish,onTouchCancel:cancel,
+          style:{touchAction:"none",WebkitUserSelect:"none",userSelect:"none"},
+          "aria-label":chosen?`${chosen.title}. Tap to open related area. Swipe left to dismiss for today.`:"AleemFin Pulse. Swipe left to dismiss for today."
+        },
+          h("div",{className:"home-pulse-icon","aria-hidden":"true"},h(icon,{className:"w-5 h-5"})),
+          h("div",{className:"home-pulse-copy"},h("span",{className:"home-pulse-eyebrow"},eyebrow),h("strong",null,chosen?.title||"Everything looks steady"),h("p",null,chosen?.detail||"No unusual financial pattern needs your attention right now.")),
+          h("span",{className:"home-pulse-dot","aria-hidden":"true"})
+        );
+      })(),
+
       h("section", { className: "home-actions-section" },
-        h("div", { className: "home-section-heading" }, h("div", null, h("span", null, "QUICK ENTRY"), h("h2", null)), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "Open ledger →")),
         h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
-          action("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
-          action("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
-          action("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
-          action("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
+          homeAction("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
+          homeAction("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
+          homeAction("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
+          homeAction("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
         )
       ),
 

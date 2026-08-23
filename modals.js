@@ -274,7 +274,7 @@
   }
 
   function SecuritySheet(props) {
-    const { darkMode, settings, updateSettings, setSecuritySheetOpen, setSecurityLocked, hashPin, inputCls } = props;
+    const { darkMode, settings, updateSettings, setSecuritySheetOpen, setSecurityLocked, hashPin, generatePinSalt, verifyPin, inputCls } = props;
     const [closing, setClosing] = React.useState(false);
     const [mode, setMode] = React.useState(settings.pinLockEnabled ? "manage" : "setup");
     const [currentPin, setCurrentPin] = React.useState("");
@@ -310,19 +310,21 @@
       e.preventDefault(); setError("");
       if (!/^\d{4,8}$/.test(newPin)) { setError("PIN must be 4–8 digits."); return; }
       if (newPin !== confirmPin) { setError("PINs do not match."); return; }
-      const pinHash = await hashPin(newPin);
-      updateSettings({ pinLockEnabled:true, pinHash }); setSecurityLocked(false); setNewPin(""); setConfirmPin(""); setMode("manage");
+      const pinSalt = generatePinSalt();
+      const pinHash = await hashPin(newPin, pinSalt);
+      updateSettings({ pinLockEnabled:true, pinHash, pinSalt }); setSecurityLocked(false); setNewPin(""); setConfirmPin(""); setMode("manage");
     };
     const changePin = async e => {
       e.preventDefault(); setError("");
       if (!/^\d{4,8}$/.test(newPin)) { setError("PIN must be 4–8 digits."); return; }
       if (newPin !== confirmPin) { setError("PINs do not match."); return; }
-      if ((await hashPin(currentPin)) !== settings.pinHash) { setError("Current PIN is incorrect."); return; }
-      updateSettings({ pinHash: await hashPin(newPin), pinLockEnabled:true }); setCurrentPin(""); setNewPin(""); setConfirmPin(""); setError(""); setMode("manage");
+      if (!(await verifyPin(currentPin))) { setError("Current PIN is incorrect."); return; }
+      const pinSalt = generatePinSalt();
+      updateSettings({ pinHash: await hashPin(newPin, pinSalt), pinSalt, pinLockEnabled:true }); setCurrentPin(""); setNewPin(""); setConfirmPin(""); setError(""); setMode("manage");
     };
     const disablePin = async () => {
       if (!settings.pinLockEnabled) return;
-      updateSettings({ pinLockEnabled:false, pinHash:"" }); setSecurityLocked(false); setResetConfirm(false); setMode("setup");
+      updateSettings({ pinLockEnabled:false, pinHash:"", pinSalt:"" }); setSecurityLocked(false); setResetConfirm(false); setMode("setup");
     };
     return ReactDOM.createPortal(
       React.createElement("div", { className:`ios-settings-sheet-backdrop ${closing?"is-closing":""}`, onClick:e=>{if(e.target===e.currentTarget)dismiss();}, style:{touchAction:"none"} },
@@ -350,14 +352,14 @@
   }
 
   function SecurityLockOverlay(props) {
-    const { darkMode, settings, hashPin, setSecurityLocked, updateSettings } = props;
+    const { darkMode, settings, verifyPin, setSecurityLocked, updateSettings } = props;
     const [pin, setPin] = React.useState("");
     const [error, setError] = React.useState("");
     const [showPin, setShowPin] = React.useState(false);
     const unlock = async e => {
       e.preventDefault();
       setError("");
-      if ((await hashPin(pin)) === settings.pinHash) {
+      if (await verifyPin(pin)) {
         setSecurityLocked(false);
         setPin("");
         setShowPin(false);
@@ -1200,6 +1202,15 @@
     value: formInput.date,
     onChange: e => setFormInput({ ...formInput, date: e.target.value }),
     className: inputCls
+  })), ["income", "expense", "transfer"].includes(modalType) && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+    className: "block text-[11px] font-medium mb-1"
+  }, "Comment (optional)"), /* @__PURE__ */React.createElement("textarea", {
+    rows: 2,
+    maxLength: 500,
+    placeholder: "Add a note about this transaction…",
+    value: formInput.comment || "",
+    onChange: e => setFormInput({ ...formInput, comment: e.target.value }),
+    className: `${inputCls} resize-none`
   })), /* @__PURE__ */React.createElement("div", {
     className: "pt-2 flex justify-end space-x-2"
   }, /* @__PURE__ */React.createElement("button", {

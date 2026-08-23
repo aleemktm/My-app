@@ -3,6 +3,25 @@
     // Native-style horizontal paging for every segmented/tab control.
     // Vertical scrolling wins; nested action areas are not treated as tab swipes.
     React.useEffect(() => {
+      const updateKeyboardState = () => {
+        const vv = window.visualViewport;
+        const height = vv ? vv.height : window.innerHeight;
+        const keyboardLikelyVisible = !!vv && (window.innerHeight - height > 120);
+        document.documentElement.classList.toggle("af-keyboard-visible", keyboardLikelyVisible);
+      };
+      updateKeyboardState();
+      window.visualViewport?.addEventListener("resize", updateKeyboardState);
+      window.visualViewport?.addEventListener("scroll", updateKeyboardState);
+      window.addEventListener("resize", updateKeyboardState);
+      return () => {
+        window.visualViewport?.removeEventListener("resize", updateKeyboardState);
+        window.visualViewport?.removeEventListener("scroll", updateKeyboardState);
+        window.removeEventListener("resize", updateKeyboardState);
+        document.documentElement.classList.remove("af-keyboard-visible");
+      };
+    }, []);
+
+    React.useEffect(() => {
       const starts = new WeakMap();
       const onStart = e => {
         const tablist = e.target && e.target.closest ? e.target.closest('[role="tablist"]') : null;
@@ -54,7 +73,9 @@ const DEFAULT_SETTINGS = {
   googleDriveBackupEnabled: false,
   pinLockEnabled: false,
   pinHash: "",
+  pinSalt: "",
   showGreeting: true,
+  heroQuoteEnabled: false,
   primaryNavIds: ["overview", "transactions", "accounts", "loans"],
   defaultCurrency: "AED",
   dateFormat: "YYYY-MM-DD",
@@ -69,6 +90,15 @@ const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
+      delete parsed.aiEnabled;
+      delete parsed.aiConnectionStatus;
+      delete parsed.aiConnectionMessage;
+      delete parsed.aiShareFinancialContext;
+      try {
+        localStorage.removeItem("aleemfin_ai_coach_messages");
+        localStorage.removeItem("aleemfin_ai_coach_conversations_v1");
+        localStorage.removeItem("aleemfin_ai_launch_variant");
+      } catch (e) {}
       const legacyAccent = parsed.accentColor === "rose" || parsed.accentColor === "red";
       return {
         ...DEFAULT_SETTINGS,
@@ -198,8 +228,13 @@ window.__aleemFinAuthenticateBiometric = authenticateBiometric;
 window.__aleemFinRequestNotificationPermission = requestNotificationPermission;
 window.__aleemFinTestNativeNotification = testNativeNotification;
 
-const hashPin = async pin => {
-  const value = String(pin || "");
+// hashPin: salt is optional so this stays backward-compatible with hashes
+// created before per-install PIN salting existed (those were sha256(pin)
+// with no salt at all). When a salt is supplied it's mixed in, which makes
+// a 4-8 digit PIN's hash resistant to precomputed/rainbow-table brute force
+// even if a backup file (which includes pinHash) leaks.
+const hashPin = async (pin, salt = "") => {
+  const value = salt ? `${salt}:${String(pin || "")}` : String(pin || "");
   if (window.crypto && window.crypto.subtle) {
     const data = new TextEncoder().encode(value);
     const digest = await window.crypto.subtle.digest("SHA-256", data);
@@ -208,6 +243,44 @@ const hashPin = async pin => {
   let hash = 2166136261;
   for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
   return (hash >>> 0).toString(16);
+};
+const generatePinSalt = () => {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  return `${Date.now()}${Math.random()}`.replace(/\D/g, "");
+};
+// Verifies a PIN against the stored (possibly legacy/unsalted) hash. On a
+// successful match against a legacy unsalted hash, transparently upgrades
+// the stored hash to a salted one so existing users are never locked out
+// by this fix and every install converges to a salted hash over time.
+const PIN_ATTEMPT_KEY = "aleemfin_pin_attempts_v1";
+const getPinAttemptState = () => {
+  try { return JSON.parse(localStorage.getItem(PIN_ATTEMPT_KEY) || "null") || { count: 0, lockedUntil: 0 }; } catch (_) { return { count: 0, lockedUntil: 0 }; }
+};
+const setPinAttemptState = state => { try { localStorage.setItem(PIN_ATTEMPT_KEY, JSON.stringify(state)); } catch (_) {} };
+const verifyPin = async pin => {
+  const attemptState = getPinAttemptState();
+  const nowMs = Date.now();
+  if (attemptState.lockedUntil && nowMs < attemptState.lockedUntil) return false;
+  if (attemptState.lockedUntil && nowMs >= attemptState.lockedUntil) { attemptState.lockedUntil = 0; setPinAttemptState(attemptState); }
+  const salt = settings.pinSalt || "";
+  if (await hashPin(pin, salt) === settings.pinHash) {
+    setPinAttemptState({ count: 0, lockedUntil: 0 });
+    return true;
+  }
+  if (!salt && await hashPin(pin, "") === settings.pinHash) {
+    const newSalt = generatePinSalt();
+    updateSettings({ pinSalt: newSalt, pinHash: await hashPin(pin, newSalt) });
+    setPinAttemptState({ count: 0, lockedUntil: 0 });
+    return true;
+  }
+  const failedCount = (attemptState.count || 0) + 1;
+  const cooldownMs = failedCount < 5 ? 0 : Math.min(5 * 60 * 1000, 30000 * Math.pow(2, Math.min(failedCount - 5, 4)));
+  setPinAttemptState({ count: failedCount, lockedUntil: cooldownMs ? Date.now() + cooldownMs : 0 });
+  return false;
 };
 React.useEffect(() => {
   const onVisibility = () => {
@@ -226,11 +299,13 @@ if (settings.accentColor !== safeAccentColor) {
   try { updateSettings({ accentColor: safeAccentColor }); } catch (e) {}
 }
 const accent = ACCENT_PALETTE[safeAccentColor];
-const cleanedPrimaryNavIds = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.filter(id => id !== "recurring") : DEFAULT_SETTINGS.primaryNavIds;
-const primaryNavIds = cleanedPrimaryNavIds.length === 4 ? cleanedPrimaryNavIds : DEFAULT_SETTINGS.primaryNavIds;
-const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter(t => primaryNavIds.includes(t.id));
-const MORE_NAV_ITEMS = NAV_ITEMS.filter(t => !primaryNavIds.includes(t.id));
-const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(t => t.id !== "settings");
+const availableNavItems = NAV_ITEMS;
+const cleanedPrimaryNavIds = Array.isArray(settings.primaryNavIds) ? settings.primaryNavIds.filter(id => id !== "recurring" && availableNavItems.some(t => t.id === id)) : DEFAULT_SETTINGS.primaryNavIds;
+const fallbackPrimaryNavIds = DEFAULT_SETTINGS.primaryNavIds;
+const primaryNavIds = cleanedPrimaryNavIds.length === 4 ? cleanedPrimaryNavIds : fallbackPrimaryNavIds;
+const PRIMARY_NAV_ITEMS = availableNavItems.filter(t => primaryNavIds.includes(t.id));
+const MORE_NAV_ITEMS = availableNavItems.filter(t => !primaryNavIds.includes(t.id));
+const MOBILE_NAV_ITEMS = availableNavItems.filter(t => t.id !== "settings");
 const numFmt = (n, opts = {}) => Number(n || 0).toLocaleString(settings.numberFormat === "period" ? "de-DE" : "en-US", { maximumFractionDigits: 2, ...opts });
 const dateFmt = iso => {
   if (!iso) return "";
@@ -306,6 +381,7 @@ React.useEffect(() => {
   };
 }, [activeTab]);
 const lastNonSettingsTabRef = useRef("overview");
+useEffect(() => { if (activeTab !== "settings") lastNonSettingsTabRef.current = activeTab; }, [activeTab]);
 useEffect(() => { try { localStorage.setItem("aleemfin_active_tab", activeTab); } catch (_) {} }, [activeTab]);
 useEffect(() => { if (selectedKeys.size) { selectedKeys.clear(); setSelectionVersion(v => v + 1); } }, [activeTab]);
 const [insightTrendPeriod, setInsightTrendPeriod] = useState("monthly");
@@ -316,6 +392,16 @@ const [heroWealthHidden, setHeroWealthHidden] = useState(() => { try { return lo
 const toggleHeroWealthVisibility = () => setHeroWealthHidden(prev => { const next = !prev; try { localStorage.setItem("aleemfin_hero_wealth_hidden", next ? "1" : "0"); } catch (_) {} return next; });
 const [currency, setCurrency] = useState(() => settings.defaultCurrency || "AED");
 const STORAGE_KEY = "aleemfin_data_v8";
+// v123 Pulse migration: clear all legacy dismissal namespaces once so a card
+// dismissed in an older build cannot suppress the first v123 Pulse.
+try {
+  const _pulseToday = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })();
+  const _pulseMigrationKey = "aleemfin_pulse_v123_migrated";
+  if (localStorage.getItem(_pulseMigrationKey) !== "1") {
+    Object.keys(localStorage).filter(k => k.indexOf("aleemfin_pulse_dismissed_") === 0).forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(_pulseMigrationKey, "1");
+  }
+} catch (_) {}
 const AUTO_BACKUP_KEY = "aleemfin_auto_backup_v1";
 const googleDriveBridge = () => {
   try {
@@ -346,6 +432,12 @@ React.useEffect(() => {
       updateSettings({ googleDriveBackupEnabled: false });
     } else if (detail.action === "backup" && !detail.ok && settings.googleDriveBackupEnabled === true) {
       alert(detail.error || "AleemFin could not update the Google Drive backup.");
+    } else if (detail.action === "restore") {
+      if (!detail.ok || typeof detail.json !== "string") {
+        alert(detail.error || "AleemFin could not download the Google Drive backup.");
+        return;
+      }
+      restoreBackupFromGoogleDrive(detail.json);
     }
   };
   window.addEventListener("aleemfinGoogleDriveResult", onGoogleDriveResult);
@@ -359,9 +451,59 @@ const uploadCurrentBackupToGoogleDrive = () => {
   if (!backup) { alert("No automatic backup has been created yet. Record an Inflow or Outflow first."); return false; }
   return sendGoogleDriveAction("backup", JSON.stringify(backup));
 };
+const restoreBackupPayload = parsed => {
+  if (!parsed || !parsed.accounts || !parsed.transactions) throw new Error("Invalid structure");
+  const clean = sanitizeImportedData(parsed);
+  if (clean.accounts.length === 0 || clean.transactions.length === 0) throw new Error("No valid accounts/transactions in backup");
+  return clean;
+};
+const restoreBackupFromGoogleDrive = json => {
+  try {
+    const parsed = JSON.parse(json);
+    const clean = restoreBackupPayload(parsed);
+    const droppedTotal = Object.values(clean.dropped).reduce((s, n) => s + n, 0);
+    const confirmMsg = "Restore this Google Drive backup? It will replace the accounts, transactions, loans, assets and exchange rates currently stored on this device."
+      + (droppedTotal > 0 ? `\n\nNote: ${droppedTotal} malformed record(s) in this backup will be skipped (${Object.entries(clean.dropped).map(([k, n]) => `${n} ${k}`).join(", ")}).` : "");
+    if (!window.confirm(confirmMsg)) return;
+    saveStateToHistory();
+    setAccounts(clean.accounts);
+    setAssets(clean.assets);
+    setLoans(clean.loans);
+    setTransactions(clean.transactions);
+    if (parsed.rates) setExchangeRates(parsed.rates);
+    setBudgets(clean.budgets);
+    setGoals(clean.goals);
+    setRecurringItems(clean.recurringItems);
+    if (Array.isArray(parsed.goldHistory)) persistGoldHistory(parsed.goldHistory);
+    if (parsed.settings) updateSettings({
+      ...parsed.settings,
+      customCategories: {
+        ...DEFAULT_SETTINGS.customCategories,
+        ...(parsed.settings.customCategories || {})
+      }
+    });
+    if (parsed.settings && parsed.settings.defaultCurrency) setCurrency(parsed.settings.defaultCurrency);
+    persistAllData(clean.accounts, clean.assets, clean.loans, clean.transactions, parsed.rates || exchangeRates, clean.budgets, clean.goals, clean.recurringItems);
+    alert(droppedTotal > 0 ? `Google Drive backup restored with ${droppedTotal} malformed record(s) skipped.` : "Google Drive backup restored successfully.");
+  } catch (err) {
+    alert("Invalid or corrupted Google Drive backup file.");
+  }
+};
+const restoreFromGoogleDrive = () => {
+  if (!googleDriveConnected) { alert("Connect Google Drive first."); return false; }
+  if (!window.confirm("Download the latest AleemFin backup from Google Drive? You will be asked to confirm again before your current data is replaced.")) return false;
+  return sendGoogleDriveAction("restore");
+};
+const getPortableSettings = source => {
+  const input = source && typeof source === "object" ? source : {};
+  const { pinHash, pinSalt, pinLockEnabled, biometricEnabled, ...portable } = input;
+  return portable;
+};
+
 const saveAutomaticBackup = (data) => {
   try {
     const backup = { version: 3, createdAt: new Date().toISOString(), ...data };
+    if (backup.settings) backup.settings = getPortableSettings(backup.settings);
     localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(backup));
     if (settings.googleDriveBackupEnabled === true) {
       sendGoogleDriveAction("backup", JSON.stringify(backup));
@@ -1022,6 +1164,7 @@ const getDefaultFormInput = (overrides = {}) => {
     dueDate: "",
     accType: "Bank",
     date: todayISO(),
+    comment: "",
     ...overrides
   };
 };
@@ -1169,6 +1312,7 @@ const totalLoansBorrowedAED = loans.filter(l => l.type === "borrowed").reduce((a
 const sortedLoans = useMemo(() => {
   const list = [...loans];
   if (loanSort === "date_asc") list.sort((a, b) => (a.date || "").localeCompare(b.date || ""));else if (loanSort === "date_desc") list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));else if (loanSort === "amount_desc") list.sort((a, b) => b.amount - (b.repaid || 0) - (a.amount - (a.repaid || 0)));else if (loanSort === "amount_asc") list.sort((a, b) => a.amount - (a.repaid || 0) - (b.amount - (b.repaid || 0)));else if (loanSort === "name") list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  list.sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
   return list;
 }, [loans, loanSort]);
 const netWorthWithoutFixedAssets = totalLiquidAED + totalLoansLentAED - totalLoansBorrowedAED;
@@ -1313,6 +1457,21 @@ const biggestExpenseThisMonth = monthlyTransactions.filter(t => t.type === "expe
   } : biggest;
 }, null);
 
+const intelligence = React.useMemo(() => {
+  if (!window.AleemFinIntelligence || typeof window.AleemFinIntelligence.analyse !== "function") return null;
+  return window.AleemFinIntelligence.analyse({
+    now,
+    transactions,
+    loans,
+    accounts,
+    recurringItems,
+    totalLiquidAED,
+    convertTxToAED,
+    rateForLoan: curr => exchangeRates[curr] || 1,
+    excludedCategories: ANALYTICS_EXCLUDED_CATEGORIES
+  });
+}, [transactions, loans, accounts, recurringItems, exchangeRates, totalLiquidAED]);
+
 const statementDateTime = tx => {
   const raw = tx?.recordedAt || tx?.date || "";
   const d = raw ? new Date(raw) : null;
@@ -1451,8 +1610,40 @@ const filteredTransactions = useMemo(() => {
   });
   const sorted = [...list];
   if (ledgerSort === "date_asc") sorted.sort((a, b) => (a.date || "").localeCompare(b.date || ""));else if (ledgerSort === "date_desc") sorted.sort((a, b) => (b.date || "").localeCompare(a.date || ""));else if (ledgerSort === "amount_desc") sorted.sort((a, b) => (b.amount || 0) - (a.amount || 0));else if (ledgerSort === "amount_asc") sorted.sort((a, b) => (a.amount || 0) - (b.amount || 0));
+  sorted.sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
   return sorted;
 }, [transactions, ledgerSearch, ledgerFilter, ledgerSort]);
+const toggleLoanPin = loanId => {
+  const updated = loans.map(loan => String(loan.id) === String(loanId) ? { ...loan, pinned: !loan.pinned } : loan);
+  setLoans(updated);
+  persistAllData(accounts, assets, updated, transactions);
+  hapticFeedback(12);
+};
+const toggleTransactionPin = txId => {
+  const updated = transactions.map(tx => String(tx.id) === String(txId) ? { ...tx, pinned: !tx.pinned } : tx);
+  setTransactions(updated);
+  persistAllData(accounts, assets, loans, updated);
+  hapticFeedback(12);
+};
+const editTransactionComment = tx => {
+  const current = String(tx.comment || "").trim();
+  if (current) {
+    const wantsEdit = window.confirm(`Comment for “${tx.title}”:\n\n${current}\n\nPress OK to edit this comment, or Cancel to leave it unchanged.`);
+    if (!wantsEdit) return;
+  }
+  const next = window.prompt(current ? "Edit comment" : "Add comment", current);
+  if (next === null) return;
+  const updated = transactions.map(item => String(item.id) === String(tx.id) ? { ...item, comment: next.trim() } : item);
+  setTransactions(updated);
+  persistAllData(accounts, assets, loans, updated);
+};
+const categoriseTransaction = tx => {
+  if (!["income", "expense"].includes(tx.type)) {
+    alert("Transfers use their fixed Transfer category.");
+    return;
+  }
+  openEditModal(tx.type, tx);
+};
 const handleFormSubmit = e => {
   e.preventDefault();
   const amt = Number(formInput.amount);
@@ -1698,6 +1889,7 @@ const handleFormSubmit = e => {
       toCurrency: toAcc.currency,
       toAccountId: toAcc.id,
       date: formInput.date,
+      comment: formInput.comment || "",
       recordedAt: editingId ? (transactions.find(t => t.id === editingId)?.recordedAt || new Date().toISOString()) : new Date().toISOString()
     };
     updatedTxns = editingId ? transactions.map(t => t.id === editingId ? txPayload : t) : [txPayload, ...transactions];
@@ -1733,6 +1925,7 @@ const handleFormSubmit = e => {
       accountAmount: accountAmt,
       accountId: formInput.accountId,
       date: formInput.date,
+      comment: formInput.comment || "",
       recordedAt: editingId ? (transactions.find(t => t.id === editingId)?.recordedAt || new Date().toISOString()) : new Date().toISOString()
     };
     updatedAccs = accsWorking.map(acc => {
@@ -1819,6 +2012,7 @@ const confirmDelete = () => {
   let updatedAsts = [...assets];
   let updatedLoans = [...loans];
   let updatedTxns = [...transactions];
+  let updatedRecurringItems = [...recurringItems];
   if (target.type === "transaction") {
     const tx = transactions.find(t => t.id === target.id);
     if (tx) {
@@ -1857,6 +2051,19 @@ const confirmDelete = () => {
     }
   } else if (target.type === "account") {
     const accId = target.id;
+    // Preflight linked loan movements before changing any React state. If removing
+    // one would leave repayments without a principal, refuse the destructive action.
+    let loanPreflight = { accounts: accounts, loans: loans, transactions: transactions };
+    const linkedLoanTxns = transactions.filter(t => (t.accountId === accId || t.toAccountId === accId) && t.loanId && t.movementId);
+    try {
+      linkedLoanTxns.forEach(t => {
+        const result = window.AleemFinLoanDomain.removeMovement(loanPreflight, t.loanId, t.movementId, { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts: loanPreflight.accounts });
+        loanPreflight = result;
+      });
+    } catch (err) {
+      alert(err && err.message ? err.message : "This account cannot be deleted safely because it is linked to a loan that still has repayments.");
+      return;
+    }
     let accs = accounts.filter(a => a.id !== accId);
     const relatedTxns = transactions.filter(t => t.accountId === accId || t.toAccountId === accId);
     relatedTxns.forEach(t => {
@@ -1881,7 +2088,10 @@ const confirmDelete = () => {
       try {
         const result = window.AleemFinLoanDomain.removeMovement({ accounts: updatedAccs, loans: updatedLoans, transactions: updatedTxns }, t.loanId, t.movementId, { makeId, todayISO, exchangeRates, convertToAED, convertFromAED, accounts: updatedAccs });
         updatedAccs = result.accounts; updatedLoans = result.loans; updatedTxns = result.transactions;
-      } catch (err) {}
+      } catch (err) {
+        alert(err && err.message ? err.message : "This account cannot be deleted safely because it is linked to a loan that still has repayments.");
+        return;
+      }
     });
     setAccounts(updatedAccs);
     setLoans(updatedLoans);
@@ -1904,7 +2114,6 @@ const confirmDelete = () => {
     }
   }
   persistAllData(updatedAccs, updatedAsts, updatedLoans, updatedTxns, exchangeRates, budgets, goals, updatedRecurringItems);
-  setDeleteTarget(null);
 };
 const askDeleteAccount = acc => {
   const linkedCount = transactions.filter(t => t.accountId === acc.id || t.toAccountId === acc.id).length;
@@ -1928,7 +2137,7 @@ const exportBackup = () => {
     goals,
     recurringItems,
     goldHistory,
-    settings
+    settings: getPortableSettings(settings)
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json"
@@ -1956,6 +2165,57 @@ const exportCSV = () => {
   a.download = `aleemfin_transactions_${todayISO()}.csv`;
   a.click();
 };
+// Validates and repairs a parsed backup payload before it ever reaches app
+// state. Malformed or hand-edited entries (e.g. a goal with targetAmount 0,
+// a budget with a negative amount, a non-object item) are dropped instead of
+// being written to state, which previously let corrupted backups produce
+// NaN%/broken UI (e.g. Planning goal progress) with no warning.
+const sanitizeImportedData = parsed => {
+  const isFiniteNum = v => typeof v === "number" && isFinite(v);
+  const toArr = v => Array.isArray(v) ? v : [];
+  const dropped = {};
+  const keep = (key, arr, predicate) => {
+    const clean = arr.filter(item => item && typeof item === "object" && predicate(item));
+    if (clean.length !== arr.length) dropped[key] = arr.length - clean.length;
+    return clean;
+  };
+  const accounts = keep("accounts", toArr(parsed.accounts), a =>
+    a.id != null && typeof a.currency === "string" && isFiniteNum(Number(a.balance)));
+  const transactions = keep("transactions", toArr(parsed.transactions), t =>
+    t.id != null && isFiniteNum(Number(t.amount)) && (t.type === "income" || t.type === "expense" || t.type === "transfer"));
+  const loans = keep("loans", toArr(parsed.loans), l =>
+    l.id != null && (l.type === "lent" || l.type === "borrowed") && Array.isArray(l.movements));
+  const assets = keep("assets", toArr(parsed.assets), a => a.id != null);
+  const budgets = keep("budgets", toArr(parsed.budgets), b =>
+    b.id != null && !!b.category && isFiniteNum(Number(b.amount)) && Number(b.amount) > 0);
+  const goals = keep("goals", toArr(parsed.goals), g =>
+    g.id != null && !!g.name && isFiniteNum(Number(g.targetAmount)) && Number(g.targetAmount) > 0 &&
+    isFiniteNum(Number(g.currentAmount)) && Number(g.currentAmount) >= 0);
+  let repaired = 0;
+  const accountIds = new Set(accounts.map(a => String(a.id)));
+  const repairedTransactions = transactions.map(t => {
+    const next = { ...t };
+    if (next.accountId != null && !accountIds.has(String(next.accountId))) { next.accountId = null; repaired++; }
+    if (next.type === "transfer" && next.toAccountId != null && !accountIds.has(String(next.toAccountId))) { next.toAccountId = null; repaired++; }
+    if (next.type === "transfer" && (!next.accountId || !next.toAccountId)) {
+      dropped.transactions = (dropped.transactions || 0) + 1;
+      return null;
+    }
+    return next;
+  }).filter(Boolean);
+  const repairedLoans = loans.map(loan => {
+    const movements = (loan.movements || []).map(m => {
+      const next = { ...m };
+      if (next.accountId != null && !accountIds.has(String(next.accountId))) { next.accountId = null; repaired++; }
+      return next;
+    });
+    return { ...loan, movements };
+  });
+  if (repaired > 0) dropped.repairedReferences = repaired;
+  const recurringItems = keep("recurringItems", toArr(parsed.recurringItems), r =>
+    r.id != null && isFiniteNum(Number(r.amount)) && Number(r.amount) > 0);
+  return { accounts, transactions: repairedTransactions, loans: repairedLoans, assets, budgets, goals, recurringItems, dropped };
+};
 const importBackup = e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1964,30 +2224,40 @@ const importBackup = e => {
     try {
       const parsed = JSON.parse(event.target.result);
       if (!parsed.accounts || !parsed.transactions) throw new Error("Invalid structure");
-      if (!window.confirm("Restore this backup? It will replace the accounts, transactions, loans, assets and exchange rates currently stored on this device.")) {
+      const clean = sanitizeImportedData(parsed);
+      if (clean.accounts.length === 0 || clean.transactions.length === 0) {
+        throw new Error("No valid accounts/transactions in backup");
+      }
+      const droppedTotal = Object.values(clean.dropped).reduce((s, n) => s + n, 0);
+      const confirmMsg = "Restore this backup? It will replace the accounts, transactions, loans, assets and exchange rates currently stored on this device."
+        + (droppedTotal > 0 ? `\n\nNote: ${droppedTotal} malformed record(s) in this backup will be skipped (${Object.entries(clean.dropped).map(([k, n]) => `${n} ${k}`).join(", ")}).` : "");
+      if (!window.confirm(confirmMsg)) {
         e.target.value = "";
         return;
       }
       saveStateToHistory();
-      setAccounts(parsed.accounts);
-      if (parsed.assets) setAssets(parsed.assets);
-      if (parsed.loans) setLoans(parsed.loans);
-      setTransactions(parsed.transactions);
+      setAccounts(clean.accounts);
+      setAssets(clean.assets);
+      setLoans(clean.loans);
+      setTransactions(clean.transactions);
       if (parsed.rates) setExchangeRates(parsed.rates);
-      setBudgets(Array.isArray(parsed.budgets) ? parsed.budgets : []);
-      setGoals(Array.isArray(parsed.goals) ? parsed.goals : []);
-      setRecurringItems(Array.isArray(parsed.recurringItems) ? parsed.recurringItems : []);
+      setBudgets(clean.budgets);
+      setGoals(clean.goals);
+      setRecurringItems(clean.recurringItems);
       if (Array.isArray(parsed.goldHistory)) persistGoldHistory(parsed.goldHistory);
-      if (parsed.settings) updateSettings({
-        ...parsed.settings,
-        customCategories: {
-          ...DEFAULT_SETTINGS.customCategories,
-          ...(parsed.settings.customCategories || {})
-        }
-      });
+      if (parsed.settings) {
+        const importedSettings = getPortableSettings(parsed.settings);
+        updateSettings({
+          ...importedSettings,
+          customCategories: {
+            ...DEFAULT_SETTINGS.customCategories,
+            ...(importedSettings.customCategories || {})
+          }
+        });
+      }
       if (parsed.settings && parsed.settings.defaultCurrency) setCurrency(parsed.settings.defaultCurrency);
-      persistAllData(parsed.accounts, parsed.assets || assets, parsed.loans || loans, parsed.transactions, parsed.rates || exchangeRates, Array.isArray(parsed.budgets) ? parsed.budgets : [], Array.isArray(parsed.goals) ? parsed.goals : [], Array.isArray(parsed.recurringItems) ? parsed.recurringItems : []);
-      alert("Backup restored successfully.");
+      persistAllData(clean.accounts, clean.assets, clean.loans, clean.transactions, parsed.rates || exchangeRates, clean.budgets, clean.goals, clean.recurringItems);
+      alert(droppedTotal > 0 ? `Backup restored with ${droppedTotal} malformed record(s) skipped.` : "Backup restored successfully.");
     } catch (err) {
       alert("Invalid or corrupted backup file.");
     }
@@ -2274,7 +2544,7 @@ const recordRecurringOccurrence = item => {
     rateToAED: exchangeRates[item.currency] || 1,
     accountAmount,
     accountId: account.id,
-    date: todayStr,
+    date,
     recordedAt: new Date().toISOString(),
     recurringId: item.id,
     recurringDate: date
@@ -2354,6 +2624,8 @@ const confirmDangerAction = () => {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(SETTINGS_KEY);
   localStorage.removeItem(GOLD_HISTORY_KEY);
+  localStorage.removeItem("aleemfin_ai_coach_messages");
+  try { Object.keys(localStorage).filter(k => k.indexOf("aleemfin_pulse_dismissed_") === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
   setSettings(DEFAULT_SETTINGS);
   setSecurityLocked(false);
   setCurrency(DEFAULT_SETTINGS.defaultCurrency);
@@ -2692,7 +2964,7 @@ const toggleDashboardCardForSheet = id => {
   else current.push(id);
   updateSettings({ dashboardCards: current.slice(0, dashboardCardCount) });
 };
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, currentMonthPrefix, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportAutomaticBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, setDashboardCardCount, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, getAutomaticBackup, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory };
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent, toggleLoanPin, toggleTransactionPin, editTransactionComment, categoriseTransaction,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, currentMonthPrefix, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportAutomaticBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, generatePinSalt, verifyPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, setDashboardCardCount, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, getAutomaticBackup, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, restoreFromGoogleDrive, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory, intelligence, lastNonSettingsTab: lastNonSettingsTabRef.current };
 
     return (
       /* @__PURE__ */React.createElement("div", {
@@ -2732,7 +3004,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
       const isActive = activeTab === tab.id;
       return /* @__PURE__ */React.createElement("button", {
         key: tab.id,
-        onClick: () => setActiveTab(tab.id),
+        onClick: () => { hapticFeedback(8); setActiveTab(tab.id); },
         className: `flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${isActive ? `bg-zinc-800 ${accent.text400} shadow-sm` : "text-zinc-400 hover:text-white"}`
       }, /* @__PURE__ */React.createElement(Icon, {
         className: "w-3.5 h-3.5"
@@ -2783,9 +3055,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
       className: "max-w-5xl mx-auto px-4 py-5 sm:py-6 space-y-5 sm:space-y-6 flex-1 w-full safe-x"
     }, (activeTab === "overview" || activeTab === "analytics") && React.createElement(Tabs.Overview, tabProps), activeTab === "transactions" && Tabs.Ledger(tabProps), activeTab === "accounts" && React.createElement(Tabs.Accounts, tabProps), (activeTab === "vault" || activeTab === "rates") && React.createElement(Tabs.Vault, tabProps), activeTab === "loans" && Tabs.Loans(tabProps), activeTab === "planning" && React.createElement(Tabs.Planning, tabProps), activeTab === "settings" && React.createElement(Tabs.Settings, tabProps)), /* @__PURE__ */React.createElement("nav", {
       className: "af-floating-tabbar-wrap md:hidden fixed bottom-0 left-0 right-0 z-40 safe-bottom",
-      style: {
-        position: "fixed"
-      }
+      style: { position: "fixed" }
     }, /* @__PURE__ */React.createElement("div", {
       className: "af-floating-tabbar mobile-bottom-bar max-w-5xl mx-auto px-2 py-1.5 h-[64px] safe-x"
     }, /* @__PURE__ */React.createElement("div", {
@@ -2797,6 +3067,7 @@ const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKey
       return /* @__PURE__ */React.createElement("button", {
         key: tab.id,
         onClick: () => {
+          hapticFeedback(8);
           setActiveTab(tab.id);
           setMoreSheetOpen(false);
         },

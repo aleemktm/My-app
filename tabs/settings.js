@@ -2,34 +2,56 @@
 // grouped list with drill-down subpages (Settings.app pattern).
 (function () {
   function Settings(props) {
-    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportAutomaticBackup, exportCSV, getAutomaticBackup, getAutomaticFileBackupMeta, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, dashboardCardCount, setDashboardCardCount, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen } = props;
+    const { DEFAULT_SETTINGS, accent, accounts, addCategory, assets, budgets, categoryManagerOpen, categoryName, categoryType, confirmDangerAction, currency, dangerAction, darkMode, exchangeRates, exportBackup, exportCSV, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, restoreFromGoogleDrive, goals, importBackup, inputCls, loans, openDangerAction, openRatesModal, recurringItems, removeCategory, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, settings, subCardCls, transactions, updateSettings, dashboardCardsSheetOpen, dashboardCardCount, setDashboardCardCount, setDashboardCardsSheetOpen, securitySheetOpen, setSecuritySheetOpen, activeTab, setActiveTab, lastNonSettingsTab } = props;
     const h = React.createElement;
     const [settingsPage, setSettingsPage] = React.useState(null);
     const settingsTouchStartRef = React.useRef(null);
-    const onSettingsTouchStart = e => {
-      if (!e.touches || e.touches.length !== 1) return;
-      const t = e.touches[0];
-      settingsTouchStartRef.current = { x: t.clientX, y: t.clientY };
-    };
-    const onSettingsTouchEnd = e => {
-      const start = settingsTouchStartRef.current;
-      settingsTouchStartRef.current = null;
-      if (!start || !e.changedTouches || !e.changedTouches.length) return;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - start.x;
-      const dy = t.clientY - start.y;
-      if (dx > 60 && Math.abs(dx) > Math.abs(dy) * 1.25 && settingsPage) {
-        e.stopPropagation();
-        setSettingsPage(null);
+    const settingsParentPage = page => ({
+      "data-local": "data",
+      "data-drive": "data"
+    }[page] || null);
+    const goToSettingsPage = page => setSettingsPage(page);
+    const goBackInSettings = React.useCallback(() => {
+      if (settingsPage) {
+        const parent = settingsParentPage(settingsPage);
+        setSettingsPage(parent);
+        return;
       }
-    };
+      setActiveTab(lastNonSettingsTab || "overview");
+    }, [settingsPage, lastNonSettingsTab, setActiveTab]);
+
+    // iOS-style right-swipe back for the entire Settings tab. The listener is
+    // document-level so the gesture can begin anywhere on the screen.
+    React.useEffect(() => {
+      if (activeTab !== "settings") return undefined;
+      const onStart = e => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        settingsTouchStartRef.current = { x: t.clientX, y: t.clientY };
+      };
+      const onEnd = e => {
+        const start = settingsTouchStartRef.current;
+        settingsTouchStartRef.current = null;
+        if (!start || !e.changedTouches || !e.changedTouches.length) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        if (dx >= 60 && Math.abs(dx) > Math.abs(dy) * 1.15) goBackInSettings();
+      };
+      document.addEventListener("touchstart", onStart, { passive: true, capture: true });
+      document.addEventListener("touchend", onEnd, { passive: true, capture: true });
+      return () => {
+        document.removeEventListener("touchstart", onStart, true);
+        document.removeEventListener("touchend", onEnd, true);
+      };
+    }, [activeTab, goBackInSettings]);
 
     const IOSSwitch = ({ checked, onChange, label }) => h("button", { type: "button", role: "switch", "aria-checked": checked, "aria-label": label, onClick: onChange, className: `ios-settings-switch ${checked ? "is-on" : "is-off"}` }, h("span", { className: "ios-settings-switch-thumb" }));
 
     // Grouped-list row used inside subpages: icon + title/detail + trailing control.
     const SettingsRow = ({ icon: Icon, title, detail, children, danger = false }) =>
       h("div", { className: `settings-row ${danger ? "settings-row-danger" : ""} flex items-center gap-3` },
-        Icon && h("div", { className: `settings-icon w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}` }, h(Icon, { className: "w-4 h-4" })),
+        Icon && h("div", { className: `settings-icon shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}`, style: { width: 44, height: 44, minWidth: 44, minHeight: 44 } }, h(Icon, { className: "w-4 h-4", style: { width: 21, height: 21 } })),
         h("div", { className: "min-w-0 flex-1" },
           h("p", { className: `text-xs font-bold ${danger ? "text-rose-500" : ""}` }, title),
           detail && h("p", { className: "text-[10px] text-zinc-400 mt-0.5 leading-relaxed" }, detail)
@@ -40,7 +62,7 @@
     // Root-list row: icon + title, trailing summary value + chevron, taps to drill in.
     const NavRow = ({ icon: Icon, title, value, onClick, danger = false }) =>
       h("button", { type: "button", onClick, className: `settings-row settings-nav-row flex items-center gap-3 w-full text-left ${danger ? "settings-row-danger" : ""}` },
-        Icon && h("div", { className: `settings-icon w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}` }, h(Icon, { className: "w-4 h-4" })),
+        Icon && h("div", { className: `settings-icon shrink-0 rounded-xl flex items-center justify-center ${danger ? "bg-rose-500/10 text-rose-500" : `${accent.activeBg10} ${accent.textStrong}`}`, style: { width: 44, height: 44, minWidth: 44, minHeight: 44 } }, h(Icon, { className: "w-4 h-4", style: { width: 21, height: 21 } })),
         h("div", { className: "min-w-0 flex-1" }, h("p", { className: `text-xs font-bold ${danger ? "text-rose-500" : ""}` }, title)),
         h("div", { className: "flex items-center gap-1 shrink-0 settings-nav-value" },
           value != null && value !== "" && h("span", { className: "text-[10px] text-zinc-400 font-semibold" }, value),
@@ -55,7 +77,7 @@
     );
 
     const SubpageHeader = ({ title }) => h("div", { className: "settings-subpage-header" },
-      h("button", { type: "button", onClick: () => setSettingsPage(null), className: "settings-back-button" },
+      h("button", { type: "button", onClick: goBackInSettings, className: "settings-back-button" },
         h(Icons.IconChevron, { className: "w-4 h-4 settings-back-chevron" }), "Settings"
       ),
       h("h2", { className: "settings-subpage-title" }, title)
@@ -167,7 +189,9 @@
             h("select", { value: settings.heroMetric || "liquid", onChange: e => updateSettings({ heroMetric: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "liquid" }, "Available wealth"), h("option", { value: "networth" }, "Net worth"))),
           h(SettingsRow, { key: "greeting", icon: Icons.IconTune, title: "Greeting", detail: "Show the personalized greeting above the Home hero card." },
-            IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" }))
+            IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" })),
+          h(SettingsRow, { key: "hero-quote", icon: Icons.IconSparkles, title: "Quote of the day", detail: "Optionally show one short daily quote on the Home hero card." },
+            IOSSwitch({ checked: settings.heroQuoteEnabled === true, onChange: () => updateSettings({ heroQuoteEnabled: settings.heroQuoteEnabled !== true }), label: "Quote of the day" }))
         ])
       );
     } else if (settingsPage === "formats") {
@@ -196,24 +220,52 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Data & Backup" }),
         Group(null, [
-          h(SettingsRow, { key: "backup", icon: Icons.IconDownload, title: "Manual backup", detail: `${accounts.length} accounts · ${transactions.length} transactions · ${budgets.length} budgets · ${goals.length} goals · ${dataSizeLabel}` },
+          h(NavRow, { key: "local-backup", icon: Icons.IconDownload, title: "Local Backup", value: "2 options", onClick: () => goToSettingsPage("data-local") }),
+          h(NavRow, { key: "google-drive", icon: Icons.IconSync, title: "Google Drive", value: googleDriveConnected ? "Connected" : "Not connected", onClick: () => goToSettingsPage("data-drive") })
+        ]),
+        Group("Other export", [
+          h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file for spreadsheets or reporting." },
+            h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export"))
+        ]),
+        Group("Home screen", [
+          h(SettingsRow, { key: "pulse-reset", icon: Icons.IconSparkles, title: "Dismissed cards", detail: "Swiping away the Pulse card on Home hides it until the next day. Use this to bring it back right away instead of waiting." },
+            h("button", {
+              onClick: () => {
+                try { Object.keys(localStorage).filter(k => k.indexOf("aleemfin_pulse_dismissed_") === 0).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+                try { hapticFeedback(12); } catch (_) {}
+              },
+              className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500"
+            }, "Show again"))
+        ])
+      );
+    } else if (settingsPage === "data-local") {
+      pageContent = h(React.Fragment, null,
+        h(SubpageHeader, { title: "Local Backup" }),
+        Group(null, [
+          h(SettingsRow, { key: "backup", icon: Icons.IconDownload, title: "Back up your data", detail: `${accounts.length} accounts · ${transactions.length} transactions · ${budgets.length} budgets · ${goals.length} goals · ${dataSizeLabel}` },
             h("button", { onClick: exportBackup, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Backup")),
-          h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore data", detail: "Restore an AleemFin backup file previously saved on this device or shared from another backup location." },
-            h("label", { className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500 cursor-pointer" }, "Restore", h("input", { type: "file", accept: ".json", onChange: importBackup, className: "hidden" }))),
-          h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file." },
-            h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export")),
-          h(SettingsRow, { key: "google-drive-connect", icon: Icons.IconSync, title: "Google Drive", detail: googleDriveConnected ? "Connected to your Google account." : "Connect Google Drive to store your AleemFin automatic backup." },
+          h(SettingsRow, { key: "restore", icon: Icons.IconUpload, title: "Restore from file", detail: "Import an AleemFin backup JSON saved on your iPhone or shared from another location." },
+            h("label", { className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500 cursor-pointer" }, "Restore", h("input", { type: "file", accept: ".json", onChange: importBackup, className: "hidden" })))
+        ])
+      );
+    } else if (settingsPage === "data-drive") {
+      pageContent = h(React.Fragment, null,
+        h(SubpageHeader, { title: "Google Drive" }),
+        Group(null, [
+          h(SettingsRow, { key: "google-drive-connect", icon: Icons.IconSync, title: googleDriveConnected ? "Disconnect" : "Connect Google Drive", detail: googleDriveConnected ? "Your AleemFin backup is connected to Google Drive." : "Connect Google Drive to save and restore your AleemFin backup directly." },
             googleDriveConnected
               ? h("button", { type: "button", onClick: disconnectGoogleDrive, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Disconnect")
               : h("button", { type: "button", onClick: connectGoogleDrive, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Connect")),
-          googleDriveConnected && h(SettingsRow, { key: "google-drive-auto", icon: Icons.IconSync, title: "Automatic Google Drive backup", detail: settings.googleDriveBackupEnabled ? "A fresh backup is uploaded after each new Inflow or Outflow." : "Keep the latest AleemFin backup in Google Drive automatically." },
+          googleDriveConnected && h(SettingsRow, { key: "google-drive-auto", icon: Icons.IconSync, title: "Automatic backup", detail: settings.googleDriveBackupEnabled ? "Latest changes are backed up to Google Drive automatically." : "Turn on automatic Google Drive backups." },
             IOSSwitch({ checked: settings.googleDriveBackupEnabled === true, onChange: () => {
               const next = settings.googleDriveBackupEnabled !== true;
               updateSettings({ googleDriveBackupEnabled: next });
               if (next) setTimeout(() => uploadCurrentBackupToGoogleDrive(), 0);
             }, label: "Automatic Google Drive backup" })),
-          googleDriveConnected && settings.googleDriveBackupEnabled === true && h(SettingsRow, { key: "google-drive-now", icon: Icons.IconUpload, title: "Backup to Google Drive now", detail: "Upload the latest automatic backup immediately." },
-            h("button", { type: "button", onClick: uploadCurrentBackupToGoogleDrive, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Backup now"))
+          googleDriveConnected && h(SettingsRow, { key: "google-drive-now", icon: Icons.IconUpload, title: "Back up now", detail: "Save the latest AleemFin data to Google Drive immediately." },
+            h("button", { type: "button", onClick: uploadCurrentBackupToGoogleDrive, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Back up")),
+          googleDriveConnected && h(SettingsRow, { key: "google-drive-restore", icon: Icons.IconDownload, title: "Restore from Google Drive", detail: "Restore your latest AleemFin backup directly from Drive." },
+            h("button", { type: "button", onClick: restoreFromGoogleDrive, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Restore"))
         ])
       );
     } else if (settingsPage === "interaction") {
@@ -263,7 +315,7 @@
         h(SubpageHeader, { title: "About" }),
         Group(null, h("div", { className: "settings-plain-info" },
           h("div", null, h("span", null, "App name"), h("strong", null, "AleemFin")),
-          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.79 · Personal prototype")),
+          h("div", null, h("span", null, "Version"), h("strong", null, "1.0.83 · Personal prototype")),
           h("div", null, h("span", null, "Device storage"), h("strong", null, `${dataSizeLabel} used by your finance data. Data stays on this device.`))
         ), { pad: true })
       );
@@ -290,7 +342,7 @@
           h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
-          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.79", onClick: () => setSettingsPage("about") })
+          h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.83", onClick: () => setSettingsPage("about") })
         ]),
         Group(null, [
           h(NavRow, { key: "danger", icon: Icons.IconTrash, title: "Erase All Data", danger: true, onClick: () => openDangerAction() })
@@ -299,7 +351,7 @@
     }
 
     return h(React.Fragment, null,
-      h("div", { className: "settings-native", "data-settings-scroll-lock": "true", "data-settings-page": settingsPage || "root", onTouchStart: onSettingsTouchStart, onTouchEnd: onSettingsTouchEnd }, pageContent),
+      h("div", { className: "settings-native", "data-settings-scroll-lock": "true", "data-settings-page": settingsPage || "root", style: { touchAction: "pan-y", overscrollBehaviorX: "none" } }, pageContent),
       dangerAction && h("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" },
         h("div", { className: `w-full max-w-xs rounded-3xl border p-5 shadow-2xl space-y-4 ${darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-900"}` },
           h("div", { className: "w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center" }, h(Icons.IconTrash, { className: "w-5 h-5" })),

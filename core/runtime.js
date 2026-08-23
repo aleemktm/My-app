@@ -61,7 +61,7 @@ if (!window.__aleemFinHapticsInstalled) {
 }
 window.__aleemSelection = window.__aleemSelection || new Set();
 var selectionEvent = "aleem-selection-updated";
-var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLeftAction3, editLabel = "Edit", deleteLabel = "Delete", leftActionLabel = "Record payment", leftAction2Label = "Add more", leftAction3Label = "Skip next", selectionKey }) => {
+var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLeftAction3, onRightAction, onRightAction2, onRightAction3, editLabel = "Edit", deleteLabel = "Delete", rightActionLabel = "Edit", rightAction2Label = "Delete", rightAction3Label = "More", leftActionLabel = "Record payment", leftAction2Label = "Add more", leftAction3Label = "Skip next", leftActionKind = "record", leftAction2Kind = "add-more", leftAction3Kind = "skip", selectionKey }) => {
   const [side, setSide] = useState(0); // -1 = left-side actions, 1 = right-side actions
   const startX = useRef(0);
   const startY = useRef(0);
@@ -73,8 +73,9 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
   const contentRef = useRef(null);
   const key = selectionKey || null;
   const isSelected = key ? !!(window.__aleemSelection && window.__aleemSelection.has(key)) : false;
-  const hasLeftActions = !!(onLeftAction || onLeftAction2);
-  const RIGHT_ACTION_WIDTH = 144;
+  const hasLeftActions = !!(onLeftAction || onLeftAction2 || onLeftAction3);
+  const RIGHT_ACTION_COUNT = [onRightAction, onRightAction2, onRightAction3].filter(Boolean).length || 2;
+  const RIGHT_ACTION_WIDTH = 72 * RIGHT_ACTION_COUNT;
   const LEFT_ACTION_COUNT = [onLeftAction, onLeftAction2, onLeftAction3].filter(Boolean).length;
   const LEFT_ACTION_WIDTH = hasLeftActions ? 72 * Math.max(2, LEFT_ACTION_COUNT) : 0;
 
@@ -170,17 +171,24 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
     return () => document.removeEventListener("pointerdown", onDoc);
   }, [side]);
 
-  const action = fn => { close(); if (typeof fn === "function") fn(); };
+  const invokeSwipeAction = fn => { close(); if (typeof fn === "function") fn(); };
 
   return React.createElement("div", { className: `swipe-row${isSelected ? " is-selected" : ""}`, "data-selection-key": key || undefined },
     hasLeftActions && React.createElement("div", { className: `swipe-actions swipe-actions-left${LEFT_ACTION_COUNT >= 3 ? " swipe-actions-left-three" : ""}${side === -1 ? " is-open" : ""}`, "aria-hidden": side !== -1 },
-      React.createElement("button", { type: "button", className: "swipe-action swipe-action-record", onClick: () => action(onLeftAction), tabIndex: side === -1 ? 0 : -1, "aria-label": leftActionLabel, disabled: !onLeftAction }, "+", React.createElement("span", null, leftActionLabel)),
-      React.createElement("button", { type: "button", className: "swipe-action swipe-action-add-more", onClick: () => action(onLeftAction2), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction2Label, disabled: !onLeftAction2 }, "+", React.createElement("span", null, leftAction2Label)),
-      onLeftAction3 && React.createElement("button", { type: "button", className: "swipe-action swipe-action-skip", onClick: () => action(onLeftAction3), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction3Label }, "→", React.createElement("span", null, leftAction3Label))
+      React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftActionKind}`, onClick: () => invokeSwipeAction(onLeftAction), tabIndex: side === -1 ? 0 : -1, "aria-label": leftActionLabel, disabled: !onLeftAction },
+        leftActionKind === "comment" ? React.createElement(Icons.IconMessage, { className: "w-[18px] h-[18px]" }) : leftActionKind === "pin" ? React.createElement(Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftActionKind === "category" ? React.createElement(Icons.IconTag, { className: "w-[18px] h-[18px]" }) : leftActionKind === "record" ? React.createElement(Icons.IconRepayment, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconAddMore, { className: "w-[18px] h-[18px]" }),
+        React.createElement("span", null, leftActionLabel)),
+      React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftAction2Kind}`, onClick: () => invokeSwipeAction(onLeftAction2), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction2Label, disabled: !onLeftAction2 },
+        leftAction2Kind === "pin" ? React.createElement(Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "comment" ? React.createElement(Icons.IconMessage, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconAddMore, { className: "w-[18px] h-[18px]" }),
+        React.createElement("span", null, leftAction2Label)),
+      onLeftAction3 && React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftAction3Kind}`, onClick: () => invokeSwipeAction(onLeftAction3), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction3Label },
+        leftAction3Kind === "category" ? React.createElement(Icons.IconTag, { className: "w-[18px] h-[18px]" }) : leftAction3Kind === "pin" ? React.createElement(Icons.IconPin, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconHistory, { className: "w-[18px] h-[18px]" }),
+        React.createElement("span", null, leftAction3Label))
     ),
-    React.createElement("div", { className: `swipe-actions swipe-actions-right${side === 1 ? " is-open" : ""}`, "aria-hidden": side !== 1 },
-      React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", onClick: () => action(onEdit), tabIndex: side === 1 ? 0 : -1, "aria-label": editLabel, disabled: !onEdit }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" })),
-      React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", onClick: () => action(onDelete), tabIndex: side === 1 ? 0 : -1, "aria-label": deleteLabel, disabled: !onDelete }, React.createElement(Icons.IconTrash, { className: "w-[14px] h-[14px]" }))
+    React.createElement("div", { className: `swipe-actions swipe-actions-right swipe-actions-right-dynamic${RIGHT_ACTION_COUNT >= 3 ? " swipe-actions-right-three" : ""}${side === 1 ? " is-open" : ""}`, "aria-hidden": side !== 1 },
+      onRightAction ? React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", onClick: () => invokeSwipeAction(onRightAction), tabIndex: side === 1 ? 0 : -1, "aria-label": rightActionLabel }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightActionLabel)) : React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", onClick: () => invokeSwipeAction(onEdit), tabIndex: side === 1 ? 0 : -1, "aria-label": editLabel, disabled: !onEdit }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" })),
+      onRightAction2 ? React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", onClick: () => invokeSwipeAction(onRightAction2), tabIndex: side === 1 ? 0 : -1, "aria-label": rightAction2Label }, "💬", React.createElement("span", null, rightAction2Label)) : React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", onClick: () => invokeSwipeAction(onDelete), tabIndex: side === 1 ? 0 : -1, "aria-label": deleteLabel, disabled: !onDelete }, React.createElement(Icons.IconTrash, { className: "w-[14px] h-[14px]" })),
+      onRightAction3 && React.createElement("button", { type: "button", className: "swipe-action swipe-action-more", onClick: () => invokeSwipeAction(onRightAction3), tabIndex: side === 1 ? 0 : -1, "aria-label": rightAction3Label }, "📌", React.createElement("span", null, rightAction3Label))
     ),
     React.createElement("div", {
       ref: contentRef, className: `swipe-content${side ? " is-swiped" : ""}`,
