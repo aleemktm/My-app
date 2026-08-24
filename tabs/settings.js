@@ -191,7 +191,15 @@
           h(SettingsRow, { key: "greeting", icon: Icons.IconTune, title: "Greeting", detail: "Show the personalized greeting above the Home hero card." },
             IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" })),
           h(SettingsRow, { key: "hero-quote", icon: Icons.IconSparkles, title: "Quote of the day", detail: "Optionally show one short daily quote on the Home hero card." },
-            IOSSwitch({ checked: settings.heroQuoteEnabled === true, onChange: () => updateSettings({ heroQuoteEnabled: settings.heroQuoteEnabled !== true }), label: "Quote of the day" }))
+            IOSSwitch({ checked: settings.heroQuoteEnabled === true, onChange: () => updateSettings({ heroQuoteEnabled: settings.heroQuoteEnabled !== true }), label: "Quote of the day" })),
+          h(SettingsRow, { key: "pulse-reset", icon: Icons.IconSparkles, title: "Dismissed cards", detail: "Swiping away the Pulse card on Home hides it until the next day. Use this to bring it back right away instead of waiting." },
+            h("button", {
+              onClick: () => {
+                try { Object.keys(localStorage).filter(k => k.indexOf("aleemfin_pulse_dismissed_") === 0).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+                try { hapticFeedback(12); } catch (_) {}
+              },
+              className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500"
+            }, "Show again"))
         ])
       );
     } else if (settingsPage === "formats") {
@@ -226,16 +234,6 @@
         Group("Other export", [
           h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file for spreadsheets or reporting." },
             h("button", { onClick: exportCSV, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Export"))
-        ]),
-        Group("Home screen", [
-          h(SettingsRow, { key: "pulse-reset", icon: Icons.IconSparkles, title: "Dismissed cards", detail: "Swiping away the Pulse card on Home hides it until the next day. Use this to bring it back right away instead of waiting." },
-            h("button", {
-              onClick: () => {
-                try { Object.keys(localStorage).filter(k => k.indexOf("aleemfin_pulse_dismissed_") === 0).forEach(k => localStorage.removeItem(k)); } catch (_) {}
-                try { hapticFeedback(12); } catch (_) {}
-              },
-              className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500"
-            }, "Show again"))
         ])
       );
     } else if (settingsPage === "data-local") {

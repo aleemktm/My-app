@@ -7,7 +7,7 @@
       setDeleteTarget, setLedgerFilter, setLedgerSearch, setLedgerSort,
       subCardCls, transactions, selectionKey, getTransactionStatementMeta,
       statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate,
-      setStatementFromDate, statementToDate, setStatementToDate, exportStatement, accounts, toggleTransactionPin, editTransactionComment, categoriseTransaction
+      setStatementFromDate, statementToDate, setStatementToDate, exportStatement, accounts, toggleTransactionPin, editTransactionComment, categoriseTransaction, duplicateTransaction
     } = props;
     const h = React.createElement;
     const statementTouchRef = { current: {} };
@@ -112,13 +112,13 @@
               onDelete: () => setDeleteTarget({ type: "transaction", id: tx.id, name: tx.title }),
               onLeftAction: () => editTransactionComment(tx),
               onLeftAction2: () => toggleTransactionPin(tx.id),
-              onLeftAction3: () => categoriseTransaction(tx),
+              onLeftAction3: tx.type === "transfer" ? null : () => duplicateTransaction(tx),
               leftActionLabel: "Comment",
               leftAction2Label: tx.pinned ? "Unpin" : "Pin",
-              leftAction3Label: "Category",
+              leftAction3Label: "Duplicate",
               leftActionKind: "comment",
               leftAction2Kind: "pin",
-              leftAction3Kind: "category",
+              leftAction3Kind: "duplicate",
               selectionKey: selectionKey("transaction", tx.id)
             },
               h("div", { className: `swipe-content-card p-4 rounded-2xl border ${subCardCls} ledger-card-compact` },

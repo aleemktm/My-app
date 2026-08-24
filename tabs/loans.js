@@ -217,6 +217,7 @@
                 leftActionLabel: "Record payment",
                 leftAction2Label: loan.type === "lent" ? "Lend more" : "Borrow more",
                 leftAction3Label: loan.pinned ? "Unpin" : "Pin",
+                leftAction3Kind: "pin",
                 selectionKey: selectionKey("loan", loan.id)
               }, h("div", { className: `loan-card-stack ${expanded ? "is-expanded" : ""}` },
                 frontCard,
