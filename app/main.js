@@ -2804,21 +2804,21 @@ useEffect(() => {
   if (activeTab !== "overview" || recurringReminders.length === 0) return;
   const greetingLine = [...document.querySelectorAll("main p")].find(node => /^(Good morning|Good afternoon|Good evening),? Aleem$/.test(node.textContent || ""));
   if (!greetingLine) return;
-  if (greetingLine.firstChild) greetingLine.firstChild.textContent = (greetingLine.firstChild.textContent || "").replace(", Aleem", " Aleem");
-  const reminder = document.createElement("span");
+  const greetingRow = greetingLine.closest(".home-hero-greeting-row") || greetingLine.parentElement;
+  const reminder = document.createElement("div");
   reminder.dataset.homeRecurringReminder = "true";
-  reminder.className = "inline-flex items-center gap-1.5 ml-1";
+  reminder.className = "home-hero-reminder-line";
   const summary = document.createElement("span");
-  summary.textContent = `— ${recurringReminders[0].title} is due tomorrow${recurringReminders.length > 1 ? ` +${recurringReminders.length - 1}` : ""}`;
+  summary.textContent = `${recurringReminders[0].title} is due tomorrow${recurringReminders.length > 1 ? ` +${recurringReminders.length - 1}` : ""}`;
   const done = document.createElement("button");
   done.type = "button";
   done.setAttribute("aria-label", "Mark recurring reminder done");
   done.title = "Mark reminder done";
-  done.className = "w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 text-[11px] font-extrabold leading-none hover:bg-emerald-500 hover:text-white active:scale-95";
+  done.className = "home-hero-reminder-check";
   done.textContent = "✓";
   done.onclick = () => recurringReminders.forEach(markRecurringReminderDone);
   reminder.append(summary, done);
-  greetingLine.append(reminder);
+  greetingRow.insertAdjacentElement("afterend", reminder);
 }, [activeTab, recurringReminders, darkMode]);
 
 useEffect(() => {
