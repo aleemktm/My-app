@@ -1644,6 +1644,18 @@ const categoriseTransaction = tx => {
   }
   openEditModal(tx.type, tx);
 };
+const duplicateTransaction = tx => {
+  const clone = {
+    ...tx,
+    id: makeId("tx"),
+    date: todayISO(),
+    pinned: false
+  };
+  const updated = [clone, ...transactions];
+  setTransactions(updated);
+  persistAllData(accounts, assets, loans, updated);
+  hapticFeedback(12);
+};
 const handleFormSubmit = e => {
   e.preventDefault();
   const amt = Number(formInput.amount);
@@ -2149,11 +2161,11 @@ const exportBackup = () => {
   a.click();
 };
 const exportCSV = () => {
-  const header = ["Date", "Title", "Type", "Category", "Amount", "Currency", "Account", "To Account", "To Amount", "To Currency"];
+  const header = ["Date", "Title", "Type", "Category", "Amount", "Currency", "Account", "To Account", "To Amount", "To Currency", "Comment"];
   const rows = transactions.map(t => {
     const acc = accounts.find(a2 => a2.id === t.accountId);
     const toAcc = t.type === "transfer" ? accounts.find(a2 => a2.id === t.toAccountId) : null;
-    return [t.date, t.title, t.type, t.category, t.amount, t.currency, acc ? acc.name : "", toAcc ? toAcc.name : "", t.type === "transfer" ? t.toAmount ?? t.amount : "", t.type === "transfer" ? t.toCurrency || t.currency : ""];
+    return [t.date, t.title, t.type, t.category, t.amount, t.currency, acc ? acc.name : "", toAcc ? toAcc.name : "", t.type === "transfer" ? t.toAmount ?? t.amount : "", t.type === "transfer" ? t.toCurrency || t.currency : "", t.comment || ""];
   });
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v != null ? v : "").replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], {
@@ -2667,6 +2679,15 @@ const renderTxRow = tx => {
     key: tx.id,
     onEdit: () => openEditModal(tx.type, tx),
     onDelete: () => setDeleteTarget({ type: "transaction", id: tx.id, name: tx.title }),
+    onLeftAction: () => editTransactionComment(tx),
+    onLeftAction2: () => toggleTransactionPin(tx.id),
+    onLeftAction3: () => duplicateTransaction(tx),
+    leftActionLabel: "Comment",
+    leftAction2Label: tx.pinned ? "Unpin" : "Pin",
+    leftAction3Label: "Duplicate",
+    leftActionKind: "comment",
+    leftAction2Kind: "pin",
+    leftAction3Kind: "duplicate",
     selectionKey: selectionKey("transaction", tx.id)
   }, content);
 };
@@ -2964,7 +2985,7 @@ const toggleDashboardCardForSheet = id => {
   else current.push(id);
   updateSettings({ dashboardCards: current.slice(0, dashboardCardCount) });
 };
-const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent, toggleLoanPin, toggleTransactionPin, editTransactionComment, categoriseTransaction,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, currentMonthPrefix, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportAutomaticBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, generatePinSalt, verifyPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, setDashboardCardCount, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, getAutomaticBackup, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, restoreFromGoogleDrive, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory, intelligence, lastNonSettingsTab: lastNonSettingsTabRef.current };
+const tabProps = { selectionToolbar, selectionVersion, selectionKey, selectedKeys, toggleSelection, selectedCount, clearSelection, selectAllCurrent, toggleLoanPin, toggleTransactionPin, editTransactionComment, categoriseTransaction, duplicateTransaction,  DEFAULT_SETTINGS, DashCard, MORE_NAV_ITEMS, accent, accounts, activeTab, addCategory, addMoreAccountId, addMoreAmount, addMoreDate, advanceRecurringDate, applyLiveGoldRate, askDeleteAccount, assets, avgMonthlyNet, bestMonth, biggestExpenseThisMonth, budgetForm, budgets, cardCls, categoryBreakdown, categoryManagerOpen, categoryName, categoryType, closeModal, confirmDangerAction, confirmDelete, convertFromAED, convertToBaseCurrency, convertTxToAED, currency, currentMonthLabel, currentMonthPrefix, dangerAction, darkMode, dateFmt, deleteBudget, deleteGoal, deleteRecurringItem, deleteTarget, describeAccountMovement, editingId, emergencyRunwayMonths, exchangeRates, expandedLoanHistory, exportBackup, exportAutomaticBackup, exportCSV, filteredTransactions, fmt, exportStatement, getTransactionStatementMeta, statementMessageFor, statementOpen, setStatementOpen, statementAccountId, setStatementAccountId, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate, formInput, getLastInflow, getLastOutflow, goalForm, goals, goldAssets: goldAssetsForInsights, goldHistory, goldChangeAED, goldChangePct, goldSyncMsg, greeting, handleAddMoreSubmit, handleFormSubmit, heroWealthHidden, toggleHeroWealthVisibility, handleRepaymentSubmit, undoLoanMovement, importBackup, inputCls, insightTrendPeriod, insightTrendStyle, ledgerFilter, ledgerSearch, ledgerSort, liveGoldAEDPerGram, loanAddMoreTarget, loanFilter, loanSort, loans, maxMonthlyVal, modalType, modalClosing, closeMainFormModal, momDeltaPct, monthlyExpenseAED, monthlyHistory, monthlyIncomeAED, monthlySavingsAED, monthlyTransactions, netWorthTotal, numFmt, openAddModal, openBudgetEditor, openDangerAction, openEditModal, openGoalEditor, openRatesModal, openRecurringEditor, planningEditor, rateForm, rateSyncMsg, recordRecurringOccurrence, recurringEditor, recurringForm, recurringItems, refreshLiveRates, removeCategory, renderTxRow, repayAccountId, repayAmount, repayDate, repaymentModalLoan, runwayStatus, saveBudget, saveGoal, saveRates, saveRecurringItem, savingsRate, setActiveTab, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate, setBudgetForm, setCategoryManagerOpen, setCategoryName, setCategoryType, setCurrency, setDangerAction, securitySheetOpen, setSecuritySheetOpen, securityLocked, setSecurityLocked, hashPin, generatePinSalt, verifyPin, authenticateBiometric, setDeleteTarget, setExpandedLoanHistory, setFormInput, setGoalForm, setInsightTrendPeriod, setInsightTrendStyle, setLedgerFilter, setLedgerSearch, setLedgerSort, setLoanAddMoreTarget, setLoanFilter, setLoanSort, setMoreSheetOpen, setPlanningEditor, setRateForm, setRatesModalOpen, setRecurringEditor, setRecurringForm, setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, settings, sortedLoans, subCardCls, dashboardCardOptions, selectedDashboardCardsForSheet, dashboardCardCount, setDashboardCardCount, toggleDashboardCardForSheet, dashboardCardsSheetOpen, setDashboardCardsSheetOpen, getAutomaticBackup, googleDriveConnected, connectGoogleDrive, disconnectGoogleDrive, uploadCurrentBackupToGoogleDrive, restoreFromGoogleDrive, syncLiveExchangeRates, syncLiveGoldRate, syncingGold, syncingRates, todayISO, todayStr, totalLiquidAED, totalLoansBorrowedAED, totalLoansLentAED, totalPhysicalAED, transactions, updateRecurringItem, updateSettings, yearlyHistory, intelligence, lastNonSettingsTab: lastNonSettingsTabRef.current };
 
     return (
       /* @__PURE__ */React.createElement("div", {
