@@ -3281,9 +3281,35 @@ html.dark .settings-subpage-header {
 @media(prefers-reduced-motion:reduce){.home-pulse{animation:none!important;transition:none!important}}
 
 /* v102: greeting/date row. */
-.home-hero-greeting-row{display:flex;align-items:center;gap:8px;min-width:0;}
+.home-hero-left{min-width:0;}
+.home-hero-greeting-row{display:flex;align-items:center;gap:8px;min-width:0;padding-right:72px;}
 .home-hero-greeting-row .home-eyebrow{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.home-hero-date{font-size:8px;font-weight:800;letter-spacing:.04em;color:#94a3b8;white-space:nowrap;flex:none;}
+
+/* v127: date moves to a pill in the top-right corner of the hero card, sized
+   to match the greeting eyebrow; the recurring reminder now sits on its own
+   line under the greeting, with a plain (no-circle) checkmark. */
+.home-hero-date.home-month-pill{
+  position:absolute; top:0; right:0;
+  font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  white-space:nowrap; flex:none;
+}
+.home-hero-reminder-line{
+  display:flex; align-items:center; gap:.3rem;
+  margin-top:.3rem; padding-right:72px;
+  font-size:11px; font-weight:600; color:#94a3b8;
+}
+.home-hero .home-hero-reminder-line{ color:#a1a1aa !important; }
+.home-hero-reminder-check{
+  font-size:12px; font-weight:800; line-height:1;
+  color: var(--af-accent); background:transparent; border:0; padding:0; margin:0;
+  -webkit-tap-highlight-color: transparent;
+}
+.home-hero-reminder-check:hover{ opacity:.75; }
+.home-hero-reminder-check:active{ transform:scale(.9); }
+@media (max-width:640px){
+  .home-hero-greeting-row{padding-right:64px;}
+  .home-hero-reminder-line{padding-right:64px;}
+}
 
 
 /* v125 action consistency: dynamic right-side Ledger actions */
