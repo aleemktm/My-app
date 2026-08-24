@@ -74,13 +74,13 @@
       h("section", { className: `home-hero ${((settings.heroCardTheme || "dark") === "auto" ? darkMode : settings.heroCardTheme !== "light") ? "home-hero-dark" : ""}`, "data-hero-flash": isPositive ? "gain" : "loss" },
         h("div", { className: "home-hero-glow" }),
         h("div", { className: "home-hero-top" },
-          h("div", null,
+          h("div", { className: "home-hero-left" },
             h("div", { className: "home-hero-greeting-row" },
-              settings.showGreeting && h("p", { className: "home-eyebrow" }, greeting + ", Aleem"),
-              h("span", { className: "home-hero-date" }, now.toLocaleDateString(undefined, { day: "numeric", month: "short" }))
+              settings.showGreeting && h("p", { className: "home-eyebrow" }, greeting + ", Aleem")
             ),
             settings.heroQuoteEnabled === true && h("p", { className: "home-subtitle home-quote-of-day" }, h("span", { className: "home-quote-mark", "aria-hidden": "true" }, "“"), quoteOfDay, h("span", { className: "home-quote-mark home-quote-mark-end", "aria-hidden": "true" }, "”"))
           ),
+          h("span", { className: "home-hero-date home-month-pill" }, now.toLocaleDateString(undefined, { day: "numeric", month: "short" })),
           h("div", { className: "home-currency" },
             h("select", { value: currency, onChange: e => setCurrency(e.target.value), "aria-label": "Display currency" },
               ["AED","USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"].map(code => h("option", { key: code, value: code }, code))
