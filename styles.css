@@ -41,17 +41,15 @@
   header button[title="Backup (JSON)"], header label[title="Restore backup"] { display: none !important; }
   button[title="Edit exchange rates"] { display: none !important; }
   nav button svg { transform: scale(1.2); }
-  nav[class*="md:hidden"][class*="bottom-0"] { border-radius: 1.5rem 1.5rem 0 0; overflow: hidden; }
-  html:not(.dark) nav[class*="md:hidden"][class*="bottom-0"] { background: rgba(255,255,255,.96) !important; border-color: rgb(228,228,231) !important; }
-  html:not(.dark) nav[class*="md:hidden"][class*="bottom-0"] button:not([class*="text-"]) { color: rgb(113,113,122); }
+  /* Wrapper stays fully invisible — only the inner .af-floating-tabbar capsule renders glass. */
+  nav[class*="md:hidden"][class*="bottom-0"] { background: transparent !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; overflow: visible !important; }
 
 
 /* AleemFin visual refinement: glass tabs + subtle home gradients */
 header nav.hidden.md\:flex { background: rgba(24,24,27,.52) !important; border-color: rgba(255,255,255,.12) !important; -webkit-backdrop-filter: blur(18px) saturate(145%); backdrop-filter: blur(18px) saturate(145%); box-shadow: 0 8px 28px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.08); }
 header nav.hidden.md\:flex button { border: 1px solid transparent; }
 header nav.hidden.md\:flex button:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.08); }
-nav[class*="md:hidden"][class*="bottom-0"] { background: rgba(24,24,27,.62) !important; border-top-color: rgba(255,255,255,.12) !important; -webkit-backdrop-filter: blur(22px) saturate(155%); backdrop-filter: blur(22px) saturate(155%); box-shadow: 0 -10px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.08); }
-html:not(.dark) nav[class*="md:hidden"][class*="bottom-0"] { background: rgba(255,255,255,.62) !important; border-top-color: rgba(255,255,255,.78) !important; -webkit-backdrop-filter: blur(22px) saturate(155%); backdrop-filter: blur(22px) saturate(155%); box-shadow: 0 -10px 32px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8); }
+/* (wrapper glass removed — see rule near top of file; only .af-floating-tabbar should render glass) */
 [data-header-settings] { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.14) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
 html:not(.dark) [data-header-settings] { background: rgba(255,255,255,.62) !important; border-color: rgba(0,0,0,.08) !important; color: rgb(63,63,70) !important; }
 main > div > button.text-left.p-4.rounded-3xl { background-image: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,0)), linear-gradient(120deg, color-mix(in srgb, var(--af-accent) 5.5%, transparent), rgba(59,130,246,.025) 52%, rgba(139,92,246,.035)); background-blend-mode: screen, normal; }
@@ -2091,36 +2089,82 @@ html.dark .swipe-action-add-more{color:var(--af-bg);background:rgba(255,255,255,
 html.dark .loan-date-line,html.dark .loan-tap-hint{border-color:transparent!important}
 html.dark .loan-due-date{color:#a7a7ad}
 
-/* Final cleanup: keep only the floating capsule visible. The older full-width
-   bottom-bar layers must remain completely transparent and square. */
+/* Final cleanup + Liquid Glass tab bar: only the floating capsule renders any
+   chrome. The wrapper and inner rows stay fully transparent and square. */
 .af-floating-tabbar-wrap,
 .af-floating-tabbar-wrap::before,
-.af-floating-tabbar-wrap::after,
-.af-floating-tabbar,
-.af-floating-tabbar::before,
-.af-floating-tabbar::after,
-.af-floating-tabbar .mobile-bottom-bar,
-.af-floating-tabbar .mobile-nav-swipe,
-.af-floating-tabbar .mobile-settings-fixed {
+.af-floating-tabbar-wrap::after {
   background: transparent !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
 }
 .af-floating-tabbar {
-  background: rgba(255,255,255,.72) !important;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden !important;
   border-radius: 999px !important;
+  background: rgba(255,255,255,.62) !important;
+  border: 1px solid rgba(255,255,255,.6) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+  box-shadow: 0 18px 40px rgba(15,23,42,.16),
+              inset 0 1px 0 rgba(255,255,255,.7),
+              inset 0 -1px 0 rgba(255,255,255,.18) !important;
+}
+.af-floating-tabbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 46%);
 }
 html.dark .af-floating-tabbar {
-  background: rgba(28,28,30,.72) !important;
+  background: rgba(30,30,32,.66) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow: 0 20px 44px rgba(0,0,0,.45),
+              inset 0 1px 0 rgba(255,255,255,.08),
+              inset 0 -1px 0 rgba(0,0,0,.25) !important;
+}
+html.dark .af-floating-tabbar::before {
+  background: linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,0) 46%);
 }
 .af-floating-tabbar .mobile-bottom-bar,
 .af-floating-tabbar .mobile-nav-swipe,
 .af-floating-tabbar .mobile-settings-fixed {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
 }
 .af-floating-tabbar .mobile-settings-fixed {
   border-left: 0 !important;
+}
+/* Liquid Glass active indicator: a glassy, accent-tinted pill that morphs
+   between tabs (position/size driven by JS in app/main.js). */
+.mobile-nav-active-pill {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--af-accent) 24%, white 76%) 0%,
+      color-mix(in srgb, var(--af-accent) 15%, transparent) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.65),
+              inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 32%, transparent),
+              0 4px 14px color-mix(in srgb, var(--af-accent) 22%, transparent) !important;
+  transition: transform .38s cubic-bezier(.34,1.45,.4,1),
+              width .38s cubic-bezier(.34,1.45,.4,1),
+              height .38s cubic-bezier(.34,1.45,.4,1),
+              background .2s ease, box-shadow .2s ease !important;
+}
+html.dark .mobile-nav-active-pill {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--af-accent) 34%, transparent) 0%,
+      color-mix(in srgb, var(--af-accent) 17%, transparent) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14),
+              inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 40%, transparent),
+              0 4px 16px color-mix(in srgb, var(--af-accent) 28%, transparent) !important;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  color: var(--af-accent) !important;
 }
 
 
