@@ -76,11 +76,11 @@
         h("div", { className: "home-hero-top" },
           h("div", { className: "home-hero-left" },
             h("div", { className: "home-hero-greeting-row" },
-              settings.showGreeting && h("p", { className: "home-eyebrow" }, greeting + ", Aleem")
+              settings.showGreeting && h("p", { className: "home-eyebrow" }, greeting + ", Aleem"),
+              h("span", { className: "home-hero-date" }, now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))
             ),
             settings.heroQuoteEnabled === true && h("p", { className: "home-subtitle home-quote-of-day" }, h("span", { className: "home-quote-mark", "aria-hidden": "true" }, "“"), quoteOfDay, h("span", { className: "home-quote-mark home-quote-mark-end", "aria-hidden": "true" }, "”"))
           ),
-          h("span", { className: "home-hero-date home-month-pill" }, now.toLocaleDateString(undefined, { day: "numeric", month: "short" })),
           h("div", { className: "home-currency" },
             h("select", { value: currency, onChange: e => setCurrency(e.target.value), "aria-label": "Display currency" },
               ["AED","USD","EUR","GBP","SAR","INR","PKR","CAD","AUD"].map(code => h("option", { key: code, value: code }, code))
