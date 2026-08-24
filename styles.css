@@ -3319,7 +3319,7 @@ html.dark .settings-subpage-header {
 .swipe-actions-left-three { width:216px !important; grid-template-columns:repeat(3,72px) !important; }
 
 /* v126 Ledger/Loan swipe action refinement: native iOS-inspired iconography and muted action tones. */
-.swipe-actions-left { width: auto !important; grid-template-columns: repeat(var(--swipe-left-count, 2), minmax(0, 1fr)) !important; }
+.swipe-actions-left { width: 144px !important; grid-template-columns: repeat(var(--swipe-left-count, 2), minmax(0, 1fr)) !important; }
 .swipe-actions-left-three { width: 216px !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 .swipe-action { min-width: 0 !important; gap: 4px !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: -.01em; }
 .swipe-action svg { width: 18px !important; height: 18px !important; stroke-width: 1.9 !important; }
