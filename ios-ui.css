@@ -408,14 +408,10 @@ html.dark .settings-row + .settings-row {
    `.swipe-row .swipe-actions` prefix plus a doubled class to outrank them on
    specificity rather than depending on source order. */
 
-/* Destructive — systemRed in both themes (was grey in light mode). */
-.swipe-row .swipe-actions .swipe-action.swipe-action-delete {
-  background: var(--afx-red) !important;
-  color: #FFFFFF !important;
-}
-
+/* Destructive — back to black in both themes (was systemRed). */
+.swipe-row .swipe-actions .swipe-action.swipe-action-delete,
 html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-delete {
-  background: var(--afx-red-dark) !important;
+  background: #1C1C1E !important;
   color: #FFFFFF !important;
 }
 
@@ -431,57 +427,70 @@ html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-resume {
   color: #FFFFFF !important;
 }
 
-/* Secondary — systemGray fill, light in light mode instead of near-black. */
-.swipe-row .swipe-actions .swipe-action.swipe-action-add-more,
+/* Secondary — `more` and `pause` keep the systemGray fill; `add-more` (Borrow
+   more / Lend more / Add more) is back to black per request. */
 .swipe-row .swipe-actions .swipe-action.swipe-action-more,
 .swipe-row .swipe-actions .swipe-action.swipe-action-pause {
   background: var(--afx-gray) !important;
   color: #FFFFFF !important;
 }
 
-html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-add-more,
 html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-more,
 html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-pause {
   background: #48484A !important;
   color: #FFFFFF !important;
 }
 
-/* Deferring — systemOrange. */
-.swipe-row .swipe-actions .swipe-action.swipe-action-skip {
-  background: var(--afx-orange) !important;
+.swipe-row .swipe-actions .swipe-action.swipe-action-add-more,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-add-more {
+  background: #1C1C1E !important;
   color: #FFFFFF !important;
 }
 
+/* Deferring — Skip next is back to black (was systemOrange). */
+.swipe-row .swipe-actions .swipe-action.swipe-action-skip,
 html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-skip {
-  background: var(--afx-orange-dark) !important;
+  background: #1C1C1E !important;
   color: #FFFFFF !important;
 }
 
-/* Marking — systemIndigo. `pin` and `flag` both single an item out without
-   changing it, so they share one colour. */
-.swipe-row .swipe-actions .swipe-action.swipe-action-pin,
+/* Marking — Pin is back to dark gray (was systemIndigo). `flag` keeps the
+   indigo treatment since it wasn't part of this request. */
 .swipe-row .swipe-actions .swipe-action.swipe-action-flag {
   background: var(--afx-indigo) !important;
   color: #FFFFFF !important;
 }
 
-html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-pin,
 html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-flag {
   background: var(--afx-indigo-dark) !important;
   color: #FFFFFF !important;
 }
 
-/* Annotating — systemBlue for actions that attach metadata (a note, a
-   category) rather than acting on the record itself. */
-.swipe-row .swipe-actions .swipe-action.swipe-action-comment,
+.swipe-row .swipe-actions .swipe-action.swipe-action-pin {
+  background: #3A3A3C !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-pin {
+  background: #48484A !important;
+  color: #FFFFFF !important;
+}
+
+/* Annotating — Comment is back to the accent color (was systemBlue).
+   `category` keeps the blue treatment since it wasn't part of this request. */
 .swipe-row .swipe-actions .swipe-action.swipe-action-category {
   background: var(--afx-blue) !important;
   color: #FFFFFF !important;
 }
 
-html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-comment,
 html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-category {
   background: var(--afx-blue-dark) !important;
+  color: #FFFFFF !important;
+}
+
+.swipe-row .swipe-actions .swipe-action.swipe-action-comment,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-comment {
+  background: var(--af-accent) !important;
   color: #FFFFFF !important;
 }
 
