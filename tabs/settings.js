@@ -143,10 +143,10 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Appearance" }),
         Group("THEME", [
-          h(SettingsRow, { key: "theme", icon: Icons.IconTune, title: "Theme", detail: "Choose how AleemFin looks on this device." }, h("select", {
+          h(SettingsRow, { key: "theme", icon: Icons.IconContrast, title: "Theme", detail: "Choose how AleemFin looks on this device." }, h("select", {
             value: settings.theme, onChange: e => updateSettings({ theme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold`
           }, h("option", { value: "light" }, "Light"), h("option", { value: "dark" }, "Dark"), h("option", { value: "auto" }, "System"))),
-          h(SettingsRow, { key: "hero-style", icon: Icons.IconTune, title: "Dashboard background", detail: "Choose a light white-and-accent or dark accent background for the Home dashboard only." },
+          h(SettingsRow, { key: "hero-style", icon: Icons.IconLayers, title: "Dashboard background", detail: "Choose a light white-and-accent or dark accent background for the Home dashboard only." },
             h("select", { value: settings.heroCardTheme || "dark", onChange: e => updateSettings({ heroCardTheme: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "dark" }, "Dark"), h("option", { value: "light" }, "Light"), h("option", { value: "auto" }, "Follow Theme")))
         ]),
@@ -188,11 +188,11 @@
           h(SettingsRow, { key: "hero-metric", icon: Icons.IconWallet, title: "Hero card metric", detail: "Choose the main wealth figure shown at the top of Home." },
             h("select", { value: settings.heroMetric || "liquid", onChange: e => updateSettings({ heroMetric: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "liquid" }, "Available wealth"), h("option", { value: "networth" }, "Net worth"))),
-          h(SettingsRow, { key: "greeting", icon: Icons.IconTune, title: "Greeting", detail: "Show the personalized greeting above the Home hero card." },
+          h(SettingsRow, { key: "greeting", icon: Icons.IconTextBubble, title: "Greeting", detail: "Show the personalized greeting above the Home hero card." },
             IOSSwitch({ checked: settings.showGreeting !== false, onChange: () => updateSettings({ showGreeting: settings.showGreeting === false }), label: "Home greeting" })),
           h(SettingsRow, { key: "hero-quote", icon: Icons.IconSparkles, title: "Quote of the day", detail: "Optionally show one short daily quote on the Home hero card." },
             IOSSwitch({ checked: settings.heroQuoteEnabled === true, onChange: () => updateSettings({ heroQuoteEnabled: settings.heroQuoteEnabled !== true }), label: "Quote of the day" })),
-          h(SettingsRow, { key: "pulse-reset", icon: Icons.IconSparkles, title: "Dismissed cards", detail: "Swiping away the Pulse card on Home hides it until the next day. Use this to bring it back right away instead of waiting." },
+          h(SettingsRow, { key: "pulse-reset", icon: Icons.IconEye, title: "Dismissed cards", detail: "Swiping away the Pulse card on Home hides it until the next day. Use this to bring it back right away instead of waiting." },
             h("button", {
               onClick: () => {
                 try { Object.keys(localStorage).filter(k => k.indexOf("aleemfin_pulse_dismissed_") === 0).forEach(k => localStorage.removeItem(k)); } catch (_) {}
@@ -206,14 +206,14 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Formats & Currency" }),
         Group(null, [
-          h(SettingsRow, { key: "currency", icon: Icons.IconWallet, title: "Base currency", detail: "Used for summaries and dashboard totals." },
+          h(SettingsRow, { key: "currency", icon: Icons.IconCoins, title: "Base currency", detail: "Used for summaries and dashboard totals." },
             h("select", {
               value: currency, onChange: e => { setCurrency(e.target.value); updateSettings({ defaultCurrency: e.target.value }); }, className: `${inputCls} w-auto py-2 text-xs font-bold`
             }, h("option", { value: "AED" }, "AED · UAE Dirham"), h("option", { value: "USD" }, "USD · US Dollar"), h("option", { value: "EUR" }, "EUR · Euro"), h("option", { value: "GBP" }, "GBP · Pound"), h("option", { value: "SAR" }, "SAR · Saudi Riyal"), h("option", { value: "INR" }, "INR · Indian Rupee"), h("option", { value: "PKR" }, "PKR · Pakistani Rupee"), h("option", { value: "CAD" }, "CAD · Canadian Dollar"), h("option", { value: "AUD" }, "AUD · Australian Dollar"))),
-          h(SettingsRow, { key: "date", icon: Icons.IconTune, title: "Date format", detail: "Choose how dates are displayed throughout AleemFin." },
+          h(SettingsRow, { key: "date", icon: Icons.IconCalendarText, title: "Date format", detail: "Choose how dates are displayed throughout AleemFin." },
             h("select", { value: settings.dateFormat || "YYYY-MM-DD", onChange: e => updateSettings({ dateFormat: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "YYYY-MM-DD" }, "2026-12-01"), h("option", { value: "MM/DD/YYYY" }, "12/1/2026"), h("option", { value: "DD/MM/YYYY" }, "1/12/2026"), h("option", { value: "DD-MMM-YYYY" }, "1-Dec-2026"), h("option", { value: "DD-MM-YYYY" }, "1-12-2026"))),
-          h(SettingsRow, { key: "number", icon: Icons.IconTune, title: "Number format", detail: "Use commas or periods as thousands separators." },
+          h(SettingsRow, { key: "number", icon: Icons.IconNumberSign, title: "Number format", detail: "Use commas or periods as thousands separators." },
             h("select", { value: settings.numberFormat || "comma", onChange: e => updateSettings({ numberFormat: e.target.value }), className: `${inputCls} w-auto py-2 text-xs font-bold` },
               h("option", { value: "comma" }, "1,234,567.89"), h("option", { value: "period" }, "1.234.567,89")))
         ])
@@ -228,8 +228,8 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Data & Backup" }),
         Group(null, [
-          h(NavRow, { key: "local-backup", icon: Icons.IconDownload, title: "Local Backup", value: "2 options", onClick: () => goToSettingsPage("data-local") }),
-          h(NavRow, { key: "google-drive", icon: Icons.IconSync, title: "Google Drive", value: googleDriveConnected ? "Connected" : "Not connected", onClick: () => goToSettingsPage("data-drive") })
+          h(NavRow, { key: "local-backup", icon: Icons.IconArchive, title: "Local Backup", value: "2 options", onClick: () => goToSettingsPage("data-local") }),
+          h(NavRow, { key: "google-drive", icon: Icons.IconCloud, title: "Google Drive", value: googleDriveConnected ? "Connected" : "Not connected", onClick: () => goToSettingsPage("data-drive") })
         ]),
         Group("Other export", [
           h(SettingsRow, { key: "csv", icon: Icons.IconCSV, title: "Export transactions", detail: "Download your ledger as a CSV file for spreadsheets or reporting." },
@@ -250,11 +250,11 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Google Drive" }),
         Group(null, [
-          h(SettingsRow, { key: "google-drive-connect", icon: Icons.IconSync, title: googleDriveConnected ? "Disconnect" : "Connect Google Drive", detail: googleDriveConnected ? "Your AleemFin backup is connected to Google Drive." : "Connect Google Drive to save and restore your AleemFin backup directly." },
+          h(SettingsRow, { key: "google-drive-connect", icon: Icons.IconCloud, title: googleDriveConnected ? "Disconnect" : "Connect Google Drive", detail: googleDriveConnected ? "Your AleemFin backup is connected to Google Drive." : "Connect Google Drive to save and restore your AleemFin backup directly." },
             googleDriveConnected
               ? h("button", { type: "button", onClick: disconnectGoogleDrive, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Disconnect")
               : h("button", { type: "button", onClick: connectGoogleDrive, className: `px-3 py-2 rounded-xl text-xs font-bold ${accent.solidBtn} text-white` }, "Connect")),
-          googleDriveConnected && h(SettingsRow, { key: "google-drive-auto", icon: Icons.IconSync, title: "Automatic backup", detail: settings.googleDriveBackupEnabled ? "Latest changes are backed up to Google Drive automatically." : "Turn on automatic Google Drive backups." },
+          googleDriveConnected && h(SettingsRow, { key: "google-drive-auto", icon: Icons.IconRepeat, title: "Automatic backup", detail: settings.googleDriveBackupEnabled ? "Latest changes are backed up to Google Drive automatically." : "Turn on automatic Google Drive backups." },
             IOSSwitch({ checked: settings.googleDriveBackupEnabled === true, onChange: () => {
               const next = settings.googleDriveBackupEnabled !== true;
               updateSettings({ googleDriveBackupEnabled: next });
@@ -270,9 +270,9 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Interaction" }),
         Group(null, [
-          h(SettingsRow, { key: "haptics", icon: Icons.IconTune, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." },
+          h(SettingsRow, { key: "haptics", icon: Icons.IconHaptic, title: "Haptic feedback", detail: "Use subtle haptics for taps, selections and important actions." },
             IOSSwitch({ checked: settings.hapticsEnabled !== false, onChange: () => updateSettings({ hapticsEnabled: settings.hapticsEnabled === false }), label: "Haptic feedback" })),
-          h(SettingsRow, { key: "sounds", icon: Icons.IconTune, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." },
+          h(SettingsRow, { key: "sounds", icon: Icons.IconSpeaker, title: "Action sounds", detail: "Play a very subtle sound for taps and destructive actions." },
             IOSSwitch({ checked: settings.soundEnabled === true, onChange: () => updateSettings({ soundEnabled: settings.soundEnabled !== true }), label: "Action sounds" }))
         ])
       );
@@ -282,11 +282,11 @@
         Group(null, [
           h(SettingsRow, { key: "notif", icon: Icons.IconBell, title: "Notifications", detail: settings.notificationsEnabled ? "AleemFin notifications are allowed on this device." : nativeApp ? "Allow AleemFin to send reminders and important updates." : standalonePWA ? "Allow AleemFin to send reminders and important updates." : "Install AleemFin on the iPhone Home Screen to enable web notifications." },
             IOSSwitch({ checked: settings.notificationsEnabled === true, onChange: enableNotifications, label: "Notifications" })),
-          nativeApp && h(SettingsRow, { key: "notif-test", icon: Icons.IconBell, title: "Test notification", detail: "Send a native iOS test notification in about 3 seconds." },
+          nativeApp && h(SettingsRow, { key: "notif-test", icon: Icons.IconBellBadge, title: "Test notification", detail: "Send a native iOS test notification in about 3 seconds." },
             h("button", { type: "button", onClick: testNotification, className: "px-3 py-2 rounded-xl text-xs font-bold bg-zinc-500/10 text-zinc-500" }, "Test")),
-          h(SettingsRow, { key: "loan-rem", icon: Icons.IconBell, title: "Loan reminders", detail: "Remind you about upcoming loan repayments." },
+          h(SettingsRow, { key: "loan-rem", icon: Icons.IconLoan, title: "Loan reminders", detail: "Remind you about upcoming loan repayments." },
             IOSSwitch({ checked: settings.loanRemindersEnabled !== false, onChange: () => updateSettings({ loanRemindersEnabled: settings.loanRemindersEnabled === false }), label: "Loan reminders" })),
-          h(SettingsRow, { key: "recur-rem", icon: Icons.IconBell, title: "Recurring reminders", detail: "Remind you about recurring entries when they are due." },
+          h(SettingsRow, { key: "recur-rem", icon: Icons.IconRepeat, title: "Recurring reminders", detail: "Remind you about recurring entries when they are due." },
             IOSSwitch({ checked: settings.recurringRemindersEnabled !== false, onChange: () => updateSettings({ recurringRemindersEnabled: settings.recurringRemindersEnabled === false }), label: "Recurring reminders" }))
         ])
       );
@@ -294,7 +294,7 @@
       pageContent = h(React.Fragment, null,
         h(SubpageHeader, { title: "Security" }),
         Group(null, [
-          h(SettingsRow, { key: "bio", icon: Icons.IconLock, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : biometricsAvailable ? "Tap the switch to authenticate with Face ID / Touch ID and enable app unlock." : "Face ID / Touch ID is available in the native iOS app. Safari/PWA cannot access the native biometric plugin." },
+          h(SettingsRow, { key: "bio", icon: Icons.IconFaceID, title: "Biometrics", detail: settings.biometricEnabled ? "Face ID / Touch ID is enabled for app unlock." : biometricsAvailable ? "Tap the switch to authenticate with Face ID / Touch ID and enable app unlock." : "Face ID / Touch ID is available in the native iOS app. Safari/PWA cannot access the native biometric plugin." },
             IOSSwitch({
               checked: settings.biometricEnabled === true, onChange: async () => {
                 if (!biometricsAvailable) { alert("Face ID / Touch ID is available when you run AleemFin as the native iOS app. Safari and the PWA cannot use AleemFin's native biometric plugin."); return; }
@@ -304,7 +304,7 @@
                 else alert("Face ID / Touch ID could not be enabled. Check that Face ID is set up and AleemFin has permission to use it.");
               }, label: "Biometrics"
             })),
-          h(SettingsRow, { key: "pin", icon: Icons.IconLock, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." },
+          h(SettingsRow, { key: "pin", icon: Icons.IconKey, title: "PIN Lock", detail: settings.pinLockEnabled ? "Enabled · App locks when it becomes inactive." : "Protect AleemFin with a local PIN." },
             h("button", { type: "button", onClick: () => setSecuritySheetOpen(true), className: `px-3 py-2 rounded-xl text-xs font-bold ${settings.pinLockEnabled ? "bg-emerald-500/15 text-emerald-600" : "bg-zinc-500/10 text-zinc-500"}` }, settings.pinLockEnabled ? "Manage" : "Set Up"))
         ])
       );
@@ -326,18 +326,18 @@
         ),
         Group(null, [
           h(NavRow, { key: "appearance", icon: Icons.IconPaint, title: "Appearance", value: themeLabel, onClick: () => setSettingsPage("appearance") }),
-          h(NavRow, { key: "home", icon: Icons.IconHome, title: "Home Screen", value: `${dashboardCardCount} cards`, onClick: () => setSettingsPage("home") }),
-          h(NavRow, { key: "formats", icon: Icons.IconTune, title: "Formats & Currency", value: currency, onClick: () => setSettingsPage("formats") })
+          h(NavRow, { key: "home", icon: Icons.IconGrid, title: "Home Screen", value: `${dashboardCardCount} cards`, onClick: () => setSettingsPage("home") }),
+          h(NavRow, { key: "formats", icon: Icons.IconGlobe, title: "Formats & Currency", value: currency, onClick: () => setSettingsPage("formats") })
         ]),
         Group(null, [
           h(NavRow, { key: "rates", icon: Icons.IconRates, title: "Rates & Sync", value: settings.liveRateSync !== false ? "On" : "Off", onClick: () => setSettingsPage("rates") }),
           h(NavRow, { key: "categories", icon: Icons.IconTag, title: "Categories", value: `${totalCategoryCount}`, onClick: () => setCategoryManagerOpen(true) }),
-          h(NavRow, { key: "data", icon: Icons.IconDownload, title: "Data & Backup", onClick: () => setSettingsPage("data") })
+          h(NavRow, { key: "data", icon: Icons.IconArchive, title: "Data & Backup", onClick: () => setSettingsPage("data") })
         ]),
         Group(null, [
-          h(NavRow, { key: "interaction", icon: Icons.IconTune, title: "Interaction", onClick: () => setSettingsPage("interaction") }),
+          h(NavRow, { key: "interaction", icon: Icons.IconHandTap, title: "Interaction", onClick: () => setSettingsPage("interaction") }),
           h(NavRow, { key: "notifications", icon: Icons.IconBell, title: "Notifications", value: notificationsOn ? "On" : "Off", onClick: () => setSettingsPage("notifications") }),
-          h(NavRow, { key: "security", icon: Icons.IconLock, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
+          h(NavRow, { key: "security", icon: Icons.IconShield, title: "Security", value: securityOn ? "On" : "Off", onClick: () => setSettingsPage("security") })
         ]),
         Group(null, [
           h(NavRow, { key: "about", icon: Icons.IconInfo, title: "About AleemFin", value: "1.0.83", onClick: () => setSettingsPage("about") })

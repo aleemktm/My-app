@@ -170,6 +170,9 @@
           if(d.locked)return;
           d.dx=dx; d.dy=dy;
           if(prevent)prevent();
+          const armed=dx<-78&&Math.abs(dx)>Math.abs(dy)*1.15;
+          if(armed&&!d.armed){d.armed=true;try{if(typeof hapticFeedback==="function")hapticFeedback(14);}catch(_){ }}
+          else if(!armed&&d.armed){d.armed=false;}
           const xVisual=dx<0?rubberBand(dx,168):dx*.18;
           const scale=Math.max(.955,1-Math.min(Math.abs(xVisual),168)/5200);
           const opacity=Math.max(.58,1-Math.abs(xVisual)/900);
@@ -186,6 +189,8 @@
           const commit=d.moved&&d.dx<-78&&Math.abs(d.dx)>Math.abs(d.dy)*1.15;
           if(commit){
             suppressClick.current=true;
+            try{if(typeof hapticFeedback==="function")hapticFeedback(18);}catch(_){ }
+            try{if(typeof actionSound==="function")actionSound("delete");}catch(_){ }
             try{localStorage.setItem(pulseDismissKey,"1");}catch(_){ }
             const fling=-Math.max(window.innerWidth*1.18,620);
             renderDrag(node,fling,.93,0,"transform .52s cubic-bezier(.16,1,.3,1),opacity .34s ease");
@@ -193,6 +198,7 @@
             window.setTimeout(()=>{suppressClick.current=false;},650);
           }else if(d.moved){
             suppressClick.current=true;
+            try{if(typeof hapticFeedback==="function")hapticFeedback(10);}catch(_){ }
             renderDrag(node,0,1,1,"transform .58s cubic-bezier(.34,1.56,.64,1),opacity .34s ease");
             window.setTimeout(()=>{suppressClick.current=false;},520);
           }else{
