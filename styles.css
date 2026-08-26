@@ -3348,8 +3348,13 @@ html.dark .swipe-actions-left .swipe-action:nth-child(3) { background: rgba(255,
 .swipe-actions-left .swipe-action:nth-child(2) svg,
 .swipe-actions-left .swipe-action:nth-child(3) svg { color: currentColor; }
 
-/* v75 — Loans completion tabs, unified 14pt card breathing room, and Ledger radius refinement. */
-.loan-filter-segment { grid-template-columns: repeat(4, 1fr) !important; }
+/* v75 — Loans completion tabs, unified 14pt card breathing room, and Ledger radius refinement.
+   Scoped to :not(.is-two) — this must only widen the 4-tab Loans filter
+   (Active/Lent/Borrowed/Settled). Without the exclusion it also overrode the
+   2-tab segments (Home's Recent Activity/Insights, Planning, Assets),
+   forcing them into a 4-column grid and left-aligning both tabs instead of
+   filling the row. */
+.loan-filter-segment:not(.is-two) { grid-template-columns: repeat(4, 1fr) !important; }
 
 /* Internal card padding: 14pt/px on the primary content cards. Keep structural
    containers and sheet rows untouched so their existing full-bleed layouts remain intact. */
