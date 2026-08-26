@@ -6,12 +6,25 @@
   const n = v => Number(v || 0) || 0;
   const clone = v => JSON.parse(JSON.stringify(v));
 
-  function normalise(loan) {
+  // All Loan UI calculations must come from the movement ledger, never from a
+  // stale cached `repaid` value. This is especially important after undoing a
+  // repayment: removing the movement must immediately restore the balance and
+  // progress percentage.
+  function metrics(loan) {
     const movements = Array.isArray(loan && loan.movements) ? loan.movements : [];
     const principal = movements.filter(m => m.kind === "principal").reduce((s,m) => s + n(m.amount), 0);
-    const repaid = movements.filter(m => m.kind === "repayment").reduce((s,m) => s + n(m.amount), 0);
-    const first = movements.find(m => m.kind === "principal");
-    return { ...loan, movements, amount: principal, repaid: Math.min(repaid, principal), accountId: first ? first.accountId || null : (loan.accountId || null), date: first ? first.date || loan.date : loan.date };
+    const rawRepaid = movements.filter(m => m.kind === "repayment").reduce((s,m) => s + n(m.amount), 0);
+    const repaid = Math.min(Math.max(0, rawRepaid), Math.max(0, principal));
+    const outstanding = Math.max(0, principal - repaid);
+    const percentPaid = principal > EPS ? Math.min(100, Math.max(0, (repaid / principal) * 100)) : 0;
+    return { principal, repaid, outstanding, percentPaid, isFullyPaid: principal > EPS && outstanding <= EPS };
+  }
+
+  function normalise(loan) {
+    const movements = Array.isArray(loan && loan.movements) ? loan.movements : [];
+    const m = metrics({ ...(loan || {}), movements });
+    const first = movements.find(mv => mv.kind === "principal");
+    return { ...loan, movements, amount: m.principal, repaid: m.repaid, accountId: first ? first.accountId || null : (loan.accountId || null), date: first ? first.date || loan.date : loan.date };
   }
 
   function accountAmount(amount, loanCurrency, accountCurrency, toAED, fromAED) {
@@ -271,5 +284,5 @@
     return next;
   }
 
-  window.AleemFinLoanDomain = { normalise, transactionFor, createLoan, appendMovement, removeMovement, deleteLoan, editMovement, editLoan, reconcileAll, convertTransactionToLoan, revertLoanTransaction };
+  window.AleemFinLoanDomain = { metrics, normalise, transactionFor, createLoan, appendMovement, removeMovement, deleteLoan, editMovement, editLoan, reconcileAll, convertTransactionToLoan, revertLoanTransaction };
 })();
