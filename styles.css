@@ -3347,3 +3347,49 @@ html.dark .swipe-actions-left .swipe-action:nth-child(3) { background: rgba(255,
 .swipe-actions-left .swipe-action:nth-child(1) svg,
 .swipe-actions-left .swipe-action:nth-child(2) svg,
 .swipe-actions-left .swipe-action:nth-child(3) svg { color: currentColor; }
+
+/* ===== Aleem: action button color pass (Delete/Edit/Comment/Pin/Add More/Skip) =====
+   Appended last so it wins over the earlier nth-child positional overrides above,
+   which colored actions by slot position rather than by what they actually do. */
+.swipe-actions-right .swipe-action.swipe-action-edit,
+html.dark .swipe-actions-right .swipe-action.swipe-action-edit {
+  background: color-mix(in srgb, var(--af-accent) 16%, transparent) !important;
+  color: var(--af-accent) !important;
+}
+.swipe-actions-right .swipe-action.swipe-action-delete,
+html.dark .swipe-actions-right .swipe-action.swipe-action-delete {
+  background: #1C1C1E !important;
+  color: #FFFFFF !important;
+}
+.swipe-actions-left .swipe-action.swipe-action-comment,
+html.dark .swipe-actions-left .swipe-action.swipe-action-comment {
+  background: color-mix(in srgb, var(--af-accent) 16%, transparent) !important;
+  color: var(--af-accent) !important;
+}
+.swipe-actions-left .swipe-action.swipe-action-pin {
+  background: rgba(118,118,128,.18) !important;
+  color: #3A3A3C !important;
+}
+html.dark .swipe-actions-left .swipe-action.swipe-action-pin {
+  background: rgba(255,255,255,.10) !important;
+  color: #AEAEB2 !important;
+}
+.swipe-actions-right .swipe-action.swipe-action-more,
+html.dark .swipe-actions-right .swipe-action.swipe-action-more {
+  background: rgba(118,118,128,.18) !important;
+  color: #3A3A3C !important;
+}
+html.dark .swipe-actions-right .swipe-action.swipe-action-more { color: #AEAEB2 !important; }
+.swipe-actions-left .swipe-action.swipe-action-add-more,
+html.dark .swipe-actions-left .swipe-action.swipe-action-add-more,
+.swipe-actions-left .swipe-action.swipe-action-skip,
+html.dark .swipe-actions-left .swipe-action.swipe-action-skip {
+  background: #1C1C1E !important;
+  color: #FFFFFF !important;
+}
+.swipe-actions-right .swipe-action.swipe-action-delete svg,
+.swipe-actions-left .swipe-action.swipe-action-add-more svg,
+.swipe-actions-left .swipe-action.swipe-action-skip svg {
+  color: #FFFFFF !important;
+  stroke: currentColor !important;
+}

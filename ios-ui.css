@@ -1,0 +1,557 @@
+/* ===========================================================================
+   ios-ui.css — AleemFin advanced iOS-inspired UI layer.
+
+   Purely additive and presentation-only, exactly like motion.css:
+   · No JS, no markup changes, no edits to the generated styles.css.
+   · Loaded LAST in index.html so it can refine earlier `!important` rules
+     without raising specificity anywhere else.
+   · Every block is scoped to classes that already exist in the app.
+
+   Sections
+     1. Design tokens for this layer
+     2. Squircle corners (progressive — no-ops where unsupported)
+     3. Frosted-glass vibrancy (tab bar + header)
+     4. iOS segmented control with a sliding pill
+     5. Spring press-scale
+     6. SF Symbol-style icon effects
+     7. Layered card depth
+     8. Swipe-action refinement
+     9. Reduced-motion guard
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens — local to this layer, prefixed so nothing else can collide.
+   -------------------------------------------------------------------------- */
+:root {
+  --afx-spring: cubic-bezier(.22, 1, .36, 1);
+  --afx-spring-out: cubic-bezier(.34, 1.56, .64, 1);
+
+  /* iOS system colors used by the swipe actions. */
+  --afx-red: #FF3B30;
+  --afx-red-dark: #FF453A;
+  --afx-gray: #8E8E93;
+  --afx-gray-fill: #EFEFF4;
+  --afx-gray-fill-dark: #2C2C2E;
+  --afx-orange: #FF9500;
+  --afx-orange-dark: #FF9F0A;
+  --afx-indigo: #5856D6;
+  --afx-indigo-dark: #5E5CE6;
+  --afx-blue: #007AFF;
+  --afx-blue-dark: #0A84FF;
+}
+
+/* --------------------------------------------------------------------------
+   2. Squircle corners.
+
+   iOS uses continuous curvature (a superellipse), not a circular arc. Safari
+   26+ exposes this as `corner-shape`. Wrapped in @supports so every other
+   engine keeps today's plain rounded corners — nothing to regress.
+   -------------------------------------------------------------------------- */
+@supports (corner-shape: squircle) {
+  .settings-card,
+  .settings-icon,
+  .home-panel,
+  .home-stat,
+  .home-action,
+  .home-actions-section,
+  .home-pulse,
+  .home-pulse-icon,
+  .insight-panel,
+  .planning-card,
+  .planning-hero,
+  .ledger-card,
+  .ledger-card-compact,
+  .ledger-list-card,
+  .vault-card,
+  .assets-summary-card,
+  .asset-row-card,
+  .asset-row-icon,
+  .assets-gold-card,
+  .loan-filter-segment,
+  .loan-filter-tab,
+  .loan-native-summary-card,
+  .swipe-row,
+  .swipe-actions,
+  .ios-bottom-sheet,
+  .ios-form-bottom-sheet {
+    corner-shape: squircle;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. Frosted-glass vibrancy.
+
+   The tab bar already blurs, but at 72% opacity it reads as a solid slab.
+   Dropping the fill and lifting saturation lets content show through the way
+   a real UIVisualEffectView does.
+   -------------------------------------------------------------------------- */
+.af-floating-tabbar {
+  background: rgba(255, 255, 255, .58) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
+  backdrop-filter: blur(30px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, .5) !important;
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, .13),
+    0 2px 8px rgba(15, 23, 42, .05),
+    inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+
+html.dark .af-floating-tabbar {
+  background: rgba(28, 28, 30, .52) !important;
+  border-color: rgba(255, 255, 255, .1) !important;
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, .44),
+    0 2px 8px rgba(0, 0, 0, .28),
+    inset 0 1px 0 rgba(255, 255, 255, .07) !important;
+}
+
+/* The Settings divider was a hard hairline; vibrancy wants a soft gradient. */
+.af-floating-tabbar .mobile-settings-fixed {
+  border-left-color: transparent !important;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 18%,
+    rgba(60, 60, 67, .16) 50%,
+    transparent 82%
+  ) !important;
+  background-size: 1px 100% !important;
+  background-repeat: no-repeat !important;
+  background-position: left center !important;
+}
+
+html.dark .af-floating-tabbar .mobile-settings-fixed {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 18%,
+    rgba(255, 255, 255, .14) 50%,
+    transparent 82%
+  ) !important;
+}
+
+/* Matching treatment for the desktop header nav. */
+header nav.hidden.md\:flex {
+  -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
+  backdrop-filter: blur(30px) saturate(190%) !important;
+}
+
+/* The sliding pill lives inside the scrolling tab strip, but the Settings tab
+   sits in its own fixed slot outside it. When Settings is selected the pill has
+   no tab to track and is left parked on the previously-active tab, so two tabs
+   look selected at once. Hide it in that state — presentation-only correction;
+   the underlying early-return is in app/main.js and is left untouched. */
+.af-floating-tabbar:has(.mobile-settings-fixed .mobile-nav-tab-active)
+  .mobile-nav-active-pill {
+  opacity: 0;
+}
+
+.mobile-nav-active-pill {
+  transition:
+    transform .22s var(--afx-spring),
+    width .22s var(--afx-spring),
+    height .22s var(--afx-spring),
+    opacity .2s ease;
+}
+
+/* --------------------------------------------------------------------------
+   4. iOS segmented control with a sliding pill.
+
+   The markup is already `.loan-filter-segment > .loan-filter-tab.is-active`.
+   We hide the per-tab background and draw one ::before pill that springs
+   between positions, which is what UISegmentedControl actually does.
+
+   Gated behind @supports selector(:has(*)) so browsers without :has() keep
+   the current instant-switch highlight rather than a stuck pill.
+   -------------------------------------------------------------------------- */
+@supports selector(:has(*)) {
+  .loan-filter-segment {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .loan-filter-segment::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 2px;
+    bottom: 2px;
+    left: 2px;
+    width: calc((100% - 10px) / 3);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, .95);
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, .1),
+      0 0 0 .5px rgba(0, 0, 0, .04);
+    transform: translate3d(0, 0, 0);
+    transition: transform .34s var(--afx-spring);
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  .loan-filter-segment.is-two::before {
+    width: calc((100% - 7px) / 2);
+  }
+
+  html.dark .loan-filter-segment::before {
+    background: color-mix(in srgb, var(--af-accent) 22%, #2C2C2E);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 24%, transparent),
+      0 1px 6px rgba(0, 0, 0, .24);
+  }
+
+  /* Pill position follows whichever tab carries .is-active. */
+  .loan-filter-segment:has(> .loan-filter-tab:nth-child(2).is-active)::before {
+    transform: translate3d(calc(100% + 3px), 0, 0);
+  }
+
+  .loan-filter-segment:has(> .loan-filter-tab:nth-child(3).is-active)::before {
+    transform: translate3d(calc(200% + 6px), 0, 0);
+  }
+
+  /* Hide the segment entirely if nothing is active, so no ghost pill shows. */
+  .loan-filter-segment:not(:has(> .loan-filter-tab.is-active))::before {
+    opacity: 0;
+  }
+
+  /* Tabs ride above the pill and no longer paint their own background. */
+  .loan-filter-segment > .loan-filter-tab {
+    position: relative;
+    z-index: 1;
+  }
+
+  .loan-filter-segment > .loan-filter-tab.is-active,
+  html.dark .loan-filter-segment > .loan-filter-tab.is-active {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. Spring press-scale.
+
+   Tap targets dip with spring physics, synced to the haptics the app already
+   fires. Deliberately excludes .swipe-content — its transform is driven
+   imperatively by the swipe gesture and must not be shared.
+   -------------------------------------------------------------------------- */
+.home-action,
+.home-stat,
+.home-account,
+.settings-nav-row,
+.settings-card-choice-button,
+.settings-accent-option,
+.settings-card-count-option,
+.loan-native-summary-card,
+.insight-category-row,
+.planning-card,
+.asset-row-card,
+.ios-settings-switch {
+  transition:
+    transform .26s var(--afx-spring),
+    box-shadow .26s var(--afx-spring),
+    background .18s ease;
+  will-change: transform;
+}
+
+.home-action:active,
+.home-stat:active,
+.home-account:active,
+.settings-nav-row:active,
+.settings-card-choice-button:active,
+.settings-accent-option:active,
+.settings-card-count-option:active,
+.loan-native-summary-card:active,
+.insight-category-row:active,
+.planning-card:active,
+.asset-row-card:active {
+  transform: scale(.972);
+}
+
+/* Smaller controls need a shallower dip or they look rubbery. */
+.ios-settings-switch:active {
+  transform: scale(.94);
+}
+
+.settings-icon {
+  transition: transform .3s var(--afx-spring-out);
+}
+
+.settings-nav-row:active .settings-icon,
+.settings-row:active .settings-icon {
+  transform: scale(1.08);
+}
+
+/* --------------------------------------------------------------------------
+   6. SF Symbol-style icon effects.
+
+   React swaps `.mobile-nav-icon-active` onto the newly selected tab, so a
+   keyframe bound to that class replays on every tab change — the same
+   "bounce" SF Symbols get on iOS 17+.
+   -------------------------------------------------------------------------- */
+@keyframes afxSymbolBounce {
+  0% { transform: scale(1); }
+  38% { transform: scale(1.22); }
+  68% { transform: scale(.96); }
+  100% { transform: scale(1); }
+}
+
+@keyframes afxSymbolFadeUp {
+  from { opacity: 0; transform: translate3d(0, 3px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.mobile-nav-tab.mobile-nav-tab-active .mobile-nav-icon-active {
+  animation: afxSymbolBounce .46s var(--afx-spring) both;
+}
+
+.mobile-nav-tab.mobile-nav-tab-active > span {
+  animation: afxSymbolFadeUp .34s var(--afx-spring) both;
+}
+
+/* Settings drill-downs get their icons popping in as the page mounts. */
+.settings-native[data-settings-page]:not([data-settings-page="root"]) .settings-icon {
+  animation: afxSymbolBounce .44s var(--afx-spring) both;
+}
+
+/* --------------------------------------------------------------------------
+   7. Layered card depth.
+
+   A hairline top highlight plus a soft ambient shadow reads as stacked
+   material rather than a flat panel. Kept very low-contrast on purpose.
+   -------------------------------------------------------------------------- */
+.settings-card,
+.home-panel,
+.insight-panel,
+.planning-card,
+.ledger-list-card,
+.vault-card,
+.assets-summary-card {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, .04),
+    0 6px 18px rgba(15, 23, 42, .05),
+    inset 0 1px 0 rgba(255, 255, 255, .6) !important;
+}
+
+html.dark .settings-card,
+html.dark .home-panel,
+html.dark .insight-panel,
+html.dark .planning-card,
+html.dark .ledger-list-card,
+html.dark .vault-card,
+html.dark .assets-summary-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, .3),
+    0 8px 22px rgba(0, 0, 0, .22),
+    inset 0 1px 0 rgba(255, 255, 255, .045) !important;
+}
+
+/* Grouped-list separators inset from the icon, exactly like iOS. */
+.settings-row + .settings-row {
+  border-top-color: rgba(60, 60, 67, .1) !important;
+}
+
+html.dark .settings-row + .settings-row {
+  border-top-color: rgba(255, 255, 255, .075) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Swipe-action refinement.
+
+   Before: tiles carried their own 13px radius (so gaps showed through at the
+   row corners), labels sat at 7px, the delete tile was grey in light mode but
+   red in dark, and the left panel was coloured by SLOT POSITION rather than by
+   action — so the third tile was the same washed-out grey whether it meant
+   Skip, Pin or Flag. Of the twelve kinds SwipeRow can render, five had no
+   palette entry of their own at all.
+
+   Now: flush full-height tiles clipped by the row radius, legible labels, and
+   one iOS system palette keyed to each action's INTENT in both themes — accent
+   for constructive, red for destructive, gray for secondary, orange for
+   deferring, indigo for marking, blue for annotating.
+   -------------------------------------------------------------------------- */
+.swipe-actions {
+  gap: 0 !important;
+}
+
+.swipe-action {
+  border-radius: 0 !important;
+  gap: 5px !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.006em !important;
+  line-height: 1.15 !important;
+  padding: 0 4px !important;
+  transition:
+    filter .18s ease,
+    transform .24s var(--afx-spring) !important;
+}
+
+.swipe-action span {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -.006em !important;
+  opacity: 1 !important;
+}
+
+/* Icons match the refined 1.8 stroke weight used across the app. */
+.swipe-action svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 1.8 !important;
+}
+
+/* The final cascade in styles.css paints the left panel by SLOT —
+   `.swipe-actions-left .swipe-action:nth-child(3)` — so tile 3 was always the
+   same washed-out grey whether it held Skip, Pin or Flag, and tile 2 always
+   #2C2C2E whether it held Lend more, Pin or Pause. Colouring by INTENT means a
+   tile reads the same wherever it lands. Those slot rules sit at (0,4,1), above
+   any plain `.swipe-action-pin`, so the selectors below carry a
+   `.swipe-row .swipe-actions` prefix plus a doubled class to outrank them on
+   specificity rather than depending on source order. */
+
+/* Destructive — systemRed in both themes (was grey in light mode). */
+.swipe-row .swipe-actions .swipe-action.swipe-action-delete {
+  background: var(--afx-red) !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-delete {
+  background: var(--afx-red-dark) !important;
+  color: #FFFFFF !important;
+}
+
+/* Constructive — the selected accent. `resume` joins these: restarting a
+   paused item is the counterpart to `pause`. */
+.swipe-row .swipe-actions .swipe-action.swipe-action-edit,
+.swipe-row .swipe-actions .swipe-action.swipe-action-record,
+.swipe-row .swipe-actions .swipe-action.swipe-action-resume,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-edit,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-record,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-resume {
+  background: var(--af-accent) !important;
+  color: #FFFFFF !important;
+}
+
+/* Secondary — systemGray fill, light in light mode instead of near-black. */
+.swipe-row .swipe-actions .swipe-action.swipe-action-add-more,
+.swipe-row .swipe-actions .swipe-action.swipe-action-more,
+.swipe-row .swipe-actions .swipe-action.swipe-action-pause {
+  background: var(--afx-gray) !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-add-more,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-more,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-pause {
+  background: #48484A !important;
+  color: #FFFFFF !important;
+}
+
+/* Deferring — systemOrange. */
+.swipe-row .swipe-actions .swipe-action.swipe-action-skip {
+  background: var(--afx-orange) !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-skip {
+  background: var(--afx-orange-dark) !important;
+  color: #FFFFFF !important;
+}
+
+/* Marking — systemIndigo. `pin` and `flag` both single an item out without
+   changing it, so they share one colour. */
+.swipe-row .swipe-actions .swipe-action.swipe-action-pin,
+.swipe-row .swipe-actions .swipe-action.swipe-action-flag {
+  background: var(--afx-indigo) !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-pin,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-flag {
+  background: var(--afx-indigo-dark) !important;
+  color: #FFFFFF !important;
+}
+
+/* Annotating — systemBlue for actions that attach metadata (a note, a
+   category) rather than acting on the record itself. */
+.swipe-row .swipe-actions .swipe-action.swipe-action-comment,
+.swipe-row .swipe-actions .swipe-action.swipe-action-category {
+  background: var(--afx-blue) !important;
+  color: #FFFFFF !important;
+}
+
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-comment,
+html.dark .swipe-row .swipe-actions .swipe-action.swipe-action-category {
+  background: var(--afx-blue-dark) !important;
+  color: #FFFFFF !important;
+}
+
+/* Every tile's glyph inherits the tile's foreground colour. */
+.swipe-action svg,
+html.dark .swipe-action svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Disabled tiles read as unavailable rather than merely dim. */
+.swipe-action:disabled {
+  filter: saturate(.25) brightness(1.06) !important;
+  opacity: .5 !important;
+}
+
+/* Press feedback, and a slight lift of the whole panel while it's open. */
+.swipe-action:active {
+  transform: scale(.955) !important;
+  filter: brightness(.94) !important;
+}
+
+.swipe-row:has(.swipe-content.is-swiped) .swipe-content {
+  box-shadow: -2px 0 12px rgba(0, 0, 0, .1), 2px 0 12px rgba(0, 0, 0, .1);
+}
+
+/* --------------------------------------------------------------------------
+   9. Reduced-motion guard — matches motion.css, disables this layer's motion
+   while leaving every colour and shape refinement intact.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .loan-filter-segment::before,
+  .home-action,
+  .home-stat,
+  .home-account,
+  .settings-nav-row,
+  .settings-card-choice-button,
+  .settings-accent-option,
+  .settings-card-count-option,
+  .loan-native-summary-card,
+  .insight-category-row,
+  .planning-card,
+  .asset-row-card,
+  .ios-settings-switch,
+  .settings-icon,
+  .swipe-action {
+    transition: none !important;
+  }
+
+  .mobile-nav-tab.mobile-nav-tab-active .mobile-nav-icon-active,
+  .mobile-nav-tab.mobile-nav-tab-active > span,
+  .settings-native[data-settings-page]:not([data-settings-page="root"]) .settings-icon {
+    animation: none !important;
+  }
+
+  .home-action:active,
+  .home-stat:active,
+  .home-account:active,
+  .settings-nav-row:active,
+  .settings-card-choice-button:active,
+  .settings-accent-option:active,
+  .settings-card-count-option:active,
+  .loan-native-summary-card:active,
+  .insight-category-row:active,
+  .planning-card:active,
+  .asset-row-card:active,
+  .ios-settings-switch:active,
+  .settings-nav-row:active .settings-icon,
+  .settings-row:active .settings-icon,
+  .swipe-action:active {
+    transform: none !important;
+  }
+}

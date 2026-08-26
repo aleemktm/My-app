@@ -1,0 +1,261 @@
+/* ============================================================================
+   AleemFin — Motion Layer  (motion.css)
+   ----------------------------------------------------------------------------
+   PURELY ADDITIVE, PRESENTATION-ONLY.
+   Loaded AFTER styles.css. Touches no markup, no logic, no data.
+   Every rule here is visual polish (entrances, data-viz reveals, micro-motion).
+
+   Safety model
+   ------------
+   • All entrance animations use `both` fill and resolve to a NATURAL final
+     state (translate/scale = identity), so layout after settle is unchanged.
+   • List items are `.swipe-row`s; the swipe gesture transforms the inner
+     `.swipe-content`. We only animate the OUTER row / the card, never the
+     swipe-content, so gestures are untouched.
+   • Progress fills / bars keep their inline width/height; we only add a
+     transform reveal that ends at identity — the measured size is preserved.
+   • Hover-lifts are gated behind `@media (hover:hover)` so they never apply
+     on touch devices (iOS), guaranteeing zero effect on the shipped app's feel.
+   • A master `prefers-reduced-motion` guard at the bottom disables everything.
+
+   Timing tokens (kept local to avoid touching the app's :root):
+     rise   .52s  cubic-bezier(.22,1,.36,1)     — calm iOS deceleration
+     pop    .55s  cubic-bezier(.34,1.56,.64,1)  — gentle spring overshoot
+     grow   .85s  cubic-bezier(.22,1,.36,1)     — satisfying fill sweep
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   1. KEYFRAMES
+   --------------------------------------------------------------------------- */
+@keyframes afMoRise      { from { opacity:0; transform:translate3d(0,14px,0); }        to { opacity:1; transform:none; } }
+@keyframes afMoRiseSm    { from { opacity:0; transform:translate3d(0,9px,0); }         to { opacity:1; transform:none; } }
+@keyframes afMoPop       { from { opacity:0; transform:translate3d(0,10px,0) scale(.965); } to { opacity:1; transform:none; } }
+@keyframes afMoPopIn     { from { opacity:0; transform:scale(.78); }                   to { opacity:1; transform:scale(1); } }
+@keyframes afMoIconPop   { from { opacity:0; transform:scale(.5); }                    60% { opacity:1; transform:scale(1.08); } to { opacity:1; transform:scale(1); } }
+@keyframes afMoGrowX     { from { transform:scaleX(0); }                               to { transform:scaleX(1); } }
+@keyframes afMoGrowY     { from { transform:scaleY(0); }                               to { transform:scaleY(1); } }
+@keyframes afMoDrawWipe  { from { clip-path:inset(0 100% 0 0); }                       to { clip-path:inset(0 0 0 0); } }
+@keyframes afMoRingGlow  { 0% { box-shadow:0 0 0 0 rgba(29,191,115,.0); } 35% { box-shadow:0 0 22px 2px rgba(29,191,115,.28); } 100% { box-shadow:0 0 0 0 rgba(29,191,115,0); } }
+@keyframes afMoSheen     { 0% { transform:translate3d(-140%,0,0) rotate(8deg); opacity:0; } 12% { opacity:.55; } 30% { opacity:0; } 100% { transform:translate3d(240%,0,0) rotate(8deg); opacity:0; } }
+@keyframes afMoBreathe   { 0%,100% { box-shadow:0 0 0 0 rgba(29,191,115,0); } 50% { box-shadow:0 0 26px 0 rgba(29,191,115,.16); } }
+
+/* ---------------------------------------------------------------------------
+   2. PER-TAB SECTION CASCADE
+   Direct children of each tab root rise in sequence. `main > *` already fades
+   the whole tab; this layers a calm cascade of the major sections on top.
+   (Home is intentionally excluded — it already ships `.home-dashboard > *`.)
+   --------------------------------------------------------------------------- */
+.accounts-native > *,
+.loans-native > *,
+.assets-native > *,
+.planning-premium > *,
+.recurring-native > *,
+.rates-native > *,
+.insight-page > * {
+  animation: afMoRise .52s cubic-bezier(.22,1,.36,1) both;
+  will-change: transform, opacity;
+}
+.accounts-native > *:nth-child(1),.loans-native > *:nth-child(1),.assets-native > *:nth-child(1),.planning-premium > *:nth-child(1),.recurring-native > *:nth-child(1),.rates-native > *:nth-child(1),.insight-page > *:nth-child(1){animation-delay:.02s}
+.accounts-native > *:nth-child(2),.loans-native > *:nth-child(2),.assets-native > *:nth-child(2),.planning-premium > *:nth-child(2),.recurring-native > *:nth-child(2),.rates-native > *:nth-child(2),.insight-page > *:nth-child(2){animation-delay:.08s}
+.accounts-native > *:nth-child(3),.loans-native > *:nth-child(3),.assets-native > *:nth-child(3),.planning-premium > *:nth-child(3),.recurring-native > *:nth-child(3),.rates-native > *:nth-child(3),.insight-page > *:nth-child(3){animation-delay:.14s}
+.accounts-native > *:nth-child(4),.loans-native > *:nth-child(4),.assets-native > *:nth-child(4),.planning-premium > *:nth-child(4),.recurring-native > *:nth-child(4),.rates-native > *:nth-child(4),.insight-page > *:nth-child(4){animation-delay:.20s}
+.accounts-native > *:nth-child(5),.loans-native > *:nth-child(5),.assets-native > *:nth-child(5),.planning-premium > *:nth-child(5),.recurring-native > *:nth-child(5),.rates-native > *:nth-child(5),.insight-page > *:nth-child(5){animation-delay:.26s}
+.accounts-native > *:nth-child(6),.loans-native > *:nth-child(6),.assets-native > *:nth-child(6),.planning-premium > *:nth-child(6),.recurring-native > *:nth-child(6),.rates-native > *:nth-child(6),.insight-page > *:nth-child(6){animation-delay:.32s}
+.accounts-native > *:nth-child(n+7),.loans-native > *:nth-child(n+7),.assets-native > *:nth-child(n+7),.planning-premium > *:nth-child(n+7),.recurring-native > *:nth-child(n+7),.rates-native > *:nth-child(n+7),.insight-page > *:nth-child(n+7){animation-delay:.38s}
+
+/* ---------------------------------------------------------------------------
+   3. LIST-ITEM MICRO-STAGGER
+   Rows within the major lists cascade after their section has risen.
+   Targets outer rows only (swipe gesture transforms the inner content).
+   --------------------------------------------------------------------------- */
+.accounts-list > *,
+.loans-list > *,
+.assets-list > *,
+.planning-list > *,
+.recurring-list > *,
+.recurring-next-list > *,
+.insight-category-list > *,
+.insight-net-list > *,
+.insight-change-list > *,
+.insight-signal-list > *,
+.home-transaction-list > *,
+.home-account-list > * {
+  animation: afMoRiseSm .48s cubic-bezier(.22,1,.36,1) both;
+}
+.accounts-list > *:nth-child(1),.loans-list > *:nth-child(1),.assets-list > *:nth-child(1),.planning-list > *:nth-child(1),.recurring-list > *:nth-child(1),.recurring-next-list > *:nth-child(1),.insight-category-list > *:nth-child(1),.insight-net-list > *:nth-child(1),.insight-change-list > *:nth-child(1),.insight-signal-list > *:nth-child(1),.home-transaction-list > *:nth-child(1),.home-account-list > *:nth-child(1){animation-delay:.06s}
+.accounts-list > *:nth-child(2),.loans-list > *:nth-child(2),.assets-list > *:nth-child(2),.planning-list > *:nth-child(2),.recurring-list > *:nth-child(2),.recurring-next-list > *:nth-child(2),.insight-category-list > *:nth-child(2),.insight-net-list > *:nth-child(2),.insight-change-list > *:nth-child(2),.insight-signal-list > *:nth-child(2),.home-transaction-list > *:nth-child(2),.home-account-list > *:nth-child(2){animation-delay:.11s}
+.accounts-list > *:nth-child(3),.loans-list > *:nth-child(3),.assets-list > *:nth-child(3),.planning-list > *:nth-child(3),.recurring-list > *:nth-child(3),.recurring-next-list > *:nth-child(3),.insight-category-list > *:nth-child(3),.insight-net-list > *:nth-child(3),.insight-change-list > *:nth-child(3),.insight-signal-list > *:nth-child(3),.home-transaction-list > *:nth-child(3),.home-account-list > *:nth-child(3){animation-delay:.16s}
+.accounts-list > *:nth-child(4),.loans-list > *:nth-child(4),.assets-list > *:nth-child(4),.planning-list > *:nth-child(4),.recurring-list > *:nth-child(4),.recurring-next-list > *:nth-child(4),.insight-category-list > *:nth-child(4),.insight-net-list > *:nth-child(4),.insight-change-list > *:nth-child(4),.insight-signal-list > *:nth-child(4),.home-transaction-list > *:nth-child(4),.home-account-list > *:nth-child(4){animation-delay:.21s}
+.accounts-list > *:nth-child(5),.loans-list > *:nth-child(5),.assets-list > *:nth-child(5),.planning-list > *:nth-child(5),.recurring-list > *:nth-child(5),.recurring-next-list > *:nth-child(5),.insight-category-list > *:nth-child(5),.insight-net-list > *:nth-child(5),.insight-change-list > *:nth-child(5),.insight-signal-list > *:nth-child(5),.home-transaction-list > *:nth-child(5),.home-account-list > *:nth-child(5){animation-delay:.26s}
+.accounts-list > *:nth-child(6),.loans-list > *:nth-child(6),.assets-list > *:nth-child(6),.planning-list > *:nth-child(6),.recurring-list > *:nth-child(6),.recurring-next-list > *:nth-child(6),.insight-category-list > *:nth-child(6),.insight-net-list > *:nth-child(6),.insight-change-list > *:nth-child(6),.insight-signal-list > *:nth-child(6),.home-transaction-list > *:nth-child(6),.home-account-list > *:nth-child(6){animation-delay:.31s}
+.accounts-list > *:nth-child(7),.loans-list > *:nth-child(7),.assets-list > *:nth-child(7),.planning-list > *:nth-child(7),.recurring-list > *:nth-child(7),.recurring-next-list > *:nth-child(7),.insight-category-list > *:nth-child(7),.insight-net-list > *:nth-child(7),.insight-change-list > *:nth-child(7),.insight-signal-list > *:nth-child(7),.home-transaction-list > *:nth-child(7),.home-account-list > *:nth-child(7){animation-delay:.36s}
+.accounts-list > *:nth-child(n+8),.loans-list > *:nth-child(n+8),.assets-list > *:nth-child(n+8),.planning-list > *:nth-child(n+8),.recurring-list > *:nth-child(n+8),.recurring-next-list > *:nth-child(n+8),.insight-category-list > *:nth-child(n+8),.insight-net-list > *:nth-child(n+8),.insight-change-list > *:nth-child(n+8),.insight-signal-list > *:nth-child(n+8),.home-transaction-list > *:nth-child(n+8),.home-account-list > *:nth-child(n+8){animation-delay:.41s}
+
+/* ---------------------------------------------------------------------------
+   4. LEDGER — transaction cards (root is a generic utility wrapper, so we
+   scope strictly to rows that actually contain a ledger card).
+   --------------------------------------------------------------------------- */
+.ledger-card-compact { animation: afMoRiseSm .5s cubic-bezier(.22,1,.36,1) both; }
+.space-y-2\.5 > *:nth-child(1) .ledger-card-compact{animation-delay:.04s}
+.space-y-2\.5 > *:nth-child(2) .ledger-card-compact{animation-delay:.09s}
+.space-y-2\.5 > *:nth-child(3) .ledger-card-compact{animation-delay:.14s}
+.space-y-2\.5 > *:nth-child(4) .ledger-card-compact{animation-delay:.19s}
+.space-y-2\.5 > *:nth-child(5) .ledger-card-compact{animation-delay:.24s}
+.space-y-2\.5 > *:nth-child(6) .ledger-card-compact{animation-delay:.29s}
+.space-y-2\.5 > *:nth-child(7) .ledger-card-compact{animation-delay:.34s}
+.space-y-2\.5 > *:nth-child(n+8) .ledger-card-compact{animation-delay:.39s}
+
+/* ---------------------------------------------------------------------------
+   5. GRID POP — stat / KPI / action tiles spring in with a subtle overshoot.
+   --------------------------------------------------------------------------- */
+.home-stats-grid > *,
+.home-actions-grid > *,
+.insight-kpi-grid > *,
+.assets-summary-grid > *,
+.planning-summary-grid > * {
+  animation: afMoPop .55s cubic-bezier(.34,1.56,.64,1) both;
+}
+.home-stats-grid > *:nth-child(2),.home-actions-grid > *:nth-child(2),.insight-kpi-grid > *:nth-child(2),.assets-summary-grid > *:nth-child(2),.planning-summary-grid > *:nth-child(2){animation-delay:.06s}
+.home-stats-grid > *:nth-child(3),.home-actions-grid > *:nth-child(3),.insight-kpi-grid > *:nth-child(3),.assets-summary-grid > *:nth-child(3),.planning-summary-grid > *:nth-child(3){animation-delay:.12s}
+.home-stats-grid > *:nth-child(4),.home-actions-grid > *:nth-child(4),.insight-kpi-grid > *:nth-child(4),.assets-summary-grid > *:nth-child(4),.planning-summary-grid > *:nth-child(4){animation-delay:.18s}
+.home-stats-grid > *:nth-child(n+5),.home-actions-grid > *:nth-child(n+5),.insight-kpi-grid > *:nth-child(n+5),.assets-summary-grid > *:nth-child(n+5),.planning-summary-grid > *:nth-child(n+5){animation-delay:.24s}
+
+/* ---------------------------------------------------------------------------
+   6. DATA-VIZ REVEALS
+   Charts draw themselves in. Each reveal ends at identity so the rendered
+   value (inline width/height / conic angle) is exactly preserved.
+   --------------------------------------------------------------------------- */
+
+/* 6a. Progress fills — sweep from the left (keeps inline width). */
+.insight-category-track > i,
+.asset-row-progress > span,
+.planning-progress > div,
+.loan-progress-fill {
+  transform-origin: left center;
+  animation: afMoGrowX .85s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: .18s;
+}
+
+/* 6b. Bar chart — grow from the baseline (keeps inline height). */
+.insight-bars > .insight-bar {
+  transform-origin: bottom center;
+  animation: afMoGrowY .7s cubic-bezier(.22,1,.36,1) both;
+}
+.insight-bar-group:nth-child(1) .insight-bar{animation-delay:.10s}
+.insight-bar-group:nth-child(2) .insight-bar{animation-delay:.16s}
+.insight-bar-group:nth-child(3) .insight-bar{animation-delay:.22s}
+.insight-bar-group:nth-child(4) .insight-bar{animation-delay:.28s}
+.insight-bar-group:nth-child(5) .insight-bar{animation-delay:.34s}
+.insight-bar-group:nth-child(6) .insight-bar{animation-delay:.40s}
+.insight-bar-group:nth-child(n+7) .insight-bar{animation-delay:.46s}
+.insight-bar.expense{animation-delay:.06s} /* second bar in each pair trails slightly */
+
+/* 6c. Conic rings & donut — scale/fade pop (never rotate: centered text). */
+.insight-score-ring,
+.insight-donut {
+  animation: afMoPopIn .6s cubic-bezier(.34,1.56,.64,1) both;
+  animation-delay: .12s;
+}
+/* A one-time charge-up glow, then it settles. */
+.insight-score-ring::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  pointer-events:none;
+  animation: afMoRingGlow 1.4s ease-out .3s both;
+}
+
+/* 6d. Line/area charts — reveal left-to-right via clip wipe (never touches
+   stroke attributes, so dashed styles etc. are preserved). */
+.insight-sparkline,
+.performance-chart,
+.comparison-chart {
+  animation: afMoDrawWipe 1.05s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: .15s;
+}
+
+/* ---------------------------------------------------------------------------
+   7. MICRO-INTERACTIONS
+   --------------------------------------------------------------------------- */
+
+/* 7a. Leading icons pop after their card arrives. */
+.asset-row-icon,
+.planning-goal-icon,
+.home-action-icon,
+.recurring-icon,
+.settings-icon {
+  animation: afMoIconPop .5s cubic-bezier(.34,1.56,.64,1) both;
+  animation-delay: .18s;
+}
+
+/* 7b. Desktop-only hover lift. Gated behind hover so touch (iOS) is untouched.
+   New transition applies ONLY inside this query, so on-device feel is unchanged. */
+@media (hover:hover) and (pointer:fine) {
+  .home-stat,
+  .home-action,
+  .asset-row-card,
+  .loan-native-card,
+  .planning-goal-card,
+  .recurring-card,
+  .insight-kpi,
+  .rates-card,
+  .account-wallet-card {
+    transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease;
+  }
+  .home-stat:hover,
+  .home-action:hover,
+  .asset-row-card:hover,
+  .loan-native-card:hover,
+  .planning-goal-card:hover,
+  .recurring-card:hover,
+  .insight-kpi:hover,
+  .rates-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px -12px rgba(0,0,0,.30);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   8. SIGNATURE ACCENTS  (kept subtle; the only looping motions in this file)
+   --------------------------------------------------------------------------- */
+
+/* 8a. Accounts wallet — a slow diagonal light sheen crosses the card. The
+   sheen element already exists as a decorative overlay; we only add motion. */
+.account-wallet-sheen {
+  animation: afMoSheen 6.5s ease-in-out 1s infinite;
+}
+
+/* 8b. Analytics AI/insight highlight — a soft breathing glow to signal it's
+   "alive". Applies only if the element exists; harmless otherwise. */
+.insight-ai-card {
+  animation: afMoBreathe 5.5s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------------------
+   9. MASTER REDUCED-MOTION GUARD
+   Mirrors the app's existing pattern. Disables every enhancement above and
+   restores instant, static presentation for users who ask for it.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .accounts-native > *, .loans-native > *, .assets-native > *, .planning-premium > *,
+  .recurring-native > *, .rates-native > *, .insight-page > *,
+  .accounts-list > *, .loans-list > *, .assets-list > *, .planning-list > *,
+  .recurring-list > *, .recurring-next-list > *,
+  .insight-category-list > *, .insight-net-list > *, .insight-change-list > *, .insight-signal-list > *,
+  .home-transaction-list > *, .home-account-list > *,
+  .ledger-card-compact,
+  .home-stats-grid > *, .home-actions-grid > *, .insight-kpi-grid > *,
+  .assets-summary-grid > *, .planning-summary-grid > *,
+  .insight-category-track > i, .asset-row-progress > span, .planning-progress > div, .loan-progress-fill,
+  .insight-bars > .insight-bar, .insight-score-ring, .insight-donut,
+  .insight-sparkline, .performance-chart, .comparison-chart,
+  .asset-row-icon, .planning-goal-icon, .home-action-icon, .recurring-icon, .settings-icon,
+  .account-wallet-sheen, .insight-ai-card {
+    animation: none !important;
+    transform: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+  }
+  .insight-score-ring::after { animation: none !important; content: none !important; }
+}
