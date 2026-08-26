@@ -178,6 +178,57 @@
     return { accounts: nextAccounts, loans: loans.map(l => String(l.id) === String(loan.id) ? candidate : l), transactions: nextTransactions };
   }
 
+  // Convert an already-recorded plain income/expense transaction into a Loan.
+  // The transaction's amount/account/date/type never change here — a Loan's
+  // principal transaction already uses the same income/expense direction as
+  // a plain one (lent => expense, borrowed => income), so this is a pure
+  // re-tag: build the canonical Loan + linked transaction via transactionFor
+  // (the same path reconcileAll uses) and swap balances old-for-new so the
+  // result is byte-for-byte what the engine would have produced natively.
+  function convertTransactionToLoan(state, txId, input, opts) {
+    const accounts = clone(state.accounts || []), loans = clone(state.loans || []), transactions = clone(state.transactions || []);
+    const tx = transactions.find(t => String(t.id) === String(txId));
+    if (!tx) throw new Error("Transaction not found");
+    if (tx.loanId) throw new Error("This entry is already linked to a loan");
+    if (tx.type !== "income" && tx.type !== "expense") throw new Error("Only income or expense entries can be converted to a loan");
+    const loanType = input.type === "borrowed" || input.type === "lent" ? input.type : (tx.type === "expense" ? "lent" : "borrowed");
+    const name = (input.name || tx.title || "").trim() || "Unnamed";
+    const movement = { id: opts.makeId(), kind: "principal", amount: n(tx.amount), date: tx.date, accountId: tx.accountId || null };
+    const loan = normalise({
+      id: opts.makeId(), type: loanType, name, currency: tx.currency || "AED",
+      whatsapp: input.whatsapp || "", dueDate: input.dueDate || "",
+      date: tx.date, accountId: movement.accountId, movements: [movement]
+    });
+    const account = movement.accountId ? accounts.find(a => String(a.id) === String(movement.accountId)) : null;
+    const result = reconcileMovementTx(loan, movement, tx, accounts, { ...opts, accounts }, loan.currency);
+    return {
+      accounts: result.accounts,
+      loans: [...loans, loan],
+      transactions: transactions.map(t => t.id === tx.id ? result.tx : t)
+    };
+  }
+
+  // Undo an accidental conversion: only permitted while the loan is still
+  // exactly as it was created (a single principal movement, no repayments or
+  // extra amounts added) so there is nothing to reconcile away — the linked
+  // transaction already has the right type/amount/account, we simply drop
+  // the loanId/movementId tag and remove the loan record.
+  function revertLoanTransaction(state, txId, opts) {
+    const accounts = clone(state.accounts || []), loans = clone(state.loans || []), transactions = clone(state.transactions || []);
+    const tx = transactions.find(t => String(t.id) === String(txId));
+    if (!tx || !tx.loanId) throw new Error("This entry is not linked to a loan");
+    const loan = loans.find(l => String(l.id) === String(tx.loanId));
+    if (!loan) throw new Error("Loan not found");
+    if ((loan.movements || []).length > 1) throw new Error("Cannot revert — this loan has additional principal or repayment activity. Delete the loan instead if you want to remove it.");
+    const { loanId, movementId, ...rest } = tx;
+    const plainTx = { ...rest, category: loan.type === "lent" ? "Other" : "Other", title: loan.name };
+    return {
+      accounts,
+      loans: loans.filter(l => String(l.id) !== String(loan.id)),
+      transactions: transactions.map(t => t.id === tx.id ? plainTx : t)
+    };
+  }
+
   function reconcileAll(state, opts) {
     let next = { accounts: clone(state.accounts || []), loans: clone(state.loans || []), transactions: clone(state.transactions || []) };
     next.loans = next.loans.map(normalise);
@@ -203,5 +254,5 @@
     return next;
   }
 
-  window.AleemFinLoanDomain = { normalise, transactionFor, createLoan, appendMovement, removeMovement, deleteLoan, editMovement, editLoan, reconcileAll };
+  window.AleemFinLoanDomain = { normalise, transactionFor, createLoan, appendMovement, removeMovement, deleteLoan, editMovement, editLoan, reconcileAll, convertTransactionToLoan, revertLoanTransaction };
 })();
