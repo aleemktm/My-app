@@ -134,7 +134,10 @@
                 ),
                 h("div", { className: "ledger-card-bottomline" },
                   meta?.account ? h("span", { className: "ledger-account-chip" }, `${isIn ? "to" : "from"} a/c ${meta.account.name}`) : h("span", null),
-                  meta?.account ? h("span", { className: "ledger-available-balance ledger-available-right" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : h("span", null)
+                  h("div", { className: "ledger-transfer-meta" },
+                    tx.type === "transfer" && tx.transferRate > 0 ? h("span", { className: "ledger-transfer-rate" }, `FX 1 ${tx.currency} = ${numFmt(tx.transferRate, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${tx.toCurrency || tx.currency}`) : null,
+                    meta?.account ? h("span", { className: "ledger-available-balance ledger-available-right" }, `Available ${meta.account.currency} ${numFmt(balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : null
+                  )
                 )
               )
             );
