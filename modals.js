@@ -693,6 +693,53 @@
     );
   }
 
+  function ConvertToLoanModal(props) {
+    const {
+      accent, accounts, darkMode, inputCls, numFmt, convertLoanTarget, convertLoanName, convertLoanType,
+      convertLoanDueDate, convertLoanWhatsapp, setConvertLoanName, setConvertLoanType, setConvertLoanDueDate,
+      setConvertLoanWhatsapp, setConvertLoanTarget, handleConvertToLoanSubmit
+    } = props;
+    if (!convertLoanTarget) return null;
+    const account = accounts.find(acc => String(acc.id) === String(convertLoanTarget.accountId));
+    return React.createElement(LoanFormSheet, {
+      accent, accounts, darkMode, inputCls, numFmt,
+      title: `Convert to Loan · ${convertLoanTarget.title}`,
+      submitLabel: "Convert to Loan",
+      onClose: () => setConvertLoanTarget(null),
+      onSubmit: handleConvertToLoanSubmit
+    },
+      React.createElement("p", { className: "text-[10px] text-zinc-400 -mt-1" },
+        `${convertLoanTarget.currency} ${numFmt(convertLoanTarget.amount)} on ${convertLoanTarget.date}${account ? ` · ${account.name}` : ""} will move to the Loans tab. The amount, account and date stay exactly as recorded.`),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Loan Type"),
+        React.createElement("select", { value: convertLoanType, onChange: e => setConvertLoanType(e.target.value), className: inputCls },
+          React.createElement("option", { value: "lent" }, "Lent (money owed back to you)"),
+          React.createElement("option", { value: "borrowed" }, "Borrowed (money you owe back)")
+        )
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Person / Company Name"),
+        React.createElement("input", {
+          type: "text", required: true, autoFocus: true, placeholder: "e.g. Company, John",
+          value: convertLoanName, onChange: e => setConvertLoanName(e.target.value), className: inputCls
+        })
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "WhatsApp Number (optional)"),
+        React.createElement("input", {
+          type: "text", placeholder: "+9715XXXXXXXX",
+          value: convertLoanWhatsapp, onChange: e => setConvertLoanWhatsapp(e.target.value), className: inputCls
+        })
+      ),
+      React.createElement("div", null,
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Due Date (optional)"),
+        React.createElement("input", {
+          type: "date", value: convertLoanDueDate, onChange: e => setConvertLoanDueDate(e.target.value), className: inputCls
+        })
+      )
+    );
+  }
+
   function BudgetFormSheet(props) {
     const { accent, budgetForm, darkMode, inputCls, planningEditor, saveBudget, setBudgetForm, setPlanningEditor, settings } = props;
     if (planningEditor !== "budget") return null;
@@ -800,7 +847,7 @@
   }
 
   function MainFormModal(props) {
-    const { accent, accounts, closeMainFormModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, modalClosing, numFmt, setFormInput, settings } = props;
+    const { accent, accounts, closeMainFormModal, darkMode, editingId, formInput, handleFormSubmit, inputCls, modalType, modalClosing, numFmt, setFormInput, settings, transactions, loans, openConvertToLoanModal, revertLoanToTransaction } = props;
     const CURRENCY_OPTIONS = ["AED", "USD", "EUR", "GBP", "SAR", "INR", "PKR", "CAD", "AUD"];
     const selectedAccountForForm = accounts.find(acc => acc.id === formInput.accountId);
     const [offsetY, setOffsetY] = React.useState(0);
@@ -896,7 +943,24 @@
     className: "p-1 rounded-lg hover:bg-zinc-800 text-zinc-400"
   }, /* @__PURE__ */React.createElement(Icons.IconClose, {
     className: "w-3.5 h-3.5"
-  }))), /* @__PURE__ */React.createElement("form", {
+  }))), editingId && ["income", "expense"].includes(modalType) && /* @__PURE__ */React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      const tx = transactions.find(t => String(t.id) === String(editingId));
+      if (!tx) return;
+      closeMainFormModal();
+      openConvertToLoanModal(tx);
+    },
+    className: `w-full mb-3 py-2 rounded-xl text-[11px] font-semibold border border-dashed ${darkMode ? "border-zinc-700 text-zinc-300 hover:bg-zinc-800" : "border-zinc-300 text-zinc-600 hover:bg-zinc-100"}`
+  }, "Actually a loan? Convert to Loan →"), editingId && modalType === "loan" && (() => {
+    const loan = loans.find(l => String(l.id) === String(editingId));
+    if (!loan || (loan.movements || []).length !== 1) return null;
+    return /* @__PURE__ */React.createElement("button", {
+      type: "button",
+      onClick: () => revertLoanToTransaction(loan.id),
+      className: `w-full mb-3 py-2 rounded-xl text-[11px] font-semibold border border-dashed ${darkMode ? "border-zinc-700 text-zinc-300 hover:bg-zinc-800" : "border-zinc-300 text-zinc-600 hover:bg-zinc-100"}`
+    }, `Not a loan? Revert to ${loan.type === "lent" ? "Expense" : "Income"} →`);
+  })(), /* @__PURE__ */React.createElement("form", {
     onSubmit: handleFormSubmit,
     className: "space-y-3"
   }, modalType !== "transfer" && /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
@@ -1233,6 +1297,7 @@
   window.Modals.RatesModal = RatesModal;
   window.Modals.RepaymentModal = RepaymentModal;
   window.Modals.LoanAddMoreModal = LoanAddMoreModal;
+  window.Modals.ConvertToLoanModal = ConvertToLoanModal;
   window.Modals.BudgetFormSheet = BudgetFormSheet;
   window.Modals.GoalFormSheet = GoalFormSheet;
   window.Modals.RecurringFormSheet = RecurringFormSheet;
