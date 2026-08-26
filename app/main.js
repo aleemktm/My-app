@@ -1167,6 +1167,7 @@ const getDefaultFormInput = (overrides = {}) => {
     currency: (resolvedAccount && resolvedAccount.currency) || "AED",
     accountId: defaultAccountId,
     toAccountId: (accounts[1] ? accounts[1].id : "") || (accounts[0] ? accounts[0].id : "") || "",
+    toAmount: "",
     weightGrams: "",
     purchasePriceAED: "",
     currentPriceAED: "",
@@ -1284,6 +1285,7 @@ const openEditModal = (type, item) => {
       amount: String(item.amount),
       accountId: item.accountId,
       toAccountId: item.toAccountId,
+      toAmount: String(item.toAmount != null ? item.toAmount : (convertFromAED(convertToAED(Number(item.amount) || 0, item.currency || "AED"), accounts.find(a => a.id === item.toAccountId)?.currency || item.currency || "AED") || "")),
       date: item.date
     });
   }
@@ -1876,7 +1878,9 @@ const handleFormSubmit = e => {
         });
       }
     }
-    const convertedAmt = convertFromAED(convertToAED(amt, fromAcc.currency), toAcc.currency);
+    const receivedAmt = Number(formInput.toAmount);
+    if (!(receivedAmt > 0)) { alert("Please enter the actual amount received."); return; }
+    const transferRate = amt > 0 ? receivedAmt / amt : 0;
     updatedAccs = accsWorking.map(acc => {
       if (acc.id === fromAcc.id) return {
         ...acc,
@@ -1884,7 +1888,7 @@ const handleFormSubmit = e => {
       };
       if (acc.id === toAcc.id) return {
         ...acc,
-        balance: acc.balance + convertedAmt
+        balance: acc.balance + receivedAmt
       };
       return acc;
     });
@@ -1898,8 +1902,9 @@ const handleFormSubmit = e => {
       currency: fromAcc.currency,
       rateToAED: exchangeRates[fromAcc.currency] || 1,
       accountId: fromAcc.id,
-      toAmount: convertedAmt,
+      toAmount: receivedAmt,
       toCurrency: toAcc.currency,
+      transferRate: transferRate,
       toAccountId: toAcc.id,
       date: formInput.date,
       comment: formInput.comment || "",
