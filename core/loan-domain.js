@@ -193,18 +193,35 @@
     if (tx.type !== "income" && tx.type !== "expense") throw new Error("Only income or expense entries can be converted to a loan");
     const loanType = input.type === "borrowed" || input.type === "lent" ? input.type : (tx.type === "expense" ? "lent" : "borrowed");
     const name = (input.name || tx.title || "").trim() || "Unnamed";
-    const movement = { id: opts.makeId(), kind: "principal", amount: n(tx.amount), date: tx.date, accountId: tx.accountId || null };
-    const loan = normalise({
-      id: opts.makeId(), type: loanType, name, currency: tx.currency || "AED",
-      whatsapp: input.whatsapp || "", dueDate: input.dueDate || "",
-      date: tx.date, accountId: movement.accountId, movements: [movement]
-    });
-    const account = movement.accountId ? accounts.find(a => String(a.id) === String(movement.accountId)) : null;
+    const normName = name.toLowerCase();
+
+    // Merge repeat conversions for the same person/entity (e.g. several
+    // petrol refills through the month) into one Loan card as additional
+    // movements, instead of creating a new Loan every time. Matched by name
+    // (case-insensitive) + direction, same as how a person would recognise
+    // it's the same loan. Amount is converted into the existing loan's
+    // currency the same way editLoan already does for mixed-currency entries.
+    const existing = loans.find(l => String(l.type) === loanType && String(l.name || "").trim().toLowerCase() === normName);
+    const targetCurrency = existing ? (existing.currency || "AED") : (tx.currency || "AED");
+    const movementAmount = (tx.currency || "AED") === targetCurrency
+      ? n(tx.amount)
+      : opts.convertFromAED(opts.convertToAED(n(tx.amount), tx.currency || "AED"), targetCurrency);
+    const movement = { id: opts.makeId(), kind: "principal", amount: movementAmount, date: tx.date, accountId: tx.accountId || null };
+
+    const loan = existing
+      ? normalise({ ...existing, movements: [...(existing.movements || []), movement] })
+      : normalise({
+          id: opts.makeId(), type: loanType, name, currency: targetCurrency,
+          whatsapp: input.whatsapp || "", dueDate: input.dueDate || "",
+          date: tx.date, accountId: movement.accountId, movements: [movement]
+        });
+
     const result = reconcileMovementTx(loan, movement, tx, accounts, { ...opts, accounts }, loan.currency);
     return {
       accounts: result.accounts,
-      loans: [...loans, loan],
-      transactions: transactions.map(t => t.id === tx.id ? result.tx : t)
+      loans: existing ? loans.map(l => String(l.id) === String(existing.id) ? loan : l) : [...loans, loan],
+      transactions: transactions.map(t => t.id === tx.id ? result.tx : t),
+      mergedIntoExisting: !!existing
     };
   }
 
