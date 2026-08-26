@@ -41,7 +41,7 @@ var actionSound = function(kind) {
     var ctx = window.__aleemFinAudioCtx || (window.__aleemFinAudioCtx = new AudioCtx());
     if (ctx.state === "suspended") ctx.resume();
     var osc = ctx.createOscillator(), gain = ctx.createGain();
-    var now = ctx.currentTime, freq = kind === "delete" ? 180 : kind === "success" ? 720 : 420;
+    var now = ctx.currentTime, freq = kind === "delete" ? 180 : kind === "success" ? 720 : kind === "pin" ? 540 : kind === "swipe" ? 300 : 420;
     osc.type = "sine"; osc.frequency.setValueAtTime(freq, now);
     gain.gain.setValueAtTime(0.0001, now); gain.gain.exponentialRampToValueAtTime(0.035, now + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
@@ -140,16 +140,16 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
 
     if (side === 0) {
       if (dx > 55 && hasLeftActions) {
-        hapticFeedback(16); setSide(-1); setOffset(LEFT_ACTION_WIDTH);
+        hapticFeedback(16); actionSound("swipe"); setSide(-1); setOffset(LEFT_ACTION_WIDTH);
       } else if (dx < -55) {
-        hapticFeedback(16); setSide(1); setOffset(-RIGHT_ACTION_WIDTH);
+        hapticFeedback(16); actionSound("swipe"); setSide(1); setOffset(-RIGHT_ACTION_WIDTH);
       } else setOffset(0);
     } else if (side === -1) {
       // When the left-side actions are open, an opposite swipe closes them.
       // Do not jump directly to the other action side; this prevents the two
       // action panels from fighting each other when the user swipes back.
       if (dx < -35) {
-        hapticFeedback(16); close();
+        hapticFeedback(16); actionSound("tap"); close();
       } else if (dx < 35) {
         close();
       } else setOffset(LEFT_ACTION_WIDTH);
@@ -157,7 +157,7 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
       // When the right-side actions are open, an opposite swipe closes them
       // instead of switching straight to the left-side actions.
       if (dx > 35) {
-        hapticFeedback(16); close();
+        hapticFeedback(16); actionSound("tap"); close();
       } else if (dx < -35) {
         setOffset(-RIGHT_ACTION_WIDTH);
       } else setOffset(-RIGHT_ACTION_WIDTH);
@@ -175,20 +175,20 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
 
   return React.createElement("div", { className: `swipe-row${isSelected ? " is-selected" : ""}`, "data-selection-key": key || undefined },
     hasLeftActions && React.createElement("div", { className: `swipe-actions swipe-actions-left${LEFT_ACTION_COUNT >= 3 ? " swipe-actions-left-three" : ""}${side === -1 ? " is-open" : ""}`, "aria-hidden": side !== -1 },
-      React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftActionKind}`, onClick: () => invokeSwipeAction(onLeftAction), tabIndex: side === -1 ? 0 : -1, "aria-label": leftActionLabel, disabled: !onLeftAction },
-        leftActionKind === "comment" ? React.createElement(Icons.IconMessage, { className: "w-[18px] h-[18px]" }) : leftActionKind === "pin" ? React.createElement(Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftActionKind === "category" ? React.createElement(Icons.IconTag, { className: "w-[18px] h-[18px]" }) : leftActionKind === "record" ? React.createElement(Icons.IconRepayment, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconAddMore, { className: "w-[18px] h-[18px]" }),
+      React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftActionKind}`, "data-sound-kind": leftActionKind === "pin" ? "pin" : leftActionKind === "record" ? "success" : "tap", onClick: () => invokeSwipeAction(onLeftAction), tabIndex: side === -1 ? 0 : -1, "aria-label": leftActionLabel, disabled: !onLeftAction },
+        leftActionKind === "comment" ? React.createElement(Icons.IconTextBubble, { className: "w-[18px] h-[18px]" }) : leftActionKind === "pin" ? React.createElement(leftActionLabel === "Unpin" ? Icons.IconPinFilled : Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftActionKind === "category" ? React.createElement(Icons.IconTag, { className: "w-[18px] h-[18px]" }) : leftActionKind === "record" ? React.createElement(Icons.IconReceiptCheck, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconCoinsPlus, { className: "w-[18px] h-[18px]" }),
         React.createElement("span", null, leftActionLabel)),
-      React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftAction2Kind}`, onClick: () => invokeSwipeAction(onLeftAction2), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction2Label, disabled: !onLeftAction2 },
-        leftAction2Kind === "pin" ? React.createElement(Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "comment" ? React.createElement(Icons.IconMessage, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "pause" ? React.createElement(Icons.IconPause, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "resume" ? React.createElement(Icons.IconPlayCircle, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconAddMore, { className: "w-[18px] h-[18px]" }),
+      React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftAction2Kind}`, "data-sound-kind": leftAction2Kind === "pin" ? "pin" : leftAction2Kind === "record" ? "success" : "tap", onClick: () => invokeSwipeAction(onLeftAction2), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction2Label, disabled: !onLeftAction2 },
+        leftAction2Kind === "pin" ? React.createElement(leftAction2Label === "Unpin" ? Icons.IconPinFilled : Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "comment" ? React.createElement(Icons.IconTextBubble, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "pause" ? React.createElement(Icons.IconPause, { className: "w-[18px] h-[18px]" }) : leftAction2Kind === "resume" ? React.createElement(Icons.IconPlayCircle, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconCoinsPlus, { className: "w-[18px] h-[18px]" }),
         React.createElement("span", null, leftAction2Label)),
-      onLeftAction3 && React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftAction3Kind}`, onClick: () => invokeSwipeAction(onLeftAction3), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction3Label },
-        leftAction3Kind === "flag" ? React.createElement(Icons.IconFlag, { className: "w-[18px] h-[18px]" }) : leftAction3Kind === "pin" ? React.createElement(Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftAction3Kind === "skip" ? React.createElement(Icons.IconSkipForward, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconHistory, { className: "w-[18px] h-[18px]" }),
+      onLeftAction3 && React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftAction3Kind}`, "data-sound-kind": leftAction3Kind === "pin" ? "pin" : "tap", onClick: () => invokeSwipeAction(onLeftAction3), tabIndex: side === -1 ? 0 : -1, "aria-label": leftAction3Label },
+        leftAction3Kind === "flag" ? React.createElement(Icons.IconFlag, { className: "w-[18px] h-[18px]" }) : leftAction3Kind === "pin" ? React.createElement(leftAction3Label === "Unpin" ? Icons.IconPinFilled : Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftAction3Kind === "skip" ? React.createElement(Icons.IconSkipForward, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconHistory, { className: "w-[18px] h-[18px]" }),
         React.createElement("span", null, leftAction3Label))
     ),
     React.createElement("div", { className: `swipe-actions swipe-actions-right swipe-actions-right-dynamic${RIGHT_ACTION_COUNT >= 3 ? " swipe-actions-right-three" : ""}${side === 1 ? " is-open" : ""}`, "aria-hidden": side !== 1 },
-      onRightAction ? React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", onClick: () => invokeSwipeAction(onRightAction), tabIndex: side === 1 ? 0 : -1, "aria-label": rightActionLabel }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightActionLabel)) : React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", onClick: () => invokeSwipeAction(onEdit), tabIndex: side === 1 ? 0 : -1, "aria-label": editLabel, disabled: !onEdit }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" })),
-      onRightAction2 ? React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", onClick: () => invokeSwipeAction(onRightAction2), tabIndex: side === 1 ? 0 : -1, "aria-label": rightAction2Label }, React.createElement(Icons.IconMessage, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightAction2Label)) : React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", onClick: () => invokeSwipeAction(onDelete), tabIndex: side === 1 ? 0 : -1, "aria-label": deleteLabel, disabled: !onDelete }, React.createElement(Icons.IconTrash, { className: "w-[14px] h-[14px]" })),
-      onRightAction3 && React.createElement("button", { type: "button", className: "swipe-action swipe-action-more", onClick: () => invokeSwipeAction(onRightAction3), tabIndex: side === 1 ? 0 : -1, "aria-label": rightAction3Label }, React.createElement(Icons.IconPin, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightAction3Label))
+      onRightAction ? React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", "data-sound-kind": "tap", onClick: () => invokeSwipeAction(onRightAction), tabIndex: side === 1 ? 0 : -1, "aria-label": rightActionLabel }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightActionLabel)) : React.createElement("button", { type: "button", className: "swipe-action swipe-action-edit", "data-sound-kind": "tap", onClick: () => invokeSwipeAction(onEdit), tabIndex: side === 1 ? 0 : -1, "aria-label": editLabel, disabled: !onEdit }, React.createElement(Icons.IconEdit, { className: "w-[14px] h-[14px]" })),
+      onRightAction2 ? React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", "data-sound-kind": "delete", onClick: () => invokeSwipeAction(onRightAction2), tabIndex: side === 1 ? 0 : -1, "aria-label": rightAction2Label }, React.createElement(Icons.IconMessage, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightAction2Label)) : React.createElement("button", { type: "button", className: "swipe-action swipe-action-delete", "data-sound-kind": "delete", onClick: () => invokeSwipeAction(onDelete), tabIndex: side === 1 ? 0 : -1, "aria-label": deleteLabel, disabled: !onDelete }, React.createElement(Icons.IconTrash, { className: "w-[14px] h-[14px]" })),
+      onRightAction3 && React.createElement("button", { type: "button", className: "swipe-action swipe-action-more", "data-sound-kind": "pin", onClick: () => invokeSwipeAction(onRightAction3), tabIndex: side === 1 ? 0 : -1, "aria-label": rightAction3Label }, React.createElement(Icons.IconPin, { className: "w-[14px] h-[14px]" }), React.createElement("span", null, rightAction3Label))
     ),
     React.createElement("div", {
       ref: contentRef, className: `swipe-content${side ? " is-swiped" : ""}`,
@@ -318,7 +318,7 @@ var NAV_ITEMS = [{
 }, {
   id: "settings",
   label: "Settings",
-  icon: Icons.IconMenu
+  icon: Icons.IconSettings
 }];
 
 
