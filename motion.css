@@ -233,7 +233,79 @@
 }
 
 /* ---------------------------------------------------------------------------
-   9. MASTER REDUCED-MOTION GUARD
+   9. NEW MICRO-INTERACTIONS
+   Goal completion, loan settlement, health-score change, long-press
+   discoverability hint, and sync skeleton shimmer. All additive; nothing
+   here overrides existing layout, only decorates on top of it.
+   --------------------------------------------------------------------------- */
+
+/* 9a. Planning — goal celebration burst on crossing 100% funded. */
+@keyframes afGoalConfetti {
+  0%   { transform: rotate(calc(var(--i) * 45deg)) translate(0,0) scale(1); opacity: 1; }
+  100% { transform: rotate(calc(var(--i) * 45deg)) translate(20px,-20px) scale(.35); opacity: 0; }
+}
+@keyframes afGoalIconPulse {
+  0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--af-accent) 0%, transparent); }
+  40%     { box-shadow: 0 0 0 6px color-mix(in srgb, var(--af-accent) 16%, transparent); }
+}
+.planning-goal-icon.is-celebrating { position: relative; overflow: visible; animation: afGoalIconPulse 1.1s ease-out; }
+.goal-confetti { position: absolute; inset: 0; pointer-events: none; }
+.goal-confetti i {
+  position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; border-radius: 1px;
+  background: var(--af-accent);
+  animation: afGoalConfetti .85s cubic-bezier(.22,1,.36,1) both;
+}
+.goal-confetti i:nth-child(3n)   { background: color-mix(in srgb, var(--af-accent) 60%, #7c3aed); }
+.goal-confetti i:nth-child(3n+1) { background: color-mix(in srgb, var(--af-accent) 60%, #f59e0b); }
+.planning-goal-card.is-celebrating { animation: afMoRingGlow 1.4s ease-out; }
+
+/* 9b. Loans — checkmark morph + soft glow when a loan is settled just now. */
+.loan-native-front.loan-just-settled { animation: afMoRingGlow 1.6s cubic-bezier(.22,1,.36,1) both; }
+.loan-kind { display: inline-flex; align-items: center; gap: 4px; }
+.loan-settle-check { width: 12px; height: 12px; color: var(--af-accent); flex: none; animation: afMoIconPop .45s cubic-bezier(.34,1.56,.64,1) .1s both; }
+.loan-settle-check path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: afCheckDraw .4s ease-out .18s forwards; }
+@keyframes afCheckDraw { to { stroke-dashoffset: 0; } }
+
+/* 9c. Analytics — a brief ring glow when the health score changes value. */
+.insight-score-ring.score-just-changed { animation: afMoRingGlow 1.4s ease-out both; }
+
+/* 9d. Long-press discoverability hint on the first swipeable row a person
+   ever sees. Kept fully inside the row (it clips via overflow:hidden). */
+@keyframes afLongPressHint {
+  0%   { opacity: 0; transform: translateY(-4px) scale(.92); }
+  10%  { opacity: 1; transform: translateY(0) scale(1); }
+  84%  { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-4px) scale(.96); }
+}
+@keyframes afLongPressTapIcon {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(.8); }
+}
+.swipe-longpress-hint {
+  position: absolute; top: 7px; right: 7px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--af-accent) 88%, black 6%);
+  color: #fff; font-size: 9px; font-weight: 800; white-space: nowrap;
+  pointer-events: none; box-shadow: 0 6px 16px rgba(0,0,0,.18);
+  animation: afLongPressHint 3.2s cubic-bezier(.22,1,.36,1) both;
+}
+.swipe-longpress-hint svg { width: 11px; height: 11px; flex: none; animation: afLongPressTapIcon 1s ease-in-out .3s 2; }
+
+/* 9e. Skeleton shimmer for live-rate values while a fresh (first) sync is
+   in flight, replacing the plain "not synced" text noted in the review. */
+@keyframes afSkeletonShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.af-skel-line {
+  display: inline-block; height: 10px; width: 96px; border-radius: 5px;
+  background: linear-gradient(90deg, rgba(120,120,128,.14) 25%, rgba(120,120,128,.28) 37%, rgba(120,120,128,.14) 63%);
+  background-size: 400% 100%;
+  animation: afSkeletonShimmer 1.3s ease-in-out infinite;
+}
+.af-skel-line.is-lg { width: 128px; height: 12px; }
+html.dark .af-skel-line { background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.14) 37%, rgba(255,255,255,.06) 63%); background-size: 400% 100%; }
+
+/* ---------------------------------------------------------------------------
+   10. MASTER REDUCED-MOTION GUARD
    Mirrors the app's existing pattern. Disables every enhancement above and
    restores instant, static presentation for users who ask for it.
    --------------------------------------------------------------------------- */
@@ -251,11 +323,21 @@
   .insight-bars > .insight-bar, .insight-score-ring, .insight-donut,
   .insight-sparkline, .performance-chart, .comparison-chart,
   .asset-row-icon, .planning-goal-icon, .home-action-icon, .recurring-icon, .settings-icon,
-  .account-wallet-sheen, .insight-ai-card {
+  .account-wallet-sheen, .insight-ai-card,
+  .planning-goal-icon.is-celebrating, .goal-confetti i, .planning-goal-card.is-celebrating,
+  .loan-native-front.loan-just-settled, .loan-settle-check, .loan-settle-check path,
+  .insight-score-ring.score-just-changed,
+  .swipe-longpress-hint, .swipe-longpress-hint svg,
+  .af-skel-line {
     animation: none !important;
     transform: none !important;
     clip-path: none !important;
     opacity: 1 !important;
   }
   .insight-score-ring::after { animation: none !important; content: none !important; }
+  .loan-settle-check path { stroke-dashoffset: 0 !important; }
+  .goal-confetti { display: none !important; }
+  .swipe-longpress-hint { transition: none !important; }
+  .af-skel-line { background: rgba(120,120,128,.16) !important; }
+  html.dark .af-skel-line { background: rgba(255,255,255,.08) !important; }
 }
