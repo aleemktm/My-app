@@ -107,6 +107,21 @@
   function InsightHero(props) {
     const { darkMode, fmt, monthlyIncomeAED, monthlyExpenseAED, monthlySavingsAED, savingsRate, emergencyRunwayMonths, runwayStatus, biggestExpenseThisMonth, monthlyHistory } = props;
     const score = scoreFor(props);
+    // A light haptic tick when the health score actually changes between
+    // renders (e.g. after a new transaction). Skipped on first mount so
+    // simply opening the tab never buzzes.
+    const prevScoreRef = React.useRef(null);
+    const [scoreJustChanged, setScoreJustChanged] = React.useState(false);
+    React.useEffect(() => {
+      if (prevScoreRef.current !== null && prevScoreRef.current !== score) {
+        try { if (typeof hapticFeedback === "function") hapticFeedback(10); } catch (_) {}
+        setScoreJustChanged(true);
+        const t = setTimeout(() => setScoreJustChanged(false), 1400);
+        prevScoreRef.current = score;
+        return () => clearTimeout(t);
+      }
+      prevScoreRef.current = score;
+    }, [score]);
     const last = monthlyHistory[monthlyHistory.length - 1];
     const prior = monthlyHistory[monthlyHistory.length - 2];
     const netChange = prior && prior.net !== 0 ? (last.net - prior.net) / Math.abs(prior.net) * 100 : null;
@@ -122,7 +137,7 @@
           h("h1", { className: "insight-title" }, "Your money, in focus."),
           h("p", { className: "insight-subtitle" }, "A quiet read of your recent financial patterns.")),
         h("div", { className: "insight-score", title: "A simple wellness signal based on savings rate and emergency runway" },
-          h("div", { className: "insight-score-ring", style: { background: `conic-gradient(${GREEN} ${score * 3.6}deg, rgba(29,191,115,.10) 0deg)` } },
+          h("div", { className: `insight-score-ring ${scoreJustChanged ? "score-just-changed" : ""}`, style: { background: `conic-gradient(${GREEN} ${score * 3.6}deg, rgba(29,191,115,.10) 0deg)` } },
             h("div", { className: "insight-score-inner" }, h("strong", null, score), h("span", null, "HEALTH"))))),
       h("div", { className: "insight-ai-card" },
         h("div", { className: "insight-ai-icon" }, "✦"),

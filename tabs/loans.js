@@ -6,7 +6,8 @@
       numFmt, openAddModal, openEditModal, setAddMoreAccountId, setAddMoreAmount, setAddMoreDate,
       setDeleteTarget, setExpandedLoanHistory, setLoanAddMoreTarget, setLoanFilter, setLoanSort,
       setRepayAccountId, setRepayAmount, setRepayDate, setRepaymentModalLoan, sortedLoans, todayISO,
-      todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, selectedKeys, undoLoanMovement, toggleLoanPin
+      todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, selectedKeys, undoLoanMovement, toggleLoanPin,
+      justSettledLoanId
     } = props;
     const h = React.createElement;
     const metricsFor = loan => window.AleemFinLoanDomain && window.AleemFinLoanDomain.metrics
@@ -114,6 +115,7 @@
               const isFullyPaid = loanMetrics.isFullyPaid;
               const typeClass = loan.type === "lent" ? "loan-card-lent" : "loan-card-borrowed";
               const expanded = !!expandedLoanHistory[loan.id];
+              const isJustSettled = justSettledLoanId != null && String(justSettledLoanId) === String(loan.id);
 
               const movements = Array.isArray(loan.movements) ? [...loan.movements] : [];
               const movementTxIds = new Set(movements.map(m => m.id));
@@ -170,7 +172,7 @@
               });
 
               const frontCard = h("div", {
-                className: `loan-native-card loan-native-front ${darkMode ? "loan-native-dark" : ""} ${typeClass}`,
+                className: `loan-native-card loan-native-front ${darkMode ? "loan-native-dark" : ""} ${typeClass} ${isJustSettled ? "loan-just-settled" : ""}`,
                 "data-loan-id": String(loan.id),
                 onClick: () => {
                   // In selection mode, tapping a loan selects/deselects it instead of
@@ -192,7 +194,10 @@
                     h("span", { className: "loan-direction-icon" },
                       loan.type === "lent" ? h(Icons.IconArrowUp45, { className: "w-4 h-4" }) : h(Icons.IconArrowDown45, { className: "w-4 h-4" })),
                     h("div", { className: "min-w-0" },
-                      h("span", { className: "loan-kind" }, isFullyPaid ? "Settled" : (loan.type === "lent" ? "Lent out" : "Borrowed")),
+                      h("span", { className: `loan-kind ${isJustSettled ? "loan-kind-celebrate" : ""}` },
+                        isFullyPaid ? "Settled" : (loan.type === "lent" ? "Lent out" : "Borrowed"),
+                        isJustSettled && h("svg", { className: "loan-settle-check", viewBox: "0 0 24 24", "aria-hidden": "true" },
+                          h("path", { d: "M4 12.5l5 5L20 6.5", pathLength: "1", fill: "none", stroke: "currentColor", strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round" }))),
                       h("h3", null, loan.name)
                     )
                   ),

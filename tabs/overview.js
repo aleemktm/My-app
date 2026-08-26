@@ -103,7 +103,9 @@
           )
         ),
         h("div", { className: "home-rate-strip" },
-          h("span", null, syncingGold || syncingRates ? "Updating live market data…" : liveGoldAEDPerGram ? `24k gold AED ${liveGoldAEDPerGram.toFixed(2)}/g` : "Gold rate not synced"),
+          (syncingGold || syncingRates) && !liveGoldAEDPerGram
+            ? h("span", { className: "af-skel-line" })
+            : h("span", null, syncingGold || syncingRates ? "Updating live market data…" : liveGoldAEDPerGram ? `24k gold AED ${liveGoldAEDPerGram.toFixed(2)}/g` : "Gold rate not synced"),
           h("span", null, `1 AED = ${rateText} PKR`),
           h("div", { className: "home-rate-actions" },
             h("button", { type: "button", onClick: toggleHeroWealthVisibility, title: heroWealthHidden ? "Show wealth" : "Hide wealth", "aria-label": heroWealthHidden ? "Show wealth" : "Hide wealth", className: "home-rate-icon-button" }, heroWealthHidden ? h(Icons.IconEyeOff, { className: "w-3.5 h-3.5" }) : h(Icons.IconEye, { className: "w-3.5 h-3.5" })),

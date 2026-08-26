@@ -42,7 +42,7 @@
       ),
       goldCount>0 && h("section", { className:"assets-gold-card" },
         h("div", { className:"assets-section-head" }, h("div",null,h("span",null,"MARKET RATE"),h("strong",null,"24k Gold spot")), h("button",{onClick:syncLiveGoldRate,disabled:syncingGold,className:"assets-icon-button","aria-label":"Refresh gold rate"},h(Icons.IconSync,{className:`w-4 h-4 ${syncingGold?"animate-pulse":""}`}))),
-        h("div",{className:"assets-gold-rate"}, h("div",null,h("span",null,liveGoldAEDPerGram?`AED ${numFmt(liveGoldAEDPerGram)} / g`:"Rate not synced"),h("small",null,goldSyncMsg||"Market benchmark; local jeweler rates may differ.")), liveGoldAEDPerGram&&h("button",{onClick:applyLiveGoldRate,className:"assets-apply"},"Apply rate"))
+        h("div",{className:"assets-gold-rate"}, h("div",null,syncingGold&&!liveGoldAEDPerGram?h("span",{className:"af-skel-line is-lg"}):h("span",null,liveGoldAEDPerGram?`AED ${numFmt(liveGoldAEDPerGram)} / g`:"Rate not synced"),h("small",null,goldSyncMsg||"Market benchmark; local jeweler rates may differ.")), liveGoldAEDPerGram&&h("button",{onClick:applyLiveGoldRate,className:"assets-apply"},"Apply rate"))
       ),
       goldCount>0 && h("button", { type:"button", className:"assets-insight-shortcut", onClick:()=>setActiveTab("analytics") },
         h("div", { className:"assets-insight-copy" }, h("span",null,"GOLD INSIGHT"), h("strong",null,"See your gold gain & loss"), h("small",null,`${goldChangePct == null ? "Live market movement" : `${goldChangePct >= 0 ? "+" : "-"}${Math.abs(goldChangePct).toFixed(1)}% since purchase`}`)),
