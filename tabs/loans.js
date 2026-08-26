@@ -9,9 +9,25 @@
       todayStr, totalLoansBorrowedAED, totalLoansLentAED, selectionKey, selectedKeys, undoLoanMovement, toggleLoanPin
     } = props;
     const h = React.createElement;
-    const lentCount = sortedLoans.filter(l => l.type === "lent").length;
-    const borrowedCount = sortedLoans.filter(l => l.type === "borrowed").length;
-    const visibleLoans = loanFilter === "all" ? sortedLoans : sortedLoans.filter(l => l.type === loanFilter);
+    const metricsFor = loan => window.AleemFinLoanDomain && window.AleemFinLoanDomain.metrics
+      ? window.AleemFinLoanDomain.metrics(loan)
+      : (() => {
+          const movements = Array.isArray(loan.movements) ? loan.movements : [];
+          const principal = movements.filter(m => m.kind === "principal").reduce((s,m) => s + (Number(m.amount) || 0), 0);
+          const repaid = Math.min(principal, movements.filter(m => m.kind === "repayment").reduce((s,m) => s + (Number(m.amount) || 0), 0));
+          const outstanding = Math.max(0, principal - repaid);
+          return { principal, repaid, outstanding, percentPaid: principal > 0 ? Math.min(100, Math.max(0, repaid / principal * 100)) : 0, isFullyPaid: principal > 0 && outstanding <= 1e-9 };
+        })();
+    const activeLoans = sortedLoans.filter(l => !metricsFor(l).isFullyPaid);
+    const settledLoans = sortedLoans.filter(l => metricsFor(l).isFullyPaid);
+    const lentCount = activeLoans.filter(l => l.type === "lent").length;
+    const borrowedCount = activeLoans.filter(l => l.type === "borrowed").length;
+    const settledCount = settledLoans.length;
+    const visibleLoans = loanFilter === "active"
+      ? activeLoans
+      : loanFilter === "settled"
+        ? settledLoans
+        : activeLoans.filter(l => l.type === loanFilter);
 
     const openRepayment = loan => {
       const outstanding = Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0));
@@ -50,8 +66,8 @@
             h(Icons.IconPlus, { className: "w-4 h-4" }), h("span", null, "Add"))
         )
       ),
-      h("div", { className: "loan-filter-segment", role: "tablist", "aria-label": "Loan type" },
-        [["all", "All", sortedLoans.length], ["lent", "Lent out", lentCount], ["borrowed", "Borrowed", borrowedCount]].map(([value, label, count]) =>
+      h("div", { className: "loan-filter-segment", role: "tablist", "aria-label": "Loan status and type" },
+        [["active", "Active", activeLoans.length], ["lent", "Lent", lentCount], ["borrowed", "Borrowed", borrowedCount], ["settled", "Settled", settledCount]].map(([value, label, count]) =>
           h("button", {
             key: value, type: "button", role: "tab", "aria-selected": loanFilter === value,
             onClick: () => setLoanFilter(value),
@@ -65,7 +81,7 @@
           className: `loan-native-summary-card loan-native-lent ${loanFilter === "lent" ? "is-filtered" : ""}`,
           onClick: () => setLoanFilter("lent"), "aria-label": "Show lent out loans"
         }, h(Icons.IconArrowUp45, { className: "loan-native-summary-icon" }),
-          h("div", null, h("span", null, "Lent out"), h("strong", null, fmt(totalLoansLentAED)), h("small", null, "Money others owe you"))),
+          h("div", null, h("span", null, "Lent"), h("strong", null, fmt(totalLoansLentAED)), h("small", null, "Money others owe you"))),
         h("button", {
           type: "button",
           className: `loan-native-summary-card loan-native-borrowed ${loanFilter === "borrowed" ? "is-filtered" : ""}`,
@@ -77,7 +93,7 @@
         visibleLoans.length === 0
           ? h("div", { className: "loan-empty-state" },
               h(Icons.IconLoan, { className: "w-5 h-5" }),
-              h("strong", null, loanFilter === "lent" ? "No lent-out loans" : loanFilter === "borrowed" ? "No borrowed loans" : "No loans yet"),
+              h("strong", null, loanFilter === "settled" ? "No settled loans" : loanFilter === "lent" ? "No lent loans" : loanFilter === "borrowed" ? "No borrowed loans" : "No active loans"),
               h("span", null, "Add a loan to start tracking it."))
           : visibleLoans.map(loan => {
               // Derive the card state from the canonical movement ledger. Do not
@@ -176,7 +192,7 @@
                     h("span", { className: "loan-direction-icon" },
                       loan.type === "lent" ? h(Icons.IconArrowUp45, { className: "w-4 h-4" }) : h(Icons.IconArrowDown45, { className: "w-4 h-4" })),
                     h("div", { className: "min-w-0" },
-                      h("span", { className: "loan-kind" }, loan.type === "lent" ? "Lent out" : "Borrowed"),
+                      h("span", { className: "loan-kind" }, isFullyPaid ? "Settled" : (loan.type === "lent" ? "Lent out" : "Borrowed")),
                       h("h3", null, loan.name)
                     )
                   ),
