@@ -2008,6 +2008,16 @@ const handleAddMoreSubmit = e => {
 };
 const openConvertToLoanModal = tx => {
   if (!tx) return;
+  // Close the edit sheet synchronously (skip the animated close) before
+  // opening the convert sheet. Both sheets lock body scroll on mount and
+  // restore it on unmount; if they briefly overlap, the second sheet
+  // captures "hidden" as the scroll state to restore back to once it
+  // closes, leaving the whole app permanently unscrollable.
+  if (modalCloseTimerRef.current) { clearTimeout(modalCloseTimerRef.current); modalCloseTimerRef.current = null; }
+  setModalOpen(false);
+  setModalClosing(false);
+  setEditingId(null);
+  setFormInput(getDefaultFormInput());
   setConvertLoanTarget(tx);
   setConvertLoanName(tx.title || "");
   setConvertLoanType(tx.type === "expense" ? "lent" : "borrowed");
