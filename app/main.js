@@ -906,7 +906,7 @@ const [statementAccountId, setStatementAccountId] = useState("all");
 const [statementFromDate, setStatementFromDate] = useState("");
 const [statementToDate, setStatementToDate] = useState("");
 const [loanSort, setLoanSort] = useState("date_desc");
-const [loanFilter, setLoanFilter] = useState("all");
+const [loanFilter, setLoanFilter] = useState("active");
 const [deleteTarget, setDeleteTarget] = useState(null);
 const [selectionVersion, setSelectionVersion] = useState(0);
 const selectedKeys = window.__aleemSelection;
@@ -1312,8 +1312,9 @@ const goldCurrentAED = goldAssets.reduce((acc, item) => acc + convertToAED(item.
 const goldChangeAED = goldCurrentAED - goldPurchaseAED;
 const goldChangePct = goldPurchaseAED > 0 ? goldChangeAED / goldPurchaseAED * 100 : null;
 const goldAssetsForInsights = goldAssets.map(asset => ({ ...asset, purchaseValueBase: convertToBaseCurrency(asset.purchasePriceAED || 0, asset.currency || "AED"), currentValueBase: convertToBaseCurrency(asset.currentPriceAED || 0, asset.currency || "AED") }));
-const totalLoansLentAED = loans.filter(l => l.type === "lent").reduce((acc, l) => acc + convertToAED(l.amount - (l.repaid || 0), l.currency), 0);
-const totalLoansBorrowedAED = loans.filter(l => l.type === "borrowed").reduce((acc, l) => acc + convertToAED(l.amount - (l.repaid || 0), l.currency), 0);
+const loanMetrics = l => window.AleemFinLoanDomain && window.AleemFinLoanDomain.metrics ? window.AleemFinLoanDomain.metrics(l) : { principal: Number(l.amount || 0) || 0, repaid: Math.min(Number(l.amount || 0) || 0, Number(l.repaid || 0) || 0), outstanding: Math.max(0, (Number(l.amount || 0) || 0) - (Number(l.repaid || 0) || 0)), isFullyPaid: (Number(l.amount || 0) || 0) > 0 && Math.max(0, (Number(l.amount || 0) || 0) - (Number(l.repaid || 0) || 0)) <= 1e-9 };
+const totalLoansLentAED = loans.filter(l => l.type === "lent").reduce((acc, l) => { const m = loanMetrics(l); return acc + convertToAED(m.outstanding, l.currency); }, 0);
+const totalLoansBorrowedAED = loans.filter(l => l.type === "borrowed").reduce((acc, l) => { const m = loanMetrics(l); return acc + convertToAED(m.outstanding, l.currency); }, 0);
 const sortedLoans = useMemo(() => {
   const list = [...loans];
   if (loanSort === "date_asc") list.sort((a, b) => (a.date || "").localeCompare(b.date || ""));else if (loanSort === "date_desc") list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));else if (loanSort === "amount_desc") list.sort((a, b) => b.amount - (b.repaid || 0) - (a.amount - (a.repaid || 0)));else if (loanSort === "amount_asc") list.sort((a, b) => a.amount - (a.repaid || 0) - (b.amount - (b.repaid || 0)));else if (loanSort === "name") list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
