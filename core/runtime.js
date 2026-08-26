@@ -72,6 +72,29 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
   const suppressNextClick = useRef(false);
   const contentRef = useRef(null);
   const key = selectionKey || null;
+  // One-time "hold to select multiple" affordance. Only the very first
+  // SwipeRow with a selectionKey to mount (app-wide, across a session) claims
+  // it, and only if the person hasn't already seen it before. Purely
+  // presentational; auto-dismisses itself and never reappears once shown.
+  const [showLongPressHint, setShowLongPressHint] = useState(() => {
+    if (!key) return false;
+    try { if (localStorage.getItem("aleemfin_longpress_hint_seen") === "1") return false; } catch (_) {}
+    if (window.__aleemFinLongPressHintClaimed) return false;
+    window.__aleemFinLongPressHintClaimed = true;
+    return true;
+  });
+  useEffect(() => {
+    if (!showLongPressHint) return;
+    const dismiss = () => {
+      setShowLongPressHint(false);
+      try { localStorage.setItem("aleemfin_longpress_hint_seen", "1"); } catch (_) {}
+    };
+    const t = setTimeout(dismiss, 3200);
+    // If the person discovers the gesture on their own before the hint times
+    // out (selecting anything, anywhere), dismiss it immediately.
+    window.addEventListener("aleem-select", dismiss);
+    return () => { clearTimeout(t); window.removeEventListener("aleem-select", dismiss); };
+  }, [showLongPressHint]);
   const isSelected = key ? !!(window.__aleemSelection && window.__aleemSelection.has(key)) : false;
   const hasLeftActions = !!(onLeftAction || onLeftAction2 || onLeftAction3);
   const RIGHT_ACTION_COUNT = [onRightAction, onRightAction2, onRightAction3].filter(Boolean).length || 2;
@@ -174,6 +197,10 @@ var SwipeRow = ({ children, onEdit, onDelete, onLeftAction, onLeftAction2, onLef
   const invokeSwipeAction = fn => { close(); if (typeof fn === "function") fn(); };
 
   return React.createElement("div", { className: `swipe-row${isSelected ? " is-selected" : ""}`, "data-selection-key": key || undefined },
+    showLongPressHint && React.createElement("div", { className: "swipe-longpress-hint", "aria-hidden": "true" },
+      Icons.IconHandTap && React.createElement(Icons.IconHandTap, { className: "w-3 h-3" }),
+      React.createElement("span", null, "Hold to select multiple")
+    ),
     hasLeftActions && React.createElement("div", { className: `swipe-actions swipe-actions-left${LEFT_ACTION_COUNT >= 3 ? " swipe-actions-left-three" : ""}${side === -1 ? " is-open" : ""}`, "aria-hidden": side !== -1 },
       React.createElement("button", { type: "button", className: `swipe-action swipe-action-${leftActionKind}`, "data-sound-kind": leftActionKind === "pin" ? "pin" : leftActionKind === "record" ? "success" : "tap", onClick: () => invokeSwipeAction(onLeftAction), tabIndex: side === -1 ? 0 : -1, "aria-label": leftActionLabel, disabled: !onLeftAction },
         leftActionKind === "comment" ? React.createElement(Icons.IconTextBubble, { className: "w-[18px] h-[18px]" }) : leftActionKind === "pin" ? React.createElement(leftActionLabel === "Unpin" ? Icons.IconPinFilled : Icons.IconPin, { className: "w-[18px] h-[18px]" }) : leftActionKind === "category" ? React.createElement(Icons.IconTag, { className: "w-[18px] h-[18px]" }) : leftActionKind === "record" ? React.createElement(Icons.IconReceiptCheck, { className: "w-[18px] h-[18px]" }) : React.createElement(Icons.IconCoinsPlus, { className: "w-[18px] h-[18px]" }),
