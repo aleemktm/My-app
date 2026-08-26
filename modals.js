@@ -1038,20 +1038,15 @@
     value: acc.id
   }, acc.name, " (", numFmt(acc.balance), " ", acc.currency, ")")))), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
-  }, "Amount"), /* @__PURE__ */React.createElement("input", {
-    type: "number",
-    inputMode: "decimal",
-    step: "0.01",
-    min: "0.01",
-    required: true,
-    placeholder: "0.00",
-    value: formInput.amount,
-    onChange: e => setFormInput({
-      ...formInput,
-      amount: e.target.value
-    }),
-    className: inputCls
-  }))), modalType === "asset" && /* @__PURE__ */React.createElement(React.Fragment, null, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+  }, "Amount Sent (", (accounts.find(a => a.id === formInput.accountId)?.currency || "AED"), ")"), /* @__PURE__ */React.createElement("input", {
+    type: "number", inputMode: "decimal", step: "0.01", min: "0.01", required: true, placeholder: "0.00", value: formInput.amount,
+    onChange: e => setFormInput({ ...formInput, amount: e.target.value }), className: inputCls
+  })), /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
+    className: "block text-[11px] font-medium mb-1"
+  }, "Actual Amount Received (", (accounts.find(a => a.id === formInput.toAccountId)?.currency || "AED"), ")"), /* @__PURE__ */React.createElement("input", {
+    type: "number", inputMode: "decimal", step: "0.01", min: "0.01", required: true, placeholder: "Actual amount received", value: formInput.toAmount,
+    onChange: e => setFormInput({ ...formInput, toAmount: e.target.value }), className: inputCls
+  }), /* @__PURE__ */React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Enter the exact amount that arrived. AleemFin will record the actual transfer rate."))), modalType === "asset" && /* @__PURE__ */React.createElement(React.Fragment, null, /* @__PURE__ */React.createElement("div", null, /* @__PURE__ */React.createElement("label", {
     className: "block text-[11px] font-medium mb-1"
   }, "Category"), /* @__PURE__ */React.createElement("select", {
     value: formInput.assetCategory,
