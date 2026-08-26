@@ -695,16 +695,18 @@
 
   function ConvertToLoanModal(props) {
     const {
-      accent, accounts, darkMode, inputCls, numFmt, convertLoanTarget, convertLoanName, convertLoanType,
+      accent, accounts, darkMode, inputCls, numFmt, loans, convertLoanTarget, convertLoanName, convertLoanType,
       convertLoanDueDate, convertLoanWhatsapp, setConvertLoanName, setConvertLoanType, setConvertLoanDueDate,
       setConvertLoanWhatsapp, setConvertLoanTarget, handleConvertToLoanSubmit
     } = props;
     if (!convertLoanTarget) return null;
     const account = accounts.find(acc => String(acc.id) === String(convertLoanTarget.accountId));
+    const normName = (convertLoanName || "").trim().toLowerCase();
+    const existingMatch = normName ? (loans || []).find(l => l.type === convertLoanType && String(l.name || "").trim().toLowerCase() === normName) : null;
     return React.createElement(LoanFormSheet, {
       accent, accounts, darkMode, inputCls, numFmt,
       title: `Convert to Loan · ${convertLoanTarget.title}`,
-      submitLabel: "Convert to Loan",
+      submitLabel: existingMatch ? "Add to Loan" : "Convert to Loan",
       onClose: () => setConvertLoanTarget(null),
       onSubmit: handleConvertToLoanSubmit
     },
@@ -718,11 +720,14 @@
         )
       ),
       React.createElement("div", null,
-        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Person / Company Name"),
+        React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "Person / Entity Name"),
         React.createElement("input", {
-          type: "text", required: true, autoFocus: true, placeholder: "e.g. Company, John",
+          type: "text", required: true, autoFocus: true, placeholder: "Who this loan is with",
           value: convertLoanName, onChange: e => setConvertLoanName(e.target.value), className: inputCls
-        })
+        }),
+        existingMatch
+          ? React.createElement("p", { className: "text-[10px] text-emerald-500 mt-1 font-medium" }, `Matches existing loan "${existingMatch.name}" — this will be added to it as another entry, not a separate card.`)
+          : React.createElement("p", { className: "text-[10px] text-zinc-400 mt-1" }, "Using the same name again later will add to this same loan instead of creating a new one.")
       ),
       React.createElement("div", null,
         React.createElement("label", { className: "block text-[11px] font-medium mb-1" }, "WhatsApp Number (optional)"),
@@ -948,7 +953,6 @@
     onClick: () => {
       const tx = transactions.find(t => String(t.id) === String(editingId));
       if (!tx) return;
-      closeMainFormModal();
       openConvertToLoanModal(tx);
     },
     className: `w-full mb-3 py-2 rounded-xl text-[11px] font-semibold border border-dashed ${darkMode ? "border-zinc-700 text-zinc-300 hover:bg-zinc-800" : "border-zinc-300 text-zinc-600 hover:bg-zinc-100"}`
