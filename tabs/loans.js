@@ -80,11 +80,22 @@
               h("strong", null, loanFilter === "lent" ? "No lent-out loans" : loanFilter === "borrowed" ? "No borrowed loans" : "No loans yet"),
               h("span", null, "Add a loan to start tracking it."))
           : visibleLoans.map(loan => {
-              const repaid = Number(loan.repaid || 0);
-              const principal = Number(loan.amount || 0);
-              const outstanding = Math.max(0, principal - repaid);
-              const percentPaid = Math.min(100, Math.round(repaid / (principal || 1) * 100) || 0);
-              const isFullyPaid = outstanding <= 0;
+              // Derive the card state from the canonical movement ledger. Do not
+              // trust cached loan.repaid/loan.amount values because undo/delete
+              // operations must be able to restore the exact prior state.
+              const loanMetrics = window.AleemFinLoanDomain && window.AleemFinLoanDomain.metrics
+                ? window.AleemFinLoanDomain.metrics(loan)
+                : (() => {
+                    const principal = (Array.isArray(loan.movements) ? loan.movements : []).filter(m => m.kind === "principal").reduce((s,m) => s + (Number(m.amount) || 0), 0);
+                    const repaid = Math.min(principal, (Array.isArray(loan.movements) ? loan.movements : []).filter(m => m.kind === "repayment").reduce((s,m) => s + (Number(m.amount) || 0), 0));
+                    const outstanding = Math.max(0, principal - repaid);
+                    return { principal, repaid, outstanding, percentPaid: principal > 0 ? Math.min(100, Math.max(0, (repaid / principal) * 100)) : 0, isFullyPaid: principal > 0 && outstanding <= 1e-9 };
+                  })();
+              const repaid = loanMetrics.repaid;
+              const principal = loanMetrics.principal;
+              const outstanding = loanMetrics.outstanding;
+              const percentPaid = Math.round(loanMetrics.percentPaid);
+              const isFullyPaid = loanMetrics.isFullyPaid;
               const typeClass = loan.type === "lent" ? "loan-card-lent" : "loan-card-borrowed";
               const expanded = !!expandedLoanHistory[loan.id];
 
