@@ -175,7 +175,7 @@ header nav.hidden.md\:flex {
     top: 2px;
     bottom: 2px;
     left: 2px;
-    width: calc((100% - 10px) / 3);
+    width: calc((100% - 13px) / 4);
     border-radius: 11px;
     background: rgba(255, 255, 255, .95);
     box-shadow:
@@ -205,6 +205,9 @@ header nav.hidden.md\:flex {
 
   .loan-filter-segment:has(> .loan-filter-tab:nth-child(3).is-active)::before {
     transform: translate3d(calc(200% + 6px), 0, 0);
+  }
+  .loan-filter-segment:has(> .loan-filter-tab:nth-child(4).is-active)::before {
+    transform: translate3d(calc(300% + 9px), 0, 0);
   }
 
   /* Hide the segment entirely if nothing is active, so no ghost pill shows. */

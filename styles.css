@@ -3347,3 +3347,22 @@ html.dark .swipe-actions-left .swipe-action:nth-child(3) { background: rgba(255,
 .swipe-actions-left .swipe-action:nth-child(1) svg,
 .swipe-actions-left .swipe-action:nth-child(2) svg,
 .swipe-actions-left .swipe-action:nth-child(3) svg { color: currentColor; }
+
+/* v75 — Loans completion tabs, unified 14pt card breathing room, and Ledger radius refinement. */
+.loan-filter-segment { grid-template-columns: repeat(4, 1fr) !important; }
+
+/* Internal card padding: 14pt/px on the primary content cards. Keep structural
+   containers and sheet rows untouched so their existing full-bleed layouts remain intact. */
+.home-hero, .home-panel, .home-stat, .home-actions-section,
+.insight-hero, .insight-panel, .insight-card, .insight-ai-card,
+.account-wallet-card, .account-activity-card, .account-native-card, .accounts-header-card,
+.asset-row-card, .assets-control-card, .assets-gold-card, .assets-summary-card,
+.ledger-card, .ledger-card-compact, .ledger-list-card,
+.loan-native-card, .loan-history-card, .loan-native-summary-card,
+.loan-overview-card, .planning-card, .planning-goal-card, .planning-summary-card,
+.rates-card, .rates-reference-card, .recurring-card, .vault-card, .loan-card {
+  padding: 14px !important;
+}
+
+/* Ledger cards: 20% more corner radius than the 26px app-wide card baseline. */
+.ledger-card, .ledger-card-compact, .ledger-list-card { border-radius: 31px !important; }
