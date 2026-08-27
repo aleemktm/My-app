@@ -184,6 +184,7 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 }
 .home-ring-inner { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 6%, transparent); }
 .home-rate-strip { padding:.75rem 0; }
+.home-rate-strip-minimal { justify-content:flex-end; gap:0; }
 .home-actions-section { border-radius:24px; padding:1.15rem 1rem; }
 .home-section-heading h2 { font-size:16px; }
 .home-section-heading>div>span { font-size:10px; }
@@ -1410,7 +1411,8 @@ html.dark .ios-security-lock-input{background:#18181b;border-color:rgba(255,255,
 
 
 /* Dynamic app-wide accent system — selected in Settings and applied across every tab. */
-:root { --af-accent: #14B8A6; }
+:root { --af-accent: #94EA1D; }
+html[data-af-accent="kiwi"] { --af-accent: #94EA1D; }
 html[data-af-accent="emerald"] { --af-accent: #1DBF73; }
 html[data-af-accent="teal"] { --af-accent: #14B8A6; }
 html[data-af-accent="blue"] { --af-accent: #3B82F6; }
@@ -1442,6 +1444,7 @@ html[data-af-accent="amber"] { --af-accent: #F59E0B; }
 
 /* Accent refinement: financial meaning colors stay fixed while controls follow the selected accent. */
 :root,
+html[data-af-accent="kiwi"],
 html[data-af-accent="emerald"],
 html[data-af-accent="teal"],
 html[data-af-accent="blue"],
@@ -3063,6 +3066,11 @@ html.dark .swipe-row.is-selected .loan-card-stack .loan-native-front {
 .loan-native-card.loan-card-borrowed { color:var(--af-accent); }
 .loan-native-card.loan-card-lent .loan-direction-icon { background:rgba(229,72,77,.09); color:#E5484D; }
 .loan-native-card.loan-card-borrowed .loan-direction-icon { background:color-mix(in srgb, var(--af-accent) 10%, transparent); color:var(--af-accent); }
+/* Round initials avatar (replaces the old direction arrow). Colour = direction:
+   lent uses the accent (base rule below), borrowed overrides to red. A direct
+   rule on .loan-avatar beats the inherited card text-colour set on .loan-card-lent. */
+.loan-avatar { width:36px; height:36px; flex:none; border-radius:50%; display:grid; place-items:center; font-size:13px; font-weight:800; letter-spacing:.01em; line-height:1; text-transform:uppercase; background:color-mix(in srgb, var(--af-accent) 15%, transparent); color:var(--af-accent); }
+.loan-native-card.loan-card-borrowed .loan-avatar { background:rgba(229,72,77,.13); color:#E5484D; }
 .loan-native-card.loan-card-lent .loan-outstanding strong { color:#E5484D; }
 .loan-native-card.loan-card-borrowed .loan-outstanding strong { color:var(--af-accent); }
 .loan-native-card.loan-card-lent .loan-progress-fill { background:#E5484D; }
@@ -3373,3 +3381,241 @@ html.dark .swipe-actions-left .swipe-action:nth-child(3) { background: rgba(255,
 .ledger-card, .ledger-card-compact, .ledger-list-card { border-radius: 31px !important; }
 
 .ledger-transfer-meta{display:flex;align-items:center;justify-content:flex-end;gap:.45rem;min-width:0;flex-wrap:wrap}.ledger-transfer-rate{font-size:9px;font-weight:700;color:var(--af-blue);white-space:nowrap}
+
+
+/* ==========================================================================
+   AleemFin UI Consistency Pass — Apple-platform spacing & component language
+   --------------------------------------------------------------------------
+   Presentation-only layer. Existing interaction/data classes are preserved.
+   Reference: Home tab + Apple-platform conventions (8pt rhythm, 16pt screen
+   margins, 44pt minimum hit targets, SF system typography, restrained radii).
+   ========================================================================== */
+:root {
+  --af-brand-kiwi: #94EA1D;
+  --af-screen-margin: 16px;
+  --af-space-1: 4px;
+  --af-space-2: 8px;
+  --af-space-3: 12px;
+  --af-space-4: 16px;
+  --af-space-5: 20px;
+  --af-space-6: 24px;
+  --af-card-radius: 20px;
+  --af-hero-radius: 24px;
+  --af-control-radius: 13px;
+  --af-hit: 44px;
+}
+
+html[data-af-accent="kiwi"] { --af-accent: var(--af-brand-kiwi); }
+
+/* SF Pro is the native iOS system stack. Keep Display/Text fallbacks for PWA/web. */
+html, body, button, input, select, textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif !important;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The app shell already supplies the 16pt horizontal screen margin. Keep it
+   explicit here so every tab shares one edge and never introduces its own
+   competing page inset. */
+main {
+  padding-left: var(--af-screen-margin) !important;
+  padding-right: var(--af-screen-margin) !important;
+}
+
+/* All tab roots use the same vertical rhythm as Home. */
+main > .overview-shell,
+main > .accounts-native,
+main > .loans-native,
+main > .rates-native,
+main > .recurring-native,
+main > .planning-premium,
+main > .assets-native,
+main > .settings-native,
+main > .space-y-4.max-w-2xl {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.accounts-native, .loans-native, .rates-native, .recurring-native,
+.planning-premium, .assets-native, .settings-native {
+  gap: var(--af-space-4) !important;
+}
+
+/* Home's visual hierarchy is the master: hero > section/card > row. */
+.accounts-header-card, .loans-header, .rates-hero, .recurring-hero,
+.assets-hero, .planning-hero, .insight-hero, .home-hero {
+  border-radius: var(--af-hero-radius) !important;
+}
+
+.home-actions-section, .home-panel, .home-stat,
+.accounts-header-card, .account-activity-card, .account-wallet-card,
+.ledger-card, .ledger-card-compact, .ledger-list-card,
+.loan-native-card, .loan-history-card, .loan-native-summary-card,
+.loan-overview-card, .planning-card, .planning-goal-card, .planning-summary-card,
+.rates-card, .rates-reference-card, .recurring-card, .recurring-next,
+.assets-control-card, .assets-gold-card, .assets-summary-card, .asset-row-card,
+.insight-panel, .insight-ai-card, .settings-card {
+  border-radius: var(--af-card-radius) !important;
+}
+
+/* Consistent card breathing room. Swipe mechanics remain on their outer row;
+   only the visible card receives the normal 16pt content inset. */
+.home-actions-section, .home-panel, .home-stat,
+.accounts-header-card, .account-activity-card, .account-wallet-card,
+.ledger-card, .ledger-card-compact, .ledger-list-card,
+.loan-native-card, .loan-history-card, .loan-native-summary-card,
+.loan-overview-card, .planning-card, .planning-goal-card, .planning-summary-card,
+.rates-card, .rates-reference-card, .recurring-card, .recurring-next,
+.recurring-card, .assets-control-card, .assets-gold-card, .assets-summary-card,
+.asset-row-card, .insight-panel, .insight-ai-card, .settings-card {
+  padding: 16px !important;
+}
+
+/* Do not pad structural containers that deliberately own their own layout. */
+.home-hero, .planning-premium, .assets-native, .settings-native,
+.insight-page { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* Apple-style 8pt spacing rhythm for the major content groups. */
+.home-dashboard, .insight-page { gap: var(--af-space-4) !important; }
+.accounts-list, .loans-list, .assets-list, .planning-list, .recurring-list,
+.recurring-next-list, .home-transaction-list, .home-account-list,
+.insight-category-list { gap: var(--af-space-2) !important; }
+.assets-list-section { gap: var(--af-space-3) !important; }
+
+/* Section headers use a predictable 8pt relationship to their content. */
+.home-section-heading, .home-panel-heading, .insight-panel-head,
+.assets-section-head, .recurring-section-head, .loan-card-topline,
+.account-activity-head { margin-bottom: var(--af-space-2) !important; }
+
+/* Native control sizing: Apple touch targets are never reduced below 44pt. */
+button, select, input[type="checkbox"], input[type="radio"], [role="button"] {
+  min-height: var(--af-hit);
+}
+
+.icon-select, .home-rate-icon-button, .assets-icon-button, .recurring-icon-button,
+.loan-icon-action, .settings-back-button {
+  width: var(--af-hit) !important;
+  height: var(--af-hit) !important;
+  min-width: var(--af-hit) !important;
+  min-height: var(--af-hit) !important;
+  border-radius: var(--af-control-radius) !important;
+}
+
+/* Icon language: consistent SF-Symbol-like scale without changing the icon set. */
+main button svg, main a svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 1.9 !important;
+}
+
+.home-action svg, .settings-icon svg, .account-wallet-icon svg,
+.asset-row-icon svg, .recurring-card-icon svg, .loan-native-summary-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Typography: native iOS hierarchy while preserving the app's existing Home
+   visual character. Avoid oversized browser/web headings on compact screens. */
+main h1 { font-size: 28px !important; line-height: 34px !important; font-weight: 700 !important; letter-spacing: -.02em !important; }
+main h2 { font-size: 17px !important; line-height: 22px !important; font-weight: 700 !important; letter-spacing: -.015em !important; }
+main h3 { font-size: 15px !important; line-height: 20px !important; font-weight: 600 !important; letter-spacing: -.01em !important; }
+main p, main label, main li { line-height: 20px; }
+
+.accounts-title, .assets-title, .planning-title, .rates-hero .accounts-title,
+.recurring-hero .accounts-title, .loans-header .accounts-title {
+  font-size: 24px !important;
+  line-height: 29px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.035em !important;
+}
+
+.accounts-eyebrow, .assets-eyebrow, .planning-eyebrow,
+.home-eyebrow, .insight-eyebrow, .insight-section-kicker,
+.recurring-section-head span, .assets-section-head span {
+  font-size: 10px !important;
+  line-height: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+}
+
+/* Form fields and compact buttons share the same iOS control geometry. */
+input, select, textarea {
+  min-height: 44px;
+  border-radius: var(--af-control-radius) !important;
+  font-size: 16px !important;
+  line-height: 20px !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: color-mix(in srgb, var(--af-accent) 58%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--af-accent) 13%, transparent) !important;
+}
+
+/* Accent: Neon Kiwi is the brand control/selection colour. Semantic red/blue
+   meanings remain unchanged for destructive and transfer states. */
+.af-accent-solid {
+  background: var(--af-accent) !important;
+  color: #10150a !important;
+}
+.af-accent-solid *, .af-accent-solid:hover { color: #10150a !important; }
+.mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+.mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  color: var(--af-accent) !important;
+  background: color-mix(in srgb, var(--af-accent) 14%, transparent) !important;
+}
+
+/* Keep dark surfaces genuinely dark; this also fixes the existing dark-mode
+   form background rule that used the label colour as a background. */
+html.dark input, html.dark select, html.dark textarea {
+  background: var(--af-surface-solid) !important;
+  color: var(--af-label) !important;
+}
+
+/* Remove accidental horizontal scrolling from every content page. */
+main, main > *, .accounts-native, .loans-native, .rates-native,
+.recurring-native, .planning-premium, .assets-native, .settings-native,
+.insight-page {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@media (max-width: 767px) {
+  main {
+    padding-left: var(--af-screen-margin) !important;
+    padding-right: var(--af-screen-margin) !important;
+    padding-top: 20px !important;
+  }
+  .home-hero { border-radius: 23px !important; }
+  .home-actions-section, .home-panel, .home-stat,
+  .accounts-header-card, .account-activity-card, .account-wallet-card,
+  .ledger-card, .ledger-card-compact, .ledger-list-card,
+  .loan-native-card, .loan-history-card, .loan-native-summary-card,
+  .loan-overview-card, .planning-card, .planning-goal-card, .planning-summary-card,
+  .rates-card, .rates-reference-card, .recurring-card, .recurring-next,
+  .assets-control-card, .assets-gold-card, .assets-summary-card, .asset-row-card,
+  .insight-panel, .settings-card {
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+  .accounts-title, .assets-title, .planning-title, .rates-hero .accounts-title,
+  .recurring-hero .accounts-title, .loans-header .accounts-title {
+    font-size: 24px !important;
+    line-height: 29px !important;
+  }
+  .home-action { min-height: 64px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* Final brand correction: Neon Kiwi is the app accent and therefore also the
+   positive/brand-green token when Kiwi is selected. */
+html[data-af-accent="kiwi"] { --af-green: var(--af-accent) !important; }

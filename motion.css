@@ -266,6 +266,37 @@
 .loan-settle-check path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: afCheckDraw .4s ease-out .18s forwards; }
 @keyframes afCheckDraw { to { stroke-dashoffset: 0; } }
 
+/* 9b-ii. Loans — after the checkmark morph, the settled card lifts and flies
+   up toward the Settled segment tab (top-right), shrinking and fading while its
+   row collapses so the list closes behind it. loans.js retains the card in the
+   active/type list for this window; the Settled tab pulses to confirm arrival.
+   Scoped to `loan-settling-away` (not `loan-just-settled`) so the card still
+   shows its glow normally when viewed on the Settled tab itself. */
+.swipe-row:has(.loan-settling-away) {
+  position: relative;
+  z-index: 3;
+  pointer-events: none;
+  transform-origin: 78% 0%;
+  will-change: transform, opacity, max-height;
+  animation: afLoanFlyToSettled .95s cubic-bezier(.5,0,.75,.4) both;
+}
+@keyframes afLoanFlyToSettled {
+  0%   { transform: translate3d(0,0,0) scale(1);          opacity: 1;   max-height: 340px; }
+  20%  { transform: translate3d(0,1px,0) scale(1.015);    opacity: 1;   max-height: 340px; }
+  60%  { transform: translate3d(18px,-26px,0) scale(.9);  opacity: .8;  max-height: 150px; }
+  100% { transform: translate3d(50px,-74px,0) scale(.56); opacity: 0;   max-height: 0; }
+}
+.loan-filter-tab.is-arriving { animation: afSettledTabArrive .8s cubic-bezier(.34,1.56,.64,1) .34s both; }
+.loan-filter-tab.is-arriving > span { animation: afSettledCountBump .7s cubic-bezier(.34,1.56,.64,1) .46s both; }
+@keyframes afSettledTabArrive {
+  0%,100% { transform: none;       box-shadow: 0 0 0 0 color-mix(in srgb, var(--af-accent) 0%, transparent); }
+  42%     { transform: scale(1.11); box-shadow: 0 0 0 4px color-mix(in srgb, var(--af-accent) 26%, transparent); }
+}
+@keyframes afSettledCountBump {
+  0%,100% { transform: none; }
+  45%     { transform: scale(1.32); }
+}
+
 /* 9c. Analytics — a brief ring glow when the health score changes value. */
 .insight-score-ring.score-just-changed { animation: afMoRingGlow 1.4s ease-out both; }
 
@@ -326,6 +357,7 @@ html.dark .af-skel-line { background: linear-gradient(90deg, rgba(255,255,255,.0
   .account-wallet-sheen, .insight-ai-card,
   .planning-goal-icon.is-celebrating, .goal-confetti i, .planning-goal-card.is-celebrating,
   .loan-native-front.loan-just-settled, .loan-settle-check, .loan-settle-check path,
+  .swipe-row:has(.loan-settling-away), .loan-filter-tab.is-arriving, .loan-filter-tab.is-arriving > span,
   .insight-score-ring.score-just-changed,
   .swipe-longpress-hint, .swipe-longpress-hint svg,
   .af-skel-line {
@@ -337,6 +369,7 @@ html.dark .af-skel-line { background: linear-gradient(90deg, rgba(255,255,255,.0
   .insight-score-ring::after { animation: none !important; content: none !important; }
   .loan-settle-check path { stroke-dashoffset: 0 !important; }
   .goal-confetti { display: none !important; }
+  .swipe-row:has(.loan-settling-away) { display: none !important; }
   .swipe-longpress-hint { transition: none !important; }
   .af-skel-line { background: rgba(120,120,128,.16) !important; }
   html.dark .af-skel-line { background: rgba(255,255,255,.08) !important; }
