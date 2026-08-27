@@ -57,7 +57,7 @@
 const SETTINGS_KEY = "aleemfin_settings_v1";
 const DEFAULT_SETTINGS = {
   theme: "dark",
-  accentColor: "emerald",
+  accentColor: "kiwi",
   heroMetric: "liquid",
   heroCardTheme: "dark",
   dashboardCards: ["accounts", "vault", "loans", "analytics"],
@@ -294,7 +294,7 @@ React.useEffect(() => {
 
 window.__aleemFinSoundEnabled = settings.soundEnabled === true;
 window.__aleemFinHapticsEnabled = settings.hapticsEnabled !== false;
-const safeAccentColor = ["emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "emerald";
+const safeAccentColor = ["kiwi", "emerald", "teal", "blue", "violet", "amber"].includes(settings.accentColor) ? settings.accentColor : "kiwi";
 if (settings.accentColor !== safeAccentColor) {
   try { updateSettings({ accentColor: safeAccentColor }); } catch (e) {}
 }
@@ -774,7 +774,7 @@ useEffect(() => {
   document.documentElement.classList.toggle("dark", darkMode);
 }, [darkMode]);
 useEffect(() => {
-  document.documentElement.dataset.afAccent = settings.accentColor || "emerald";
+  document.documentElement.dataset.afAccent = settings.accentColor || "kiwi";
 }, [settings.accentColor]);
 const [history, setHistory] = useState([]);
 const [redoStack, setRedoStack] = useState([]);
