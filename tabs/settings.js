@@ -130,7 +130,7 @@
 
     const themeLabel = settings.theme === "dark" ? "Dark" : settings.theme === "auto" ? "System" : "Light";
     const accentSwatches = [
-      ["emerald", "#10B981", "Original"], ["teal", "#14B8A6", "Teal"], ["blue", "#3B82F6", "Blue"],
+      ["kiwi", "#94EA1D", "Neon Kiwi"], ["emerald", "#10B981", "Original"], ["teal", "#14B8A6", "Teal"], ["blue", "#3B82F6", "Blue"],
       ["violet", "#8B5CF6", "Violet"], ["amber", "#F59E0B", "Amber"]
     ];
     const securityOn = !!(settings.pinLockEnabled || settings.biometricEnabled);

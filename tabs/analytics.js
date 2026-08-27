@@ -2,11 +2,15 @@
 // Uses the existing finance data model but presents it as a calm, native-iOS-inspired intelligence dashboard.
 (function () {
   const h = React.createElement;
-  const GREEN = "#1DBF73";
-  const RED = "#FF3B30";
-  const BLUE = "#007AFF";
-  const PURPLE = "#AF52DE";
-  const GRAY = "#8E8E93";
+  // Bind chart colors to the app-wide token system so the user's chosen accent
+  // flows through Insights. --af-green already tracks --af-accent for the
+  // green-family accents and holds at green where a hue clash would hurt
+  // legibility (blue/violet/amber) — matching .insight-positive elsewhere.
+  const GREEN = "var(--af-green)";
+  const RED = "var(--af-red)";
+  const BLUE = "var(--af-blue)";
+  const PURPLE = "var(--af-purple)";
+  const GRAY = "var(--af-gray)";
 
   function moneyDelta(value, fmt) {
     return `${value >= 0 ? "+" : "−"}${fmt(Math.abs(value))}`;
@@ -88,19 +92,19 @@
           const incH = Math.max(2, (Number(d.inc) || 0) / maxValue * (height - padY * 2));
           const expH = Math.max(2, (Number(d.exp) || 0) / maxValue * (height - padY * 2));
           return h("g", { key: d.key },
-            h("rect", { x: center - barW - 2, y: height - padY - incH, width: barW, height: incH, rx: 5, fill: GREEN }),
-            h("rect", { x: center + 2, y: height - padY - expH, width: barW, height: expH, rx: 5, fill: RED }));
+            h("rect", { x: center - barW - 2, y: height - padY - incH, width: barW, height: incH, rx: 5, style: { fill: GREEN } }),
+            h("rect", { x: center + 2, y: height - padY - expH, width: barW, height: expH, rx: 5, style: { fill: RED } }));
         }), labels);
     }
     const incomePoints = data.map((d, i) => `${xFor(i).toFixed(1)},${yFor(d.inc).toFixed(1)}`).join(" ");
     const spendingPoints = data.map((d, i) => `${xFor(i).toFixed(1)},${yFor(d.exp).toFixed(1)}`).join(" ");
     return h("svg", { viewBox: `0 0 ${width} ${height}`, className: "insight-comparison-chart", role: "img", "aria-label": "Income and spending comparison line chart" },
       grid,
-      h("polyline", { points: incomePoints, fill: "none", stroke: GREEN, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round" }),
-      h("polyline", { points: spendingPoints, fill: "none", stroke: RED, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round" }),
+      h("polyline", { points: incomePoints, fill: "none", strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", style: { stroke: GREEN } }),
+      h("polyline", { points: spendingPoints, fill: "none", strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", style: { stroke: RED } }),
       data.flatMap((d, i) => [
-        h("circle", { key: `${d.key}-inc`, cx: xFor(i), cy: yFor(d.inc), r: i === data.length - 1 ? 4 : 2.7, fill: darkMode ? "#18181B" : "#FFFFFF", stroke: GREEN, strokeWidth: "2" }),
-        h("circle", { key: `${d.key}-exp`, cx: xFor(i), cy: yFor(d.exp), r: i === data.length - 1 ? 4 : 2.7, fill: darkMode ? "#18181B" : "#FFFFFF", stroke: RED, strokeWidth: "2" })
+        h("circle", { key: `${d.key}-inc`, cx: xFor(i), cy: yFor(d.inc), r: i === data.length - 1 ? 4 : 2.7, fill: darkMode ? "#18181B" : "#FFFFFF", strokeWidth: "2", style: { stroke: GREEN } }),
+        h("circle", { key: `${d.key}-exp`, cx: xFor(i), cy: yFor(d.exp), r: i === data.length - 1 ? 4 : 2.7, fill: darkMode ? "#18181B" : "#FFFFFF", strokeWidth: "2", style: { stroke: RED } })
       ]), labels);
   }
 
@@ -137,7 +141,7 @@
           h("h1", { className: "insight-title" }, "Your money, in focus."),
           h("p", { className: "insight-subtitle" }, "A quiet read of your recent financial patterns.")),
         h("div", { className: "insight-score", title: "A simple wellness signal based on savings rate and emergency runway" },
-          h("div", { className: `insight-score-ring ${scoreJustChanged ? "score-just-changed" : ""}`, style: { background: `conic-gradient(${GREEN} ${score * 3.6}deg, rgba(29,191,115,.10) 0deg)` } },
+          h("div", { className: `insight-score-ring ${scoreJustChanged ? "score-just-changed" : ""}`, style: { background: `conic-gradient(${GREEN} ${score * 3.6}deg, color-mix(in srgb, var(--af-green) 10%, transparent) 0deg)` } },
             h("div", { className: "insight-score-inner" }, h("strong", null, score), h("span", null, "HEALTH"))))),
       h("div", { className: "insight-ai-card" },
         h("div", { className: "insight-ai-icon" }, "✦"),
@@ -273,7 +277,7 @@
     const categories = categoryBreakdown.slice(0, 5);
     const netWorthBase = Math.max(1, totalLiquidAED + totalPhysicalAED + totalLoansLentAED + totalLoansBorrowedAED);
     const segments = [
-      ["Accounts", totalLiquidAED, GREEN], ["Assets", totalPhysicalAED, "#FF9500"], ["Lent", totalLoansLentAED, BLUE], ["Borrowed", totalLoansBorrowedAED, RED]
+      ["Accounts", totalLiquidAED, GREEN], ["Assets", totalPhysicalAED, "var(--af-orange)"], ["Lent", totalLoansLentAED, BLUE], ["Borrowed", totalLoansBorrowedAED, RED]
     ];
     return h("div", { className: "insight-page" },
       h(InsightHero, props),

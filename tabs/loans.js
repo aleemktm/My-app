@@ -1,5 +1,10 @@
 // tabs/loans.js — Loans & Liabilities tab.
 (function () {
+  // The settle-to-Settled fly animation and its list retention rely on the CSS
+  // `:has()` selector (the same feature the segmented-control pill is gated
+  // behind). Where it is unavailable, fall back to the prior behaviour: a
+  // settled loan simply drops out of the active list immediately.
+  const supportsHas = typeof CSS !== "undefined" && !!(CSS.supports && CSS.supports("selector(:has(*))"));
   function Loans(props) {
     const {
       accounts, transactions = [], darkMode, dateFmt, expandedLoanHistory, fmt, loanFilter, loanSort,
@@ -24,11 +29,19 @@
     const lentCount = activeLoans.filter(l => l.type === "lent").length;
     const borrowedCount = activeLoans.filter(l => l.type === "borrowed").length;
     const settledCount = settledLoans.length;
-    const visibleLoans = loanFilter === "active"
-      ? activeLoans
-      : loanFilter === "settled"
-        ? settledLoans
-        : activeLoans.filter(l => l.type === loanFilter);
+    // A loan that was just marked fully paid has already dropped out of
+    // `activeLoans`. Keep its card rendered in the active/type views for the
+    // brief settle animation so it can visibly fly toward the Settled tab
+    // rather than blinking out. Counts above stay pure (Active −1 / Settled +1
+    // land immediately) so the badges show the true post-settle totals.
+    const isSettlingRow = l =>
+      supportsHas && justSettledLoanId != null && String(l.id) === String(justSettledLoanId) && metricsFor(l).isFullyPaid;
+    const visibleLoans = loanFilter === "settled"
+      ? settledLoans
+      : sortedLoans.filter(l => {
+          const inScope = loanFilter === "active" || l.type === loanFilter;
+          return inScope && (!metricsFor(l).isFullyPaid || isSettlingRow(l));
+        });
 
     const openRepayment = loan => {
       const outstanding = Math.max(0, Number(loan.amount || 0) - Number(loan.repaid || 0));
@@ -72,7 +85,7 @@
           h("button", {
             key: value, type: "button", role: "tab", "aria-selected": loanFilter === value,
             onClick: () => setLoanFilter(value),
-            className: `loan-filter-tab ${loanFilter === value ? "is-active" : ""}`
+            className: `loan-filter-tab ${loanFilter === value ? "is-active" : ""}${value === "settled" && justSettledLoanId != null && supportsHas ? " is-arriving" : ""}`
           }, label, h("span", null, count))
         )
       ),
@@ -114,6 +127,16 @@
               const percentPaid = Math.round(loanMetrics.percentPaid);
               const isFullyPaid = loanMetrics.isFullyPaid;
               const typeClass = loan.type === "lent" ? "loan-card-lent" : "loan-card-borrowed";
+              // Round initials avatar in place of the old direction arrow. Two
+              // letters: first+last word initial, or the first two letters of a
+              // single-word name; "?" when the name is blank. Colour conveys
+              // direction (lent = accent, borrowed = red) alongside the kind label.
+              const initials = (() => {
+                const parts = String(loan.name || "").trim().split(/\s+/).filter(Boolean);
+                if (!parts.length) return "?";
+                if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+              })();
               const expanded = !!expandedLoanHistory[loan.id];
               const isJustSettled = justSettledLoanId != null && String(justSettledLoanId) === String(loan.id);
 
@@ -172,7 +195,7 @@
               });
 
               const frontCard = h("div", {
-                className: `loan-native-card loan-native-front ${darkMode ? "loan-native-dark" : ""} ${typeClass} ${isJustSettled ? "loan-just-settled" : ""}`,
+                className: `loan-native-card loan-native-front ${darkMode ? "loan-native-dark" : ""} ${typeClass} ${isJustSettled ? "loan-just-settled" : ""}${isJustSettled && loanFilter !== "settled" && supportsHas ? " loan-settling-away" : ""}`,
                 "data-loan-id": String(loan.id),
                 onClick: () => {
                   // In selection mode, tapping a loan selects/deselects it instead of
@@ -191,8 +214,7 @@
               },
                 h("div", { className: "loan-card-topline" },
                   h("div", { className: "loan-person" },
-                    h("span", { className: "loan-direction-icon" },
-                      loan.type === "lent" ? h(Icons.IconArrowUp45, { className: "w-4 h-4" }) : h(Icons.IconArrowDown45, { className: "w-4 h-4" })),
+                    h("span", { className: "loan-avatar", "aria-hidden": "true" }, initials),
                     h("div", { className: "min-w-0" },
                       h("span", { className: `loan-kind ${isJustSettled ? "loan-kind-celebrate" : ""}` },
                         isFullyPaid ? "Settled" : (loan.type === "lent" ? "Lent out" : "Borrowed"),
