@@ -41,17 +41,15 @@
   header button[title="Backup (JSON)"], header label[title="Restore backup"] { display: none !important; }
   button[title="Edit exchange rates"] { display: none !important; }
   nav button svg { transform: scale(1.2); }
-  nav[class*="md:hidden"][class*="bottom-0"] { border-radius: 1.5rem 1.5rem 0 0; overflow: hidden; }
-  html:not(.dark) nav[class*="md:hidden"][class*="bottom-0"] { background: rgba(255,255,255,.96) !important; border-color: rgb(228,228,231) !important; }
-  html:not(.dark) nav[class*="md:hidden"][class*="bottom-0"] button:not([class*="text-"]) { color: rgb(113,113,122); }
+  /* Wrapper stays fully invisible — only the inner .af-floating-tabbar capsule renders glass. */
+  nav[class*="md:hidden"][class*="bottom-0"] { background: transparent !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; overflow: visible !important; }
 
 
 /* AleemFin visual refinement: glass tabs + subtle home gradients */
 header nav.hidden.md\:flex { background: rgba(24,24,27,.52) !important; border-color: rgba(255,255,255,.12) !important; -webkit-backdrop-filter: blur(18px) saturate(145%); backdrop-filter: blur(18px) saturate(145%); box-shadow: 0 8px 28px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.08); }
 header nav.hidden.md\:flex button { border: 1px solid transparent; }
 header nav.hidden.md\:flex button:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.08); }
-nav[class*="md:hidden"][class*="bottom-0"] { background: rgba(24,24,27,.62) !important; border-top-color: rgba(255,255,255,.12) !important; -webkit-backdrop-filter: blur(22px) saturate(155%); backdrop-filter: blur(22px) saturate(155%); box-shadow: 0 -10px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.08); }
-html:not(.dark) nav[class*="md:hidden"][class*="bottom-0"] { background: rgba(255,255,255,.62) !important; border-top-color: rgba(255,255,255,.78) !important; -webkit-backdrop-filter: blur(22px) saturate(155%); backdrop-filter: blur(22px) saturate(155%); box-shadow: 0 -10px 32px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8); }
+/* (wrapper glass removed — see rule near top of file; only .af-floating-tabbar should render glass) */
 [data-header-settings] { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.14) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
 html:not(.dark) [data-header-settings] { background: rgba(255,255,255,.62) !important; border-color: rgba(0,0,0,.08) !important; color: rgb(63,63,70) !important; }
 main > div > button.text-left.p-4.rounded-3xl { background-image: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,0)), linear-gradient(120deg, color-mix(in srgb, var(--af-accent) 5.5%, transparent), rgba(59,130,246,.025) 52%, rgba(139,92,246,.035)); background-blend-mode: screen, normal; }
@@ -186,6 +184,7 @@ nav.fixed.bottom-0 button svg { width:23px !important; height:23px !important; }
 }
 .home-ring-inner { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 6%, transparent); }
 .home-rate-strip { padding:.75rem 0; }
+.home-rate-strip-minimal { justify-content:flex-end; gap:0; }
 .home-actions-section { border-radius:24px; padding:1.15rem 1rem; }
 .home-section-heading h2 { font-size:16px; }
 .home-section-heading>div>span { font-size:10px; }
@@ -2091,36 +2090,82 @@ html.dark .swipe-action-add-more{color:var(--af-bg);background:rgba(255,255,255,
 html.dark .loan-date-line,html.dark .loan-tap-hint{border-color:transparent!important}
 html.dark .loan-due-date{color:#a7a7ad}
 
-/* Final cleanup: keep only the floating capsule visible. The older full-width
-   bottom-bar layers must remain completely transparent and square. */
+/* Final cleanup + Liquid Glass tab bar: only the floating capsule renders any
+   chrome. The wrapper and inner rows stay fully transparent and square. */
 .af-floating-tabbar-wrap,
 .af-floating-tabbar-wrap::before,
-.af-floating-tabbar-wrap::after,
-.af-floating-tabbar,
-.af-floating-tabbar::before,
-.af-floating-tabbar::after,
-.af-floating-tabbar .mobile-bottom-bar,
-.af-floating-tabbar .mobile-nav-swipe,
-.af-floating-tabbar .mobile-settings-fixed {
+.af-floating-tabbar-wrap::after {
   background: transparent !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
 }
 .af-floating-tabbar {
-  background: rgba(255,255,255,.72) !important;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden !important;
   border-radius: 999px !important;
+  background: rgba(255,255,255,.62) !important;
+  border: 1px solid rgba(255,255,255,.6) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+  box-shadow: 0 18px 40px rgba(15,23,42,.16),
+              inset 0 1px 0 rgba(255,255,255,.7),
+              inset 0 -1px 0 rgba(255,255,255,.18) !important;
+}
+.af-floating-tabbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 46%);
 }
 html.dark .af-floating-tabbar {
-  background: rgba(28,28,30,.72) !important;
+  background: rgba(30,30,32,.66) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow: 0 20px 44px rgba(0,0,0,.45),
+              inset 0 1px 0 rgba(255,255,255,.08),
+              inset 0 -1px 0 rgba(0,0,0,.25) !important;
+}
+html.dark .af-floating-tabbar::before {
+  background: linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,0) 46%);
 }
 .af-floating-tabbar .mobile-bottom-bar,
 .af-floating-tabbar .mobile-nav-swipe,
 .af-floating-tabbar .mobile-settings-fixed {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
 }
 .af-floating-tabbar .mobile-settings-fixed {
   border-left: 0 !important;
+}
+/* Liquid Glass active indicator: a glassy, accent-tinted pill that morphs
+   between tabs (position/size driven by JS in app/main.js). */
+.mobile-nav-active-pill {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--af-accent) 24%, white 76%) 0%,
+      color-mix(in srgb, var(--af-accent) 15%, transparent) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.65),
+              inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 32%, transparent),
+              0 4px 14px color-mix(in srgb, var(--af-accent) 22%, transparent) !important;
+  transition: transform .38s cubic-bezier(.34,1.45,.4,1),
+              width .38s cubic-bezier(.34,1.45,.4,1),
+              height .38s cubic-bezier(.34,1.45,.4,1),
+              background .2s ease, box-shadow .2s ease !important;
+}
+html.dark .mobile-nav-active-pill {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--af-accent) 34%, transparent) 0%,
+      color-mix(in srgb, var(--af-accent) 17%, transparent) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14),
+              inset 0 0 0 1px color-mix(in srgb, var(--af-accent) 40%, transparent),
+              0 4px 16px color-mix(in srgb, var(--af-accent) 28%, transparent) !important;
+}
+.af-floating-tabbar .mobile-nav-swipe .mobile-nav-tab.mobile-nav-tab-active,
+.af-floating-tabbar .mobile-settings-fixed .mobile-nav-tab.mobile-nav-tab-active {
+  color: var(--af-accent) !important;
 }
 
 
@@ -3019,6 +3064,11 @@ html.dark .swipe-row.is-selected .loan-card-stack .loan-native-front {
 .loan-native-card.loan-card-borrowed { color:var(--af-accent); }
 .loan-native-card.loan-card-lent .loan-direction-icon { background:rgba(229,72,77,.09); color:#E5484D; }
 .loan-native-card.loan-card-borrowed .loan-direction-icon { background:color-mix(in srgb, var(--af-accent) 10%, transparent); color:var(--af-accent); }
+/* Round initials avatar (replaces the old direction arrow). Colour = direction:
+   lent uses the accent (base rule below), borrowed overrides to red. A direct
+   rule on .loan-avatar beats the inherited card text-colour set on .loan-card-lent. */
+.loan-avatar { width:36px; height:36px; flex:none; border-radius:50%; display:grid; place-items:center; font-size:13px; font-weight:800; letter-spacing:.01em; line-height:1; text-transform:uppercase; background:color-mix(in srgb, var(--af-accent) 15%, transparent); color:var(--af-accent); }
+.loan-native-card.loan-card-borrowed .loan-avatar { background:rgba(229,72,77,.13); color:#E5484D; }
 .loan-native-card.loan-card-lent .loan-outstanding strong { color:#E5484D; }
 .loan-native-card.loan-card-borrowed .loan-outstanding strong { color:var(--af-accent); }
 .loan-native-card.loan-card-lent .loan-progress-fill { background:#E5484D; }
@@ -3229,40 +3279,107 @@ html.dark .settings-subpage-header {
 .settings-native { touch-action:pan-y !important; overscroll-behavior-x:none !important; }
 
 
-/* v100: separate AI insight card below the classic round net-flow Hero. */
-.home-ai-card{width:100%;box-sizing:border-box;min-height:104px;padding:.85rem 1rem;border-radius:20px;border:1px solid color-mix(in srgb,var(--af-accent) 14%,transparent);background:color-mix(in srgb,var(--af-accent) 5%,white);box-shadow:0 8px 24px rgba(15,23,42,.035);text-align:left;overflow:hidden;touch-action:pan-y;animation:afAiCardEnter .5s cubic-bezier(.22,1,.36,1) both;transition:transform .34s cubic-bezier(.22,1,.36,1),opacity .34s ease,max-height .34s ease,margin .34s ease,padding .34s ease}
-.home-ai-card-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.4rem}.home-ai-card-title{display:flex;align-items:center;gap:.45rem}.home-ai-card-eyebrow{font-size:7.5px;letter-spacing:.13em;font-weight:900;color:#94a3b8}.home-ai-card-pulse{width:7px;height:7px;border-radius:50%;background:var(--af-accent);box-shadow:0 0 0 0 color-mix(in srgb,var(--af-accent) 35%,transparent);animation:afMoneyPulse 2.2s ease-out infinite}.home-ai-card-hint{font-size:7px;font-weight:900;letter-spacing:.08em;color:var(--af-accent);opacity:.75}.home-ai-card strong{display:block;font-size:12px;line-height:1.42;font-weight:850;color:#27272a}.home-ai-card small{display:block;margin-top:.4rem;font-size:8.5px;line-height:1.4;color:#71717a}.home-ai-card-serious{border-color:rgba(225,29,72,.22);background:rgba(225,29,72,.055)}.home-ai-card-warning{border-color:rgba(245,158,11,.22);background:rgba(245,158,11,.055)}.home-ai-card-positive{border-color:color-mix(in srgb,var(--af-accent) 18%,transparent)}.home-ai-card-dark{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.08)}.home-ai-card-dark strong{color:#f4f4f5}.home-ai-card-dark small{color:#a1a1aa}.home-ai-card-dismissed{animation:none!important;transform:translate3d(-110%,0,0);opacity:0;max-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;pointer-events:none}
-@keyframes afAiCardEnter{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
-@media(max-width:640px){.home-ai-card{min-height:96px;padding:.75rem .82rem;border-radius:18px}.home-ai-card strong{font-size:11px}.home-ai-card small{font-size:8px}}
-.home-pulse{animation:afPulseEnter .6s cubic-bezier(.34,1.56,.64,1) .05s both;text-align:left;touch-action:none;overflow:hidden;will-change:transform,opacity;-webkit-user-select:none;user-select:none}.home-pulse-copy{text-align:left}.home-pulse-dismissed{animation:none!important;transform:translate3d(-110%,0,0);opacity:0;max-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;pointer-events:none}@keyframes afPulseEnter{0%{opacity:0;transform:translate3d(0,16px,0) scale(.94)}100%{opacity:1;transform:translate3d(0,0,0) scale(1)}}
-@media(prefers-reduced-motion:reduce){.home-ai-card,.home-pulse{animation:none!important;transition:none!important}.home-ai-card-pulse{animation:none!important}}
+/* v122: Home Pulse — native-feeling spring entrance and pointer/touch-driven swipe. */
+.home-pulse{animation:afPulseEnter .6s cubic-bezier(.34,1.56,.64,1) .05s both;text-align:left;touch-action:none;overflow:hidden;will-change:transform,opacity;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.home-pulse-copy{text-align:left}
+.home-pulse-dismissed{animation:none!important;transform:translate3d(-112%,0,0) scale(.97)!important;opacity:0!important;max-height:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;pointer-events:none}
+@keyframes afPulseEnter{0%{opacity:0;transform:translate3d(0,16px,0) scale(.94)}100%{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.home-pulse{animation:none!important;transition:none!important}}
 
-/* v101: interactive, springy dashboard swipe cards */
-.home-ai-card, .home-pulse {
-  will-change: transform, opacity;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.home-ai-card-dismissed, .home-pulse-dismissed {
-  animation: none !important;
-  transform: translate3d(-112%,0,0) scale(.97) !important;
-  opacity: 0 !important;
-  max-height: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-ai-card, .home-pulse { transition: none !important; }
-}
-
-/* v102: greeting/date row and native-feeling pointer-driven spring swipe. */
+/* v102: greeting/date row. */
+.home-hero-left{min-width:0;}
 .home-hero-greeting-row{display:flex;align-items:center;gap:8px;min-width:0;}
 .home-hero-greeting-row .home-eyebrow{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.home-hero-date{font-size:8px;font-weight:800;letter-spacing:.04em;color:#94a3b8;white-space:nowrap;flex:none;}
-.home-ai-card{touch-action:pan-y;will-change:transform,opacity;-webkit-user-select:none;user-select:none;}
+
+/* v128: date sits inline with the greeting (no pill, no absolute positioning —
+   that was overlapping the quote of the day). Same size/weight/case as the
+   greeting eyebrow. The recurring reminder sits on its own line underneath,
+   with a plain (no-circle) checkmark. */
+.home-hero-date{
+  font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:#94a3b8; white-space:nowrap; flex:none; margin-left:auto;
+}
+.home-hero .home-hero-date{ color:#a1a1aa !important; }
+.home-hero-reminder-line{
+  display:flex; align-items:center; gap:.3rem;
+  margin-top:.3rem;
+  font-size:11px; font-weight:600; color:#94a3b8;
+}
+.home-hero .home-hero-reminder-line{ color:#a1a1aa !important; }
+.home-hero-reminder-check{
+  font-size:12px; font-weight:800; line-height:1;
+  color: var(--af-accent); background:transparent; border:0; padding:0; margin:0;
+  -webkit-tap-highlight-color: transparent;
+}
+.home-hero-reminder-check:hover{ opacity:.75; }
+.home-hero-reminder-check:active{ transform:scale(.9); }
+
+
+
+/* v125 action consistency: dynamic right-side Ledger actions */
+.swipe-actions-right-dynamic { width: 144px; }
+.swipe-actions-right-dynamic.swipe-actions-right-three { width: 216px; }
+.swipe-actions-right-dynamic .swipe-action { width: 72px; min-width:72px; padding-left:4px; padding-right:4px; }
+.swipe-actions-right-dynamic .swipe-action span { display:block; font-size:9px; line-height:1.1; margin-top:3px; white-space:nowrap; }
+.swipe-actions-right-three { grid-template-columns: repeat(3, 72px) !important; }
+.swipe-actions-left-three { width:216px !important; grid-template-columns:repeat(3,72px) !important; }
+
+/* v126 Ledger/Loan swipe action refinement: native iOS-inspired iconography and muted action tones. */
+.swipe-actions-left { width: 144px !important; grid-template-columns: repeat(var(--swipe-left-count, 2), minmax(0, 1fr)) !important; }
+.swipe-actions-left-three { width: 216px !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.swipe-action { min-width: 0 !important; gap: 4px !important; font-size: 10px !important; font-weight: 700 !important; letter-spacing: -.01em; }
+.swipe-action svg { width: 18px !important; height: 18px !important; stroke-width: 1.9 !important; }
+.swipe-action-comment { background: rgba(118,118,128,.10) !important; color: var(--af-gray) !important; }
+.swipe-action-pin { background: rgba(118,118,128,.12) !important; color: var(--af-text) !important; }
+.swipe-action-category { background: color-mix(in srgb,var(--af-accent) 10%,transparent) !important; color: var(--af-accent) !important; }
+.swipe-action-record { background: color-mix(in srgb,var(--af-accent) 10%,transparent) !important; color: var(--af-accent) !important; }
+.swipe-action-add-more { background: rgba(118,118,128,.10) !important; color: var(--af-text) !important; }
+.swipe-action-skip { background: rgba(118,118,128,.10) !important; color: var(--af-gray) !important; }
+html.dark .swipe-action-comment, html.dark .swipe-action-pin, html.dark .swipe-action-add-more, html.dark .swipe-action-skip { background: rgba(255,255,255,.075) !important; color: var(--af-text) !important; }
+html.dark .swipe-action-category, html.dark .swipe-action-record { background: color-mix(in srgb,var(--af-accent) 18%,transparent) !important; color: var(--af-accent) !important; }
+.swipe-action:disabled { opacity: .38; }
+
+/* v129: swipe-left-to-right action buttons — solid brand colors instead of
+   tinted backgrounds, applied by position so every screen (Ledger, Loans,
+   Recurring, Home) shows the same 1st=accent / 2nd=black / 3rd=gray pattern
+   regardless of which action occupies that slot. Higher specificity than the
+   kind-based rules above (which stay as sane fallbacks for any 2-button row). */
+.swipe-actions-left .swipe-action:nth-child(1) { background: var(--af-accent) !important; color: var(--af-surface-solid) !important; }
+.swipe-actions-left .swipe-action:nth-child(2) { background: #2C2C2E !important; color: #FFFFFF !important; }
+.swipe-actions-left .swipe-action:nth-child(3) { background: rgba(142,142,147,.16) !important; color: var(--af-gray) !important; }
+html.dark .swipe-actions-left .swipe-action:nth-child(1) { background: var(--af-accent) !important; color: var(--af-surface-solid) !important; }
+html.dark .swipe-actions-left .swipe-action:nth-child(2) { background: #2C2C2E !important; color: #FFFFFF !important; }
+html.dark .swipe-actions-left .swipe-action:nth-child(3) { background: rgba(255,255,255,.12) !important; color: #FFFFFF !important; }
+.swipe-actions-left .swipe-action:nth-child(1) svg,
+.swipe-actions-left .swipe-action:nth-child(2) svg,
+.swipe-actions-left .swipe-action:nth-child(3) svg { color: currentColor; }
+
+/* v75 — Loans completion tabs, unified 14pt card breathing room, and Ledger radius refinement.
+   Scoped to :not(.is-two) — this must only widen the 4-tab Loans filter
+   (Active/Lent/Borrowed/Settled). Without the exclusion it also overrode the
+   2-tab segments (Home's Recent Activity/Insights, Planning, Assets),
+   forcing them into a 4-column grid and left-aligning both tabs instead of
+   filling the row. */
+.loan-filter-segment:not(.is-two) { grid-template-columns: repeat(4, 1fr) !important; }
+
+/* Internal card padding: 14pt/px on the primary content cards. Keep structural
+   containers and sheet rows untouched so their existing full-bleed layouts remain intact. */
+.home-hero, .home-panel, .home-stat, .home-actions-section,
+.insight-hero, .insight-panel, .insight-card, .insight-ai-card,
+.account-wallet-card, .account-activity-card, .account-native-card, .accounts-header-card,
+.asset-row-card, .assets-control-card, .assets-gold-card, .assets-summary-card,
+.ledger-card, .ledger-card-compact, .ledger-list-card,
+.loan-native-card, .loan-history-card, .loan-native-summary-card,
+.loan-overview-card, .planning-card, .planning-goal-card, .planning-summary-card,
+.rates-card, .rates-reference-card, .recurring-card, .vault-card, .loan-card {
+  padding: 14px !important;
+}
+
+/* Ledger cards: 20% more corner radius than the 26px app-wide card baseline. */
+.ledger-card, .ledger-card-compact, .ledger-list-card { border-radius: 31px !important; }
+
+.ledger-transfer-meta{display:flex;align-items:center;justify-content:flex-end;gap:.45rem;min-width:0;flex-wrap:wrap}.ledger-transfer-rate{font-size:9px;font-weight:700;color:var(--af-blue);white-space:nowrap}
+
 
 
 /* v120/v121 dashboard refinement: remove Net Flow ring/hairline and place the visibility control beside Available Wealth. */
@@ -3294,21 +3411,163 @@ html.dark .settings-subpage-header {
   .home-hero-visibility-button { width:32px; height:32px; }
 }
 
+/* v121 Home dashboard refinement: quick entry lives inside the hero, directly under the buffer/savings row. */
+.home-hero-quick-entry {
+  width:100%;
+  margin-top:1rem;
+  padding-top:.85rem;
+  border-top:1px solid color-mix(in srgb, var(--af-accent) 9%, transparent);
+}
+.home-hero-quick-entry-label {
+  display:block;
+  margin-bottom:.65rem;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--af-gray);
+}
+.home-hero-quick-entry .home-actions-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:.7rem;
+}
+.home-hero-quick-entry .home-action {
+  min-height:64px;
+  width:100%;
+  flex-direction:column;
+  gap:.28rem;
+  border:0;
+  border-radius:999px !important;
+  background:rgba(255,255,255,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(0,0,0,.035), 0 8px 18px rgba(15,23,42,.035);
+  -webkit-backdrop-filter:blur(14px) saturate(125%);
+  backdrop-filter:blur(14px) saturate(125%);
+  color:inherit;
+}
+.home-hero-quick-entry .home-action-icon {
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:rgba(255,255,255,.24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+}
+.home-hero-quick-entry .home-action svg { width:18px !important; height:18px !important; }
+.home-hero-quick-entry .home-action:hover { transform:translateY(-2px); box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 22px rgba(15,23,42,.07); }
+.home-hero-dark .home-hero-quick-entry { border-top-color:rgba(255,255,255,.08); }
+.home-hero-dark .home-hero-quick-entry .home-action {
+  background:rgba(255,255,255,.065);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.11), inset 0 -1px 0 rgba(0,0,0,.12), 0 8px 20px rgba(0,0,0,.08);
+}
+.home-hero-dark .home-hero-quick-entry .home-action-icon { background:rgba(255,255,255,.08); box-shadow:inset 0 1px 0 rgba(255,255,255,.12); }
+.home-recent-activity {
+  background:transparent !important;
+  border-color:transparent !important;
+  box-shadow:none !important;
+  padding-left:0 !important;
+  padding-right:0 !important;
+}
+.home-recent-activity.home-panel-dark { background:transparent !important; border-color:transparent !important; box-shadow:none !important; }
+@media(max-width:640px){
+  .home-hero-quick-entry { margin-top:.85rem; padding-top:.7rem; }
+  .home-hero-quick-entry .home-actions-grid { gap:.45rem; }
+  .home-hero-quick-entry .home-action { min-height:62px; }
+}
+
 /* v122 Home hero: seamless full-bleed gradient, content directly on the background. */
 .home-dashboard { position:relative; isolation:isolate; }
-.home-hero { position:relative; z-index:0; overflow:visible !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; padding:1.35rem 1.4rem 1.1rem !important; }
-.home-hero::before { content:""; position:absolute; z-index:-2; top:0; bottom:0; left:50%; width:100vw; transform:translateX(-50%); pointer-events:none; background:radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--af-accent) 18%, transparent), transparent 34%), linear-gradient(145deg, rgba(247,250,249,.98) 0%, rgba(238,248,244,.96) 48%, rgba(245,247,255,.98) 100%); }
-.home-hero-dark::before { background:radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--af-accent) 20%, transparent), transparent 34%), linear-gradient(145deg, #111615 0%, #0f1817 52%, #111421 100%); }
+.home-hero {
+  position:relative;
+  z-index:0;
+  overflow:visible !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  padding:1.35rem 1.4rem 1.1rem !important;
+}
+.home-hero::before {
+  content:"";
+  position:absolute;
+  z-index:-2;
+  top:0;
+  bottom:0;
+  left:50%;
+  width:100vw;
+  transform:translateX(-50%);
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--af-accent) 18%, transparent), transparent 34%),
+    linear-gradient(145deg, rgba(247,250,249,.98) 0%, rgba(238,248,244,.96) 48%, rgba(245,247,255,.98) 100%);
+}
+.home-hero-dark::before {
+  background:
+    radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--af-accent) 20%, transparent), transparent 34%),
+    linear-gradient(145deg, #111615 0%, #0f1817 52%, #111421 100%);
+}
 .home-hero-glow { display:none !important; }
-.home-hero-top,.home-hero-main { position:relative; z-index:1; }
+.home-hero-top,
+.home-hero-main { position:relative; z-index:1; }
 .home-hero-main { padding:2rem 0 1.15rem !important; }
-.home-hero-quick-entry { border-top:0 !important; padding-top:.25rem !important; margin-top:1rem !important; }
-.home-hero-quick-entry-label { text-align:center; margin-bottom:.7rem; }
-.home-hero-quick-entry .home-actions-grid { display:flex !important; justify-content:center; align-items:flex-start; gap:clamp(.65rem,2.5vw,1.1rem) !important; }
-.home-hero-quick-entry .home-action { width:68px !important; min-width:68px !important; height:68px !important; min-height:68px !important; padding:0 !important; flex:0 0 68px; border-radius:50% !important; border:1px solid rgba(255,255,255,.52) !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:.22rem !important; background:rgba(255,255,255,.20) !important; color:#27272a !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.04), 0 10px 24px rgba(15,23,42,.08) !important; -webkit-backdrop-filter:blur(18px) saturate(150%); backdrop-filter:blur(18px) saturate(150%); }
-.home-hero-quick-entry .home-action-icon { width:30px !important; height:30px !important; border-radius:50% !important; background:rgba(255,255,255,.24) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.42); }
+
+/* Floating circular quick-entry controls directly on the gradient. */
+.home-hero-quick-entry {
+  border-top:0 !important;
+  padding-top:.25rem !important;
+  margin-top:1rem !important;
+}
+.home-hero-quick-entry-label {
+  text-align:center;
+  margin-bottom:.7rem;
+}
+.home-hero-quick-entry .home-actions-grid {
+  display:flex !important;
+  justify-content:center;
+  align-items:flex-start;
+  gap:clamp(.65rem,2.5vw,1.1rem) !important;
+}
+.home-hero-quick-entry .home-action {
+  width:68px !important;
+  min-width:68px !important;
+  height:68px !important;
+  min-height:68px !important;
+  padding:0 !important;
+  flex:0 0 68px;
+  border-radius:50% !important;
+  border:1px solid rgba(255,255,255,.52) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:.22rem !important;
+  background:rgba(255,255,255,.20) !important;
+  color:#27272a !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.04), 0 10px 24px rgba(15,23,42,.08) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  backdrop-filter:blur(18px) saturate(150%);
+}
+.home-hero-quick-entry .home-action-icon {
+  width:30px !important;
+  height:30px !important;
+  border-radius:50% !important;
+  background:rgba(255,255,255,.24) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42);
+}
 .home-hero-quick-entry .home-action svg { width:17px !important; height:17px !important; }
 .home-hero-quick-entry .home-action > span:last-child { font-size:8px !important; font-weight:800 !important; }
-.home-hero-dark .home-hero-quick-entry .home-action { background:rgba(255,255,255,.075) !important; border-color:rgba(255,255,255,.14) !important; color:#f4f4f5 !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.14), 0 10px 26px rgba(0,0,0,.14) !important; }
+.home-hero-dark .home-hero-quick-entry .home-action {
+  background:rgba(255,255,255,.075) !important;
+  border-color:rgba(255,255,255,.14) !important;
+  color:#f4f4f5 !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.14), 0 10px 26px rgba(0,0,0,.14) !important;
+}
 .home-hero-dark .home-hero-quick-entry .home-action-icon { background:rgba(255,255,255,.09) !important; }
-@media(max-width:640px){ .home-hero { padding:1rem 1rem 1rem !important; } .home-hero-main { padding:1.5rem 0 1rem !important; } .home-hero-quick-entry { margin-top:.85rem !important; padding-top:.1rem !important; } .home-hero-quick-entry .home-actions-grid { gap:.48rem !important; } .home-hero-quick-entry .home-action { width:62px !important; min-width:62px !important; height:62px !important; min-height:62px !important; flex-basis:62px; } .home-hero-quick-entry .home-action-icon { width:27px !important; height:27px !important; } .home-hero-quick-entry .home-action > span:last-child { font-size:7px !important; } }
+@media(max-width:640px){
+  .home-hero { padding:1rem 1rem 1rem !important; }
+  .home-hero-main { padding:1.5rem 0 1rem !important; }
+  .home-hero-quick-entry { margin-top:.85rem !important; padding-top:.1rem !important; }
+  .home-hero-quick-entry .home-actions-grid { gap:.48rem !important; }
+  .home-hero-quick-entry .home-action { width:62px !important; min-width:62px !important; height:62px !important; min-height:62px !important; flex-basis:62px; }
+  .home-hero-quick-entry .home-action-icon { width:27px !important; height:27px !important; }
+  .home-hero-quick-entry .home-action > span:last-child { font-size:7px !important; }
+}
