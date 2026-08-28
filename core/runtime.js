@@ -257,18 +257,6 @@ var toLocalISO = d => {
 };
 var todayISO = () => toLocalISO(/* @__PURE__ */new Date());
 var ACCENT_PALETTE = {
-  kiwi: {
-    name: "Neon Kiwi",
-    grad: "af-accent-grad",
-    text: "af-accent-text",
-    text400: "af-accent-text400",
-    textStrong: "af-accent-textStrong",
-    solidBtn: "af-accent-solid",
-    activeBg: "af-accent-bg15",
-    activeBg10: "af-accent-bg10",
-    activeBg20: "af-accent-bg20",
-    swatch: ""
-  },
   emerald: {
     name: "Original",
     grad: "from-emerald-500 to-teal-400 af-accent-grad",
