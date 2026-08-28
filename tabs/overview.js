@@ -91,20 +91,24 @@
         h("div", { className: "home-hero-main" },
           h("div", null,
             h("span", { className: "home-metric-label" }, heroLabel),
-            h("div", { className: "home-metric" }, heroWealthHidden ? "••••••" : fmt(heroValue)),
+            h("div", { className: "home-metric-amount-row" },
+              h("div", { className: "home-metric" }, heroWealthHidden ? "••••••" : fmt(heroValue)),
+              h("button", { type: "button", onClick: toggleHeroWealthVisibility, title: heroWealthHidden ? "Show wealth" : "Hide wealth", "aria-label": heroWealthHidden ? "Show wealth" : "Hide wealth", className: "home-hero-visibility-button" }, heroWealthHidden ? h(Icons.IconEyeOff, { className: "w-4 h-4" }) : h(Icons.IconEye, { className: "w-4 h-4" }))
+            ),
             h("div", { className: "home-secondary-metric" }, secondaryLabel + " · " + (heroWealthHidden ? "••••" : fmt(secondaryValue))),
             h("div", { className: "home-health-row" },
               h("span", { className: `home-health-chip ${runwayStatus.cls || ""}` }, runwayStatus.label),
               h("span", { className: isPositive ? "home-positive" : "home-negative" }, savingsRate === null ? "Savings rate N/A" : `${savingsRate}% saved this month`)
+            ),
+            h("div", { className: "home-hero-quick-entry", "aria-label": "Quick entry" },
+              h("span", { className: "home-hero-quick-entry-label" }, "Quick Entry"),
+              h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
+                homeAction("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
+                homeAction("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
+                homeAction("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
+                homeAction("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
+              )
             )
-          ),
-          h("div", { className: "home-hero-ring", style: { "--ring-progress": `${Math.max(0, Math.min(100, Number(savingsRate) || 0))}%` }, "aria-hidden": "true" },
-            h("div", { className: "home-ring-inner" }, h("span", null, "MONTHLY"), h("strong", { className: isPositive ? "home-positive" : "home-negative" }, fmt(monthlySavingsAED)), h("small", null, "net flow"))
-          )
-        ),
-        h("div", { className: "home-rate-strip home-rate-strip-minimal" },
-          h("div", { className: "home-rate-actions" },
-            h("button", { type: "button", onClick: toggleHeroWealthVisibility, title: heroWealthHidden ? "Show wealth" : "Hide wealth", "aria-label": heroWealthHidden ? "Show wealth" : "Hide wealth", className: "home-rate-icon-button" }, heroWealthHidden ? h(Icons.IconEyeOff, { className: "w-3.5 h-3.5" }) : h(Icons.IconEye, { className: "w-3.5 h-3.5" }))
           )
         )
       ),
@@ -263,16 +267,6 @@
         );
       })(),
 
-      h("section", { className: "home-actions-section" },
-        h("div", { className: "home-actions-grid", onTouchStart: e => e.stopPropagation(), onTouchEnd: e => e.stopPropagation(), onTouchMove: e => e.stopPropagation() },
-          homeAction("Income", Icons.IconPlus, "income", () => openAddModal("income", { category: "Salary" })),
-          homeAction("Expense", Icons.IconPlus, "expense", () => openAddModal("expense", { category: "Groceries" })),
-          homeAction("Transfer", Icons.IconTransfer, "transfer", () => openAddModal("transfer")),
-          homeAction("Loan", Icons.IconLoan, "loan", () => openAddModal("loan"))
-        )
-      ),
-
-
             h("section", { className: "home-stats-grid" }, (() => {
         const cardCount = settings.dashboardCardCount === 2 ? 2 : 4;
         const selected = (Array.isArray(settings.dashboardCards) ? settings.dashboardCards : []).slice(0, cardCount);
@@ -316,7 +310,7 @@
         }, "Insights")
       ),
       subTab === "recent" ? h("div", { className: "home-subtab-content" },
-        h("section", { className: `home-panel ${darkMode ? "home-panel-dark" : ""}` },
+        h("section", { className: `home-panel home-recent-activity ${darkMode ? "home-panel-dark" : ""}` },
           selectionToolbar && h("div", { className: "home-selection-toolbar-wrap" }, selectionToolbar),
           h("div", { className: "home-panel-heading" }, h("div", null, h("span", null, "RECENT ACTIVITY"), h("h2", null, "Latest transactions")), h("button", { type: "button", onClick: () => setActiveTab("transactions"), className: `home-text-link ${accent.text}` }, "View all →")),
           transactions.length ? h("div", { className: "home-transaction-list" }, transactions.slice(0, 5).map(renderTxRow)) : h("div", { className: "home-empty" }, h("div", { className: "home-empty-icon" }, h(Icons.IconLedger, { className: "w-5 h-5" })), h("strong", null, "No transactions yet"), h("span", null, "Your latest income and expenses will appear here."))
